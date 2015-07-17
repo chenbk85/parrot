@@ -43,9 +43,9 @@ all: $(TARGETS)
 
 .PHONY: clean
 clean:
-	@find . -name '*.o' -exec $(RM) {} \;
-	@find . -name '*.d' -exec $(RM) {} \;
-	@$(RM) ./bin/*
+	@find $(PRJ_ROOT) -name '*.o' -exec $(RM) {} \;
+	@find $(PRJ_ROOT) -name '*.d' -exec $(RM) {} \;
+	@$(RM) $(PRJ_ROOT)/libs/* $(PRJ_ROOT)/bin/*
 
 .PHONY: tarball
 tarball:
