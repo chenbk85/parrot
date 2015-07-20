@@ -1,5 +1,4 @@
 #include <system_error>
-
 #include "rwLock.h"
 
 namespace parrot
