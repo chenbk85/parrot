@@ -54,29 +54,29 @@ namespace parrot
         }
 
         //////////////////////////////////////////////////////////////
-        /// ReadLockHelper
+        /// ReadLockGuard
         /////////////////////
-        ReadLockHelper::ReadLockHelper(RwLock &lock):
+        ReadLockGuard::ReadLockGuard(RwLock &lock):
             _lock(lock)
         {
             _lock.lockRead();
         }
 
-        ReadLockHelper::~ReadLockHelper()
+        ReadLockGuard::~ReadLockGuard()
         {
             _lock.unlock();
         }
 
         //////////////////////////////////////////////////////////////
-        /// WriteLockHelper
+        /// WriteLockGuard
         /////////////////////
-        WriteLockHelper::WriteLockHelper(RwLock &lock):
+        WriteLockGuard::WriteLockGuard(RwLock &lock):
             _lock(lock)
         {
             _lock.lockWrite();
         }
 
-        WriteLockHelper::~WriteLockHelper()
+        WriteLockGuard::~WriteLockGuard()
         {
             _lock.unlock();
         }

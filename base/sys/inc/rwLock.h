@@ -24,25 +24,25 @@ namespace parrot
             pthread_rwlock_t _rwLock;
         };
 
-        class ReadLockHelper
+        class ReadLockGuard
         {
           public:
-            ReadLockHelper(RwLock &lock);            
-            ~ReadLockHelper();
-            ReadLockHelper(const ReadLockHelper &) = delete;
-            ReadLockHelper(ReadLockHelper &&) = delete;
+            ReadLockGuard(RwLock &lock);            
+            ~ReadLockGuard();
+            ReadLockGuard(const ReadLockGuard &) = delete;
+            ReadLockGuard(ReadLockGuard &&) = delete;
 
           private:
             RwLock &_lock;
         };
 
-        class WriteLockHelper
+        class WriteLockGuard
         {
           public:
-            WriteLockHelper(RwLock &lock);
-            ~WriteLockHelper();
-            WriteLockHelper(const WriteLockHelper &) = delete;
-            WriteLockHelper(WriteLockHelper &&) = delete;
+            WriteLockGuard(RwLock &lock);
+            ~WriteLockGuard();
+            WriteLockGuard(const WriteLockGuard &) = delete;
+            WriteLockGuard(WriteLockGuard &&) = delete;
 
           private:
             RwLock &_lock;
