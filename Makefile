@@ -14,6 +14,8 @@ OS                   := $(shell uname)
 # Global variables.
 PRJ_ROOT             := .
 SUB_MAKEFILES        := $(shell find . -name module.mk)
+NOTICE_COLOR         := 2
+COMMAND_COLOR        := 4
 
 # Complier and linker
 COMPLIER             := g++ -std=c++11

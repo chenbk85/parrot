@@ -32,12 +32,12 @@ LIBRARIES             += $($(MODULE)_TARGET)
 $($(MODULE)_DIR)/obj/%.o: LOCAL_CPPFLAGS := $($(MODULE)_CPPFLAGS)
 $($(MODULE)_DIR)/obj/%.o: LOCAL_INCLUDE  := $($(MODULE)_INC)
 $($(MODULE)_DIR)/obj/%.o: $($(MODULE)_DIR)/src/%.cpp
-	@echo "Building source $^"
+	@tput setaf $(NOTICE_COLOR); echo "Building source $^"; tput setaf $(COMMAND_COLOR)
 	$(COMPLIER) $(COMPLIER_OPTIONS) $(LOCAL_CPPFLAGS) $(LOCAL_INCLUDE) -c $^ -o $@
-	@echo
+	@echo; tput setaf 0
 
 $($(MODULE)_TARGET): LOCAL_TARGET := $($(MODULE)_TARGET)
 $($(MODULE)_TARGET): $($(MODULE)_OBJ)
-	@echo "Building library $(LOCAL_TARGET)"
+	@tput setaf $(NOTICE_COLOR); echo "Building library $(LOCAL_TARGET)"; tput setaf $(COMMAND_COLOR)
 	$(AR) -rcv $@ $^
-	@echo
+	@echo; tput setaf 0
