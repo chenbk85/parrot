@@ -29,8 +29,15 @@ $(MODULE)_INC         := $(addprefix -I ,$($(MODULE)_INC))
 OBJECTS               += $($(MODULE)_OBJ)
 LIBRARIES             += $($(MODULE)_TARGET)
 
+$($(MODULE)_DIR)/obj/%.o: LOCAL_CPPFLAGS := $($(MODULE)_CPPFLAGS)
+$($(MODULE)_DIR)/obj/%.o: LOCAL_INCLUDE  := $($(MODULE)_INC)
 $($(MODULE)_DIR)/obj/%.o: $($(MODULE)_DIR)/src/%.cpp
-	$(COMPLIER) $(COMPLIER_OPTIONS) $($(MODULE)_CPPFLAGS) $($(MODULE)_INC) -c $^ -o $@
+	@echo "Building source $^"
+	$(COMPLIER) $(COMPLIER_OPTIONS) $(LOCAL_CPPFLAGS) $(LOCAL_INCLUDE) -c $^ -o $@
+	@echo
 
+$($(MODULE)_TARGET): LOCAL_TARGET := $($(MODULE)_TARGET)
 $($(MODULE)_TARGET): $($(MODULE)_OBJ)
+	@echo "Building library $(LOCAL_TARGET)"
 	$(AR) -rcv $@ $^
+	@echo
