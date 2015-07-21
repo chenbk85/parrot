@@ -26,7 +26,8 @@ $(MODULE)_INC         += $(COMP_INC) $(BASE_INC)
 $(MODULE)_INC         := $(addprefix -I ,$($(MODULE)_INC))
 
 # Add this module to targets.
-TARGETS               += $($(MODULE)_TARGET)
+OBJECTS               += $($(MODULE)_OBJ)
+LIBRARIES             += $($(MODULE)_TARGET)
 
 $($(MODULE)_DIR)/obj/%.o: $($(MODULE)_DIR)/src/%.cpp
 	$(COMPLIER) $(COMPLIER_OPTIONS) $($(MODULE)_CPPFLAGS) $($(MODULE)_INC) -c $^ -o $@

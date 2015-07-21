@@ -1,8 +1,11 @@
+# Functions
 subdirectory = $(patsubst %/module.mk,%, \
 	$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))
 
-# Hold all targets.
-TARGETS              :=
+# Targets
+OBJECTS              :=
+LIBRARIES            :=
+BINARIES             :=
 
 # System variables.
 ARCH                 := $(shell arch)
@@ -38,7 +41,7 @@ help:
 include $(SUB_MAKEFILES)
 
 .PHONY: all
-all: $(TARGETS)
+all: $(OBJECTS) $(LIBRARIES) $(BINARIES)
 
 .PHONY: clean
 clean:
