@@ -34,7 +34,6 @@ MV                   := mv
 AR                   := ar
 
 help:
-	@echo
 	@echo "make all       - Build all projects."
 	@echo "make <proj>    - Build project 'proj' which is the directory name in projects directory."
 	@echo "make clean     - Remove object files, generated libraries, binaries and emacs tmp files."
