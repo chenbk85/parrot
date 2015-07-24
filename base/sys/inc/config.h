@@ -24,7 +24,7 @@ namespace parrot
         std::string              _logName           = "";
         uint64_t                 _logSize           = 104857600L; // 100MB.
         uint32_t                 _rotateNum         = 1;
-        // 0 means log everything.
+        // 0: INFO, 1: DEBUG, 2: WARN, 3: ERROR, 4: FATAL
         uint8_t                  _logLevel          = 0;
 
         // MySQL configurations.
