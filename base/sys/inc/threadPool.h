@@ -30,9 +30,7 @@ namespace parrot
       public:
         void create()
         {
-#ifdef DEBUG
-            ASSERT(_count > 0);
-#endif
+            PARROT_ASSERT(_count > 0);
             for (auto i = 0u; i != _count; ++i)
             {
                 _threadVec.embrace_back(

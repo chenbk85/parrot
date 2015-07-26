@@ -6,17 +6,19 @@
 #include <cassert>
 
 /**
- * ASSERT
+ * PARROT_ASSERT
  *
  * Sleep 1 second to let logger thread finish logging before assert.
  */
-#define ASSERT(x)                                                   \
+#define PARROT_ASSERT(x)                                            \
     do                                                              \
     {                                                               \
         if (!(x))                                                   \
         {                                                           \
+#if defined(DEBUG)                                                  \
             std::this_thread::sleep_for(std::chrono::seconds(1));   \
             assert(0);                                              \
+#endif                                                              \
         }                                                           \
     }                                                               \
     while(false)

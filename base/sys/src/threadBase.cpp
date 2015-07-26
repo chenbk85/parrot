@@ -19,7 +19,7 @@ namespace parrot
     {
         if (_threadPtr.get() != nullptr)
         {
-            ASSERT(0);
+            PARROT_ASSERT(0);
         }
     }
 
@@ -51,9 +51,8 @@ namespace parrot
 
     void ThreadBase::sleep(int64_t ms)
     {
-#ifdef DEBUG
-        ASSERT(ms != 0);
-#endif
+        PARROT_ASSERT(ms != 0);
+
         if (std::this_thread::get_id() != getThreadId())
         {
             // Only this thread can call sleep.
