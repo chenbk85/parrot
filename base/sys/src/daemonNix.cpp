@@ -2,7 +2,8 @@
 
 namespace parrot
 {
-    DaemonNix::DaemonNix()
+    DaemonNix::DaemonNix(const Config* c):
+        _config(c)
     {
 
     }

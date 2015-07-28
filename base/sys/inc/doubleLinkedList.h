@@ -9,7 +9,7 @@ namespace parrot
     template<typename T>
     class DoubleLinkedList final
     {
-        using Node DoubleLinkedListNode<T>;
+        using Node = DoubleLinkedListNode<T>;
         
       public:
         DoubleLinkedList():
@@ -62,7 +62,7 @@ namespace parrot
             else
             {
                 // Here, n is the tail.
-                tail = n->getPrev();
+                _tail = n->getPrev();
             }
 
             --count;

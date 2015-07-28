@@ -15,10 +15,8 @@
     {                                                               \
         if (!(x))                                                   \
         {                                                           \
-#if defined(DEBUG)                                                  \
             std::this_thread::sleep_for(std::chrono::seconds(1));   \
             assert(0);                                              \
-#endif                                                              \
         }                                                           \
     }                                                               \
     while(false)

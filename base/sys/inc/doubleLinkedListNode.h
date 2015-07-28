@@ -3,13 +3,16 @@
 
 namespace parrot
 {
+    // If this class is not a template, the client code needs to cast the
+    // DoubleLinkedListNode pointer to the child type after it gets the
+    // pointer.
     template<typename T>
     class DoubleLinkedListNode
     {
       public:
         DoubleLinkedListNode():
-            _prev(nullptr),
-            _next(nullptr)
+            _prevPointer(nullptr),
+            _nextPointer(nullptr)
         {
         }
             
@@ -20,29 +23,28 @@ namespace parrot
       public:
         T* getNext()
         {
-            return _next;
+            return _nextPointer;
         }
         
         T* getPrev()
         {
-            return _prev;
+            return _prevPointer;
         }
 
         void setNext(T* n)
         {
-            _next = n;
+            _nextPointer = n;
         }
 
         void setPrev(T* n)
         {
-            _prev = n;
+            _prevPointer = n;
         }
         
       private:
-        T * _prev;
-        T * _next;
+        T * _prevPointer;
+        T * _nextPointer;
     };
 }
-
 
 #endif

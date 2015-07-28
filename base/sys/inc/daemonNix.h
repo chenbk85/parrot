@@ -1,6 +1,8 @@
 #ifndef __BASE_SYS_INC_DAEMONNIX_H__
 #define __BASE_SYS_INC_DAEMONNIX_H__
 
+#include "config.h"
+
 namespace parrot
 {
     /**

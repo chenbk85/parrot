@@ -36,3 +36,5 @@ namespace parrot
         std::string              _mongoUrl          = "";
     };
 }
+
+#endif

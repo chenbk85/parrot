@@ -5,7 +5,9 @@ namespace parrot
 {
     class DaemonWin
     {
-
+      public:
+        DaemonWin();
+        ~DaemonWin();
     };
 }
 
