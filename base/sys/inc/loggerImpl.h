@@ -6,7 +6,7 @@
 
 namespace parrot
 {
-    class LoggerImpl: public ThreadBase
+    class LoggerImpl
     {
       public:
         explicit LoggerImpl(const Config *cfg);

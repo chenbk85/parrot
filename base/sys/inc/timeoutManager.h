@@ -10,8 +10,7 @@
 
 namespace parrot
 {
-    template<typename T>
-        class TimeoutManager
+    template<typename T> class TimeoutManager
     {
       public:
         TimeoutManager(TimeoutHandler<T>* handler, uint32_t timeoutSec):
