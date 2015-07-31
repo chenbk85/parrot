@@ -1,13 +1,15 @@
-#ifndef __BASE_SYS_INC_EPOLLER_H__
-#define __BASE_SYS_INC_EPOLLER_H__
+#ifndef __BASE_SYS_INC_EPOLL_H__
+#define __BASE_SYS_INC_EPOLL_H__
+
+#include "ioEvent.h"
 
 namespace parrot
 {
-    class Epoller
+    class Epoll
     {
       public:
-        Epoller();
-        ~Epoller();
+        Epoll();
+        ~Epoll();
 
       public:
         void create();
