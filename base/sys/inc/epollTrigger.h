@@ -1,13 +1,13 @@
-#ifndef __BASE_SYS_INC_EVENTNOTIFIER_H__
-#define __BASE_SYS_INC_EVENTNOTIFIER_H__
+#ifndef __BASE_SYS_INC_EPOLLTRIGGER_H__
+#define __BASE_SYS_INC_EPOLLTRIGGER_H__
 
 namespace parrot
 {
-    class EventNotifier
+    class EpollTrigger
     {
       public:
-        EventNotifier();
-        ~EventNotifier();
+        EpollTrigger();
+        ~EpollTrigger();
 
       public:
         void create();

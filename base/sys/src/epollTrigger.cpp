@@ -1,8 +1,8 @@
-#include "eventNotifier.h"
+#include "epollTrigger.h"
 
 namespace parrot
 {
-    EventNotifier::EventNotifier()
+    EpollTrigger::EpollTrigger()
     {
 
     }
