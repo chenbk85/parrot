@@ -44,14 +44,14 @@ namespace parrot
         }
     }
 
-    void IoEvent::setNonBlock()
+    void IoEvent::setNonBlock(int fd)
     {
-        manipulateFd(_fd, O_NONBLOCK);
+        manipulateFd(fd, O_NONBLOCK);
     }
 
-    void IoEvent::setNoDelay()
+    void IoEvent::setNoDelay(int fd)
     {
-        manipulateFd(_fd, O_NDELAY);
+        manipulateFd(fd, O_NDELAY);
     }
 
     int IoEvent::getEpollEvents() const noexcept

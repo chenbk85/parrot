@@ -6,6 +6,7 @@ namespace parrot
     Epoll::Epoll(uint32_t size) noexcept:
         _epollFd(-1),
         _epollSize(size),
+        _trigger(),
         _events()
     {
     }
@@ -30,15 +31,19 @@ namespace parrot
 
         _events = std::unique_ptr<struct epoll_event[]>(
             new struct epoll_evnet[_epollSize]);
+
+        trigger = std::unique_ptr<EpollTrigger>(new EpollTrigger());
+        addEvent(trigger.get(), EPOLLIN);
     }
 
     void Epoll::waitIoEvents(uint32_t ms)
     {
         std::time_t waitTo = std::time(nullptr) * 1000 + ms;
+        int ret = 0;
         
         while (true)
         {
-            int ret = ::epoll_wait(_epollFd, _events.get(),
+            ret = ::epoll_wait(_epollFd, _events.get(),
                                    _epollSize, needWait);
             if (ret >= 0)
             {
@@ -59,6 +64,8 @@ namespace parrot
                                         "Epoll::waitIoEvents");
             }
         }
+
+        return ret;
     }
 
     void Epoll::addEvent(IoEvents *ev, int events)
@@ -159,5 +166,20 @@ namespace parrot
                                     "Epoll::delEvent");
         }
         ev->setEpollEvents(-1);
+    }
+
+    IoEvent* Epoll::getIoEvent(uint32_t idx) const noexcept
+    {
+        return (IoEvent *)_events[idx].ptr;
+    }
+
+    int Epoll::getEvents(uint32_t) const noexcept
+    {
+        return _events[idx].events;
+    }
+
+    void Epoll::stopWaiting()
+    {
+        trigger->trigger();
     }
 }

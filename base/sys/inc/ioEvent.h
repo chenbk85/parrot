@@ -29,12 +29,6 @@ namespace parrot
         // Retrive the associated fd.
         int getFd() const noexcept;
 
-        // Make the fd non-blocking.
-        void setNonBlock();
-
-        // Turn off nagle algorithm.
-        void setNoDelay();
-
         // Retrive the epoll events.
         int getEpollEvents() const noexcept;
 
@@ -43,6 +37,21 @@ namespace parrot
         // Params:
         // * events: EPOLLIN|EPOLLOUT ...
         void setEpollEvnets(int events) noexcept;
+
+      public:
+        // static help functions.
+        // Make the fd non-blocking.
+        static void setNonBlock();
+
+        // Turn off nagle algorithm.
+        static void setNoDelay();
+
+        // Wrap for fcntl.
+        //
+        // Params:
+        // * fd:    The file descriptor.
+        // * flags: The file descripotrs, e.g., O_NONBLOCK ...
+        static void manipulateFd(int fd, int flags);
 
       protected:
         virtual IoAction handleIoEvent() = 0;
