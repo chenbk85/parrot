@@ -27,7 +27,7 @@ namespace parrot
         //
         // Return
         // The number of events.
-        int waitIoEvents(uint32_t ms);
+        int waitIoEvents(int32_t ms);
 
         // Add io event to epoll.
         //
@@ -74,7 +74,7 @@ namespace parrot
         int32_t                                  _epollFd;
         uint32_t                                 _epollSize;
         std::unique_ptr<EpollTrigger>            _trigger;
-        std::unique_ptr<struct epoll_events[]>   _events;
+        std::unique_ptr<struct epoll_event[]>    _events;
     };
 }
 

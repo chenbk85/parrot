@@ -1,17 +1,18 @@
 #include <unistd.h>
 #include <fcntl.h>
+#include <system_error>
 
 #include "ioEvent.h"
 
 namespace parrot
 {
-    IoEvents::IoEvents() noexcept:
+    IoEvent::IoEvent() noexcept:
         _fd(-1),
         _epollEvents(-1)
     {
     }
 
-    IoEvents::~IoEvents()
+    IoEvent::~IoEvent()
     {
     }
 
@@ -27,7 +28,7 @@ namespace parrot
 
     void IoEvent::manipulateFd(int fd, int flags)
     {
-        int oldFlags = ::fcntl(_fd, F_GETFL, 0);
+        int oldFlags = ::fcntl(fd, F_GETFL, 0);
         if (oldFlags < 0)
         {
             throw std::system_error(errno, std::system_category(),
@@ -36,7 +37,7 @@ namespace parrot
         }
 
         int newFlags = oldFlags | flags;
-        if (::fcntl(_fd, F_SETFL, newFlags) < 0)
+        if (::fcntl(fd, F_SETFL, newFlags) < 0)
         {
             throw std::system_error(errno, std::system_category(),
                                     "IoEvent::manipulateFd: Set " +
@@ -59,7 +60,7 @@ namespace parrot
         return _epollEvents;
     }
 
-    void IoEvent::setEpollEvents(int events) const noexcept
+    void IoEvent::setEpollEvents(int events) noexcept
     {
         _epollEvents = events;
     }

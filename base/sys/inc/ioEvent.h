@@ -9,7 +9,7 @@ namespace parrot
         eIO_Read,
         eIO_Write,
         eIO_Remove
-    }
+    };
 
     class IoEvent
     {
@@ -24,7 +24,7 @@ namespace parrot
         //
         // Params:
         // * fd: File descriptor.
-        void setFd(int fd);
+        void setFd(int fd) noexcept;
         
         // Retrive the associated fd.
         int getFd() const noexcept;
@@ -36,15 +36,22 @@ namespace parrot
         //
         // Params:
         // * events: EPOLLIN|EPOLLOUT ...
-        void setEpollEvnets(int events) noexcept;
+        void setEpollEvents(int events) noexcept;
 
       public:
         // static help functions.
+        
         // Make the fd non-blocking.
-        static void setNonBlock();
+        //
+        // Params:
+        // * fd: The target file descriptor.
+        static void setNonBlock(int fd);
 
         // Turn off nagle algorithm.
-        static void setNoDelay();
+        //
+        // Params:
+        // * fd: The target file descriptor.
+        static void setNoDelay(int fd);
 
         // Wrap for fcntl.
         //

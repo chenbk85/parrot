@@ -16,7 +16,7 @@ namespace parrot
         void log();
 
       protected:
-        void run() override;
+        void run();
 
       private:
         const Config *           _config;

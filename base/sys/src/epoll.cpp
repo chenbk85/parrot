@@ -1,5 +1,9 @@
 #include <cerrno>
+#include <ctime>
+#include <system_error>
+#include <unistd.h>
 #include "epoll.h"
+#include "macroFuncs.h"
 
 namespace parrot
 {
@@ -29,16 +33,15 @@ namespace parrot
                                     "Epoll::create");
         }
 
-        _events = std::unique_ptr<struct epoll_event[]>(
-            new struct epoll_evnet[_epollSize]);
-
-        trigger = std::unique_ptr<EpollTrigger>(new EpollTrigger());
-        addEvent(trigger.get(), EPOLLIN);
+        _events.reset(new struct epoll_event[_epollSize]);
+        _trigger = std::unique_ptr<EpollTrigger>(new EpollTrigger());
+        addEvent(_trigger.get(), EPOLLIN);
     }
 
-    void Epoll::waitIoEvents(uint32_t ms)
+    int Epoll::waitIoEvents(int32_t ms)
     {
         std::time_t waitTo = std::time(nullptr) * 1000 + ms;
+        int32_t needWait = ms;
         int ret = 0;
         
         while (true)
@@ -53,7 +56,9 @@ namespace parrot
             if (errno == EINTR)
             {
                 std::time_t curr = std::time(nullptr) * 1000;
-                if (curr >= waitTo)
+                needWait = ms - (waitTo - curr);
+
+                if (needWait <= 0)
                 {
                     break;
                 }
@@ -68,7 +73,7 @@ namespace parrot
         return ret;
     }
 
-    void Epoll::addEvent(IoEvents *ev, int events)
+    void Epoll::addEvent(IoEvent *ev, int events)
     {
         int fd = ev->getFd();
         if (fd == -1)
@@ -104,7 +109,7 @@ namespace parrot
         ev->setEpollEvents(events);
     }
 
-    void Epoll::modifyEvent(IoEvents *ev, int events)
+    void Epoll::modifyEvent(IoEvent *ev, int events)
     {
         int fd = ev->getFd();
         if (fd == -1)
@@ -139,7 +144,7 @@ namespace parrot
         ev->setEpollEvents(events);
     }
 
-    void Epoll::delEvent(IoEvents *ev)
+    void Epoll::delEvent(IoEvent *ev)
     {
         int fd = ev->getFd();
         if (fd == -1)
@@ -170,16 +175,16 @@ namespace parrot
 
     IoEvent* Epoll::getIoEvent(uint32_t idx) const noexcept
     {
-        return (IoEvent *)_events[idx].ptr;
+        return (IoEvent *)_events[idx].data.ptr;
     }
 
-    int Epoll::getEvents(uint32_t) const noexcept
+    int Epoll::getEvents(uint32_t idx) const noexcept
     {
         return _events[idx].events;
     }
 
     void Epoll::stopWaiting()
     {
-        trigger->trigger();
+        _trigger->trigger();
     }
 }
