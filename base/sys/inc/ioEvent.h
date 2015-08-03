@@ -3,7 +3,7 @@
 
 namespace parrot
 {
-    enum IoAction
+    enum eIoAction
     {
         eIO_None,
         eIO_Read,
@@ -61,7 +61,7 @@ namespace parrot
         static void manipulateFd(int fd, int flags);
 
       protected:
-        virtual IoAction handleIoEvent() = 0;
+        virtual eIoAction handleIoEvent() = 0;
 
       private:
         int _fd;

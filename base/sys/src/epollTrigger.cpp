@@ -92,7 +92,7 @@ namespace parrot
         }
     }
 
-    IoAction EpollTrigger::handleIoEvent()
+    eIoAction EpollTrigger::handleIoEvent()
     {
         acknowledge();
         return eIO_None;

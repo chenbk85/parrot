@@ -20,7 +20,7 @@ namespace parrot
         void acknowledge();
 
       public:
-        virtual IoAction handleIoEvent() override;
+        virtual eIoAction handleIoEvent() override;
 
       private:
         int                              _pipeFds[2];

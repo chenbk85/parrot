@@ -6,6 +6,15 @@
 
 namespace parrot
 {
+    enum eLoggerLevel
+    {
+        eLL_Info,
+        eLL_Debug,
+        eLL_Warn,
+        eLL_Error,
+        eLL_Fatal
+    };
+
     class LoggerImpl
     {
       public:
