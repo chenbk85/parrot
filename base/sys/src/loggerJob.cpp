@@ -5,9 +5,16 @@
 
 namespace parrot
 {
-    LoggerJob::LoggerJob():
+    LoggerJob::LoggerJob() noexcept:
         _logLen(0),
+        _hasher(),
         _logBuff(new char[DEF_LOG_BUFF_LEN])
+    {
+    }
+
+    LoggerJob::LoggerJob(LoggerJob &&job) noexcept:
+        _logLen(job._logLen),
+        _logBuff(std::move(job._logBuff))
     {
     }
 
@@ -54,11 +61,11 @@ namespace parrot
         strftime(dateStr, sizeof(dateStr), "%Y-%m-%d %H:%M:%S", &tmRst);
 
         return snprintf(_logBuff.get(), DEF_LOG_BUFF_LEN, 
-                  "[%s][%-5s][%#014x][%05d] ",
-                  dateStr,
-                  getLevelStr(level),
-                  std::this_thread::get_id(),
-                  lineNo);
+                        "[%s][%-5s][%#018lx][%05d] ",
+                        dateStr,
+                        getLevelStr(level),
+                        _hasher(std::this_thread::get_id()),
+                        lineNo);
     }
 
     const char* LoggerJob::getLevelStr(eLoggerLevel level) noexcept

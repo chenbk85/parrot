@@ -3,6 +3,7 @@
 
 #include <stdarg.h>
 #include <memory>
+#include <thread>
 
 namespace parrot
 {
@@ -23,10 +24,11 @@ namespace parrot
         };
 
       public:
-        LoggerJob();
+        LoggerJob() noexcept;
         ~LoggerJob();
         LoggerJob(const LoggerJob&) = delete;
         LoggerJob& operator=(const LoggerJob&) = delete;
+        LoggerJob(LoggerJob &&job) noexcept;
 
       public:
         void doLog(eLoggerLevel level, int lineNo, 
@@ -38,7 +40,8 @@ namespace parrot
         
       private:
         uint32_t                           _logLen;
-        std::unique_ptr<char[]>   _logBuff;
+        std::hash<std::thread::id>         _hasher;
+        std::unique_ptr<char[]>            _logBuff;
     };
 }
 

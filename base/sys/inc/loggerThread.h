@@ -9,6 +9,8 @@
 
 namespace parrot
 {
+    class LoggerJob;
+
     class LoggerThread: public ThreadBase
     {
       public:
@@ -19,7 +21,7 @@ namespace parrot
 
       public:
         void init();
-        void addJob();
+        void addJob(std::unique_ptr<LoggerJob> &&job);
 
       protected:
         void run() override;
@@ -30,9 +32,9 @@ namespace parrot
         void writeToLog();
 
       private:
-        std::mutex                    _jobListLock;
-        std::list<LogJob>             _logJobList;
-        const Config *                _config;
+        std::mutex                                 _jobListLock;
+        std::list<std::unique_ptr<LoggerJob>>      _logJobList;
+        const Config *                             _config;
     };
 }
 
