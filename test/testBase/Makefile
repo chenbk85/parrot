@@ -54,4 +54,4 @@ all: $(OBJECTS) $(LIBRARIES) $(BINARIES)
 
 .PHONY: clean
 clean:
-	@rm -f ../../base/sys/obj/* ../../base/util/obj/* ./bin/* ../../libs/* ./obj/*
+	@rm -f $(OBJECTS) $(LIBRARIES) $(BINARIES)
