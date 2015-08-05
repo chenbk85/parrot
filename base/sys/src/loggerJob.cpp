@@ -15,6 +15,7 @@ namespace parrot
 
     LoggerJob::LoggerJob(LoggerJob &&job) noexcept:
         _logLen(job._logLen),
+        _hasher(std::move(job._hasher)),
         _logBuff(std::move(job._logBuff))
     {
     }
@@ -46,7 +47,7 @@ namespace parrot
                 if (_logBuff[_logLen - 1] != '\n')
                 {
                     _logBuff[_logLen] = '\n';
-                    _logBuff[_logLen + 1] = '\0';
+                    _logBuff[++_logLen] = '\0';
                 }
                 break;
             }

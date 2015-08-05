@@ -35,6 +35,7 @@ namespace parrot
 
         _events.reset(new struct epoll_event[_epollSize]);
         _trigger = std::unique_ptr<EpollTrigger>(new EpollTrigger());
+        _trigger->create();
         addEvent(_trigger.get(), EPOLLIN);
     }
 

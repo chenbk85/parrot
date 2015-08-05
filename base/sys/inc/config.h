@@ -22,8 +22,8 @@ namespace parrot
         // Log configurations.
         std::string              _logPath           = "";
         std::string              _logName           = "";
-        uint64_t                 _logSize           = 104857600L; // 100MB.
-        uint32_t                 _rotateNum         = 1;
+        uint64_t                 _logSize           = 20480L; // 100MB.
+        uint32_t                 _rotateNum         = 5;
         // 0: INFO, 1: DEBUG, 2: WARN, 3: ERROR, 4: FATAL
         uint8_t                  _logLevel          = 0;
 

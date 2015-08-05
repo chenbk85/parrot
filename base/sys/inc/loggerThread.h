@@ -19,12 +19,12 @@ namespace parrot
 
       public:
         LoggerThread(const Config *cfg);
-        ~LoggerThread();
+        virtual ~LoggerThread();
         LoggerThread(const LoggerThread &) = delete;
         LoggerThread& operator=(const LoggerThread&) = delete;
 
       public:
-        void init();
+        void beforeStart() override;
         void addJob(std::unique_ptr<LoggerJob> &&job) noexcept;
         void stop() override;
 

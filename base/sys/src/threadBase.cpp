@@ -78,6 +78,11 @@ namespace parrot
         _sleeping = false;
     }
 
+    std::thread::id ThreadBase::getThreadId() const
+    {
+        return _threadPtr->get_id();
+    }
+
     void ThreadBase::wakeUp()
     {
         std::unique_lock<std::mutex> lk(_lock);

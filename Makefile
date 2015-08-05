@@ -25,7 +25,7 @@ else
     COMPLIER_OPTIONS := -g -Wall -Wextra -Werror -DDEBUG
 endif
 LINKER               := g++ -std=c++11
-LINKER_OPTIONS       := -Wl,-rpath,$(PROJECT_ROOT)/libs
+LINKER_OPTIONS       := -Wl,-rpath,$(PRJ_ROOT)/libs
 
 # Commands
 RM                   := rm -rf

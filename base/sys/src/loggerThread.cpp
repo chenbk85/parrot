@@ -16,6 +16,7 @@ namespace parrot
         _logJobList(),
         _logFullPath(),
         _currFileSize(0),
+        _logFd(-1),
         _epoll(new Epoll(1)),
         _config(cfg)
     {
@@ -40,7 +41,7 @@ namespace parrot
 
     }
 
-    void LoggerThread::init()
+    void LoggerThread::beforeStart()
     {
         _epoll->create();
     }
@@ -70,7 +71,7 @@ namespace parrot
             return;
         }
 
-        _logFd = ::open(_logFullPath.c_str(), O_WRONLY|O_CREAT|O_APPEND);
+        _logFd = ::open(_logFullPath.c_str(), O_WRONLY|O_CREAT|O_APPEND, 0777);
 
         if (_logFd < 0)
         {
@@ -104,6 +105,7 @@ namespace parrot
                     needWrite -= ret;
                     if (needWrite == 0)
                     {
+                        _currFileSize += len;
                         break;
                     }
                     else
@@ -168,7 +170,7 @@ namespace parrot
         {
             return;
         }
-        
+
         createLog();
         writeToLog(jobList);
         rotateLog();
