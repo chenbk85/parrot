@@ -38,6 +38,8 @@ namespace parrot
         // * events: EPOLLIN|EPOLLOUT ...
         void setEpollEvents(int events) noexcept;
 
+        virtual eIoAction handleIoEvent() = 0;
+
       public:
         // static help functions.
         
@@ -59,9 +61,6 @@ namespace parrot
         // * fd:    The file descriptor.
         // * flags: The file descripotrs, e.g., O_NONBLOCK ...
         static void manipulateFd(int fd, int flags);
-
-      protected:
-        virtual eIoAction handleIoEvent() = 0;
 
       private:
         int _fd;

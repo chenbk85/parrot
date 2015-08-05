@@ -26,7 +26,7 @@ namespace parrot
         virtual void start();
 
         // Stop this thread.
-        void stop();
+        virtual void stop();
 
         // Wake up this thread.
         void wakeUp();

@@ -5,7 +5,6 @@
 
 namespace parrot
 {
-
     class Logger
     {
       public:

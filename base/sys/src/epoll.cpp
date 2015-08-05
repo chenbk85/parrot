@@ -9,7 +9,7 @@ namespace parrot
 {
     Epoll::Epoll(uint32_t size) noexcept:
         _epollFd(-1),
-        _epollSize(size),
+        _epollSize(size + 1), // We need add the trigger to epoll.
         _trigger(),
         _events()
     {

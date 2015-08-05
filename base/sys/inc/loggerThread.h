@@ -3,6 +3,7 @@
 
 #include <mutex>
 #include <list>
+#include <string>
 
 #include "config.h"
 #include "threadBase.h"
@@ -10,9 +11,12 @@
 namespace parrot
 {
     class LoggerJob;
+    class Epoll;
 
     class LoggerThread: public ThreadBase
     {
+        using JobListType = std::list<std::unique_ptr<LoggerJob>>;
+
       public:
         LoggerThread(const Config *cfg);
         ~LoggerThread();
@@ -21,7 +25,8 @@ namespace parrot
 
       public:
         void init();
-        void addJob(std::unique_ptr<LoggerJob> &&job);
+        void addJob(std::unique_ptr<LoggerJob> &&job) noexcept;
+        void stop() override;
 
       protected:
         void run() override;
@@ -29,11 +34,16 @@ namespace parrot
       private:
         void createLog();
         void rotateLog();
-        void writeToLog();
+        void writeToLog(JobListType &jobList);
+        void processJob();
 
       private:
         std::mutex                                 _jobListLock;
-        std::list<std::unique_ptr<LoggerJob>>      _logJobList;
+        JobListType                                _logJobList;
+        std::string                                _logFullPath;
+        uint64_t                                   _currFileSize;
+        int                                        _logFd;
+        std::unique_ptr<Epoll>                     _epoll;
         const Config *                             _config;
     };
 }

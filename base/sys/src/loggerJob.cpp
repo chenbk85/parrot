@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <thread>
-#include <time.h> // C++11 doesn't have localtime_r, we have to use c version.
+#include <time.h> // C++11 doesn't have localtime_r, we have to use raw version.
 #include "loggerJob.h"
 
 namespace parrot
@@ -10,6 +10,7 @@ namespace parrot
         _hasher(),
         _logBuff(new char[DEF_LOG_BUFF_LEN])
     {
+        static_assert(DEF_LOG_BUFF_LEN >= 256, "Minimal log buff len");
     }
 
     LoggerJob::LoggerJob(LoggerJob &&job) noexcept:
