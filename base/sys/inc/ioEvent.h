@@ -38,6 +38,7 @@ namespace parrot
         // * events: EPOLLIN|EPOLLOUT ...
         void setEpollEvents(int events) noexcept;
 
+        // Implement this function to handle epoll event.
         virtual eIoAction handleIoEvent() = 0;
 
       public:
