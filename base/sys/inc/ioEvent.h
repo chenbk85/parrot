@@ -56,7 +56,7 @@ namespace parrot
         // * fd: The target file descriptor.
         static void setNoDelay(int fd);
 
-        // Wrap for fcntl.
+        // Wrap fcntl.
         //
         // Params:
         // * fd:    The file descriptor.
