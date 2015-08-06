@@ -4,24 +4,27 @@
 #include <mutex>
 #include <list>
 #include <string>
+#include <memory>
 
-#include "config.h"
 #include "threadBase.h"
 
 namespace parrot
 {
     class LoggerJob;
     class Epoll;
+    class Config;
 
     class LoggerThread: public ThreadBase
     {
         using JobListType = std::list<std::unique_ptr<LoggerJob>>;
 
       public:
-        LoggerThread(const Config *cfg);
+        explicit LoggerThread(const Config *cfg);
         virtual ~LoggerThread();
         LoggerThread(const LoggerThread &) = delete;
         LoggerThread& operator=(const LoggerThread&) = delete;
+        LoggerThread(LoggerThread &&) = delete;
+        LoggerThread& operator=(LoggerThread &&) = delete;
 
       public:
         void beforeStart() override;

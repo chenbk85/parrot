@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "loggerThread.h"
 #include "loggerJob.h"
 #include "epoll.h"
@@ -36,10 +37,7 @@ namespace parrot
         }
     }
 
-    LoggerThread::~LoggerThread()
-    {
-
-    }
+    LoggerThread::~LoggerThread() = default;
 
     void LoggerThread::beforeStart()
     {
