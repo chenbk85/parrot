@@ -1,14 +1,16 @@
 #ifndef __BASE_SYS_INC_IOEVENT_H__
 #define __BASE_SYS_INC_IOEVENT_H__
 
+#include <cstdint>
+
 namespace parrot
 {
-    enum eIoAction
+    enum class eIoAction : uint8_t
     {
-        eIO_None,
-        eIO_Read,
-        eIO_Write,
-        eIO_Remove
+        None,
+        Read,
+        Write,
+        Remove
     };
 
     class IoEvent

@@ -1,12 +1,14 @@
 #ifndef __BASE_SYS_INC_LOGGERIMPL_H__
 #define __BASE_SYS_INC_LOGGERIMPL_H__
 
-#include "config.h"
-#include "loggerThread.h"
-#include "loggerJob.h"
+#include <cstdint>
 
 namespace parrot
 {
+    class Config;
+    class LoggerThread;
+    enum class eLoggerLevel : uint8_t;
+
     class Logger
     {
       public:
@@ -26,39 +28,39 @@ namespace parrot
     };
 }
 
-#define LOG_INFO(fmt, ...)                                      \
-    do                                                          \
-    {                                                           \
-        parrot::Logger::instance()->log(                        \
-            parrot::eLL_Info, __LINE__, fmt, ##__VA_ARGS__);    \
+#define LOG_INFO(fmt, ...)                                              \
+    do                                                                  \
+    {                                                                   \
+        parrot::Logger::instance()->log(                                \
+            parrot::eLoggerLevel::Info, __LINE__, fmt, ##__VA_ARGS__);  \
     } while (false)
 
-#define LOG_DEBUG(fmt, ...)                                     \
-    do                                                          \
-    {                                                           \
-        parrot::Logger::instance()->log(                        \
-            parrot::eLL_Debug, __LINE__, fmt, ##__VA_ARGS__);   \
+#define LOG_DEBUG(fmt, ...)                                             \
+    do                                                                  \
+    {                                                                   \
+        parrot::Logger::instance()->log(                                \
+            parrot::eLoggerLevel::Debug, __LINE__, fmt, ##__VA_ARGS__); \
     } while (false)
 
-#define LOG_WARN(fmt, ...)                                      \
-    do                                                          \
-    {                                                           \
-        parrot::Logger::instance()->log(                        \
-            parrot::eLL_Warn, __LINE__, fmt, ##__VA_ARGS__);    \
+#define LOG_WARN(fmt, ...)                                              \
+    do                                                                  \
+    {                                                                   \
+        parrot::Logger::instance()->log(                                \
+            parrot::eLoggerLevel::Warn, __LINE__, fmt, ##__VA_ARGS__);  \
     } while (false)
 
-#define LOG_ERROR(fmt, ...)                                     \
-    do                                                          \
-    {                                                           \
-        parrot::Logger::instance()->log(                        \
-            parrot::eLL_Error, __LINE__, fmt, ##__VA_ARGS__);   \
+#define LOG_ERROR(fmt, ...)                                             \
+    do                                                                  \
+    {                                                                   \
+        parrot::Logger::instance()->log(                                \
+            parrot::eLoggerLevel::Error, __LINE__, fmt, ##__VA_ARGS__); \
     } while (false)
 
-#define LOG_FATAL(fmt, ...)                                     \
-    do                                                          \
-    {                                                           \
-        parrot::Logger::instance()->log(                        \
-            parrot::eLL_Fatal, __LINE__, fmt, ##__VA_ARGS__);   \
+#define LOG_FATAL(fmt, ...)                                             \
+    do                                                                  \
+    {                                                                   \
+        parrot::Logger::instance()->log(                                \
+            parrot::eLoggerLevel::Fatal, __LINE__, fmt, ##__VA_ARGS__); \
     } while (false)
 
 #endif

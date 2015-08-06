@@ -75,23 +75,23 @@ namespace parrot
         const char * str = nullptr;
         switch (level)
         {
-            case eLL_Info:
+            case eLoggerLevel::Info:
                 str = "INFO";
                 break;
 
-            case eLL_Debug:
+            case eLoggerLevel::Debug:
                 str = "DEBUG";
                 break;
 
-            case eLL_Warn:
+            case eLoggerLevel::Warn:
                 str = "WARN";
                 break;
 
-            case eLL_Error:
+            case eLoggerLevel::Error:
                 str = "ERROR";
                 break;
 
-            case eLL_Fatal:
+            case eLoggerLevel::Fatal:
                 str = "FATAL";
                 break;
 

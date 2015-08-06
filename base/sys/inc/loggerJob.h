@@ -4,16 +4,17 @@
 #include <stdarg.h>
 #include <memory>
 #include <thread>
+#include <cstdint>
 
 namespace parrot
 {
-    enum eLoggerLevel
+    enum class eLoggerLevel : uint8_t
     {
-        eLL_Info,
-        eLL_Debug,
-        eLL_Warn,
-        eLL_Error,
-        eLL_Fatal
+        Info   = 0,
+        Debug  = 1,
+        Warn   = 2,
+        Error  = 3,
+        Fatal  = 4
     };
 
     class LoggerJob

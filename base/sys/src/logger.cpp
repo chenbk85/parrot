@@ -1,4 +1,7 @@
+#include "config.h"
+#include "loggerThread.h"
 #include "logger.h"
+#include "loggerJob.h"
 
 namespace parrot
 {
