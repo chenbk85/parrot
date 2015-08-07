@@ -2,12 +2,12 @@
 #define __BASE_SYS_INC_LOGGERIMPL_H__
 
 #include <cstdint>
+#include "loggerJob.h"
 
 namespace parrot
 {
     class Config;
     class LoggerThread;
-    enum class eLoggerLevel : uint8_t;
 
     class Logger
     {
