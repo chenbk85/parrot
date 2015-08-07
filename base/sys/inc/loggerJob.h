@@ -6,6 +6,7 @@
 #include <thread>
 #include <cstdint>
 
+
 namespace parrot
 {
     enum class eLoggerLevel : uint8_t
