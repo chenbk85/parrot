@@ -2,10 +2,11 @@
 #define __BASE_SYS_INC_EPOLLTRIGGER_H__
 
 #include <memory>
-#include "ioEvent.h"
 
 namespace parrot
 {
+    enum class eIoAction : uint8_t;
+
     class EpollTrigger : public IoEvent
     {
       public:

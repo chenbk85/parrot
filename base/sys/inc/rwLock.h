@@ -1,53 +1,50 @@
 #ifndef __BASE_SYS_INC_RWLOCK_H__
 #define __BASE_SYS_INC_RWLOCK_H__
 
-#include <pthread.h>
-
 namespace parrot
-{ 
-    namespace base
+{
+    class RwLockImpl;
+
+    class RwLock
     {
-        class RwLock
-        {
-          public:
-            RwLock();
-            ~RwLock();
-            RwLock(const RwLock&) = delete;
-            RwLock(RwLock &&) = delete;
+      public:
+        RwLock();
+        ~RwLock();
+        RwLock(const RwLock &) = delete;
+        RwLock& operator=(const RwLock &) = delete;
 
-          public:
-            void lockRead();
-            void lockWrite();
-            void unlock();
+      public:
+        void lockRead();
+        void lockWrite();
+        void unlock();
 
-          private:
-            pthread_rwlock_t _rwLock;
-        };
+      private:
+        RwLockImpl *_lock;
+    };
 
-        class ReadLockGuard
-        {
-          public:
-            ReadLockGuard(RwLock &lock);            
-            ~ReadLockGuard();
-            ReadLockGuard(const ReadLockGuard &) = delete;
-            ReadLockGuard(ReadLockGuard &&) = delete;
+    class ReadLockGuard
+    {
+      public:
+        ReadLockGuard(RwLock &lock);            
+        ~ReadLockGuard();
+        ReadLockGuard(const ReadLockGuard &) = delete;
+        ReadLockGuard& operator=(const ReadLockGuard &) = delete;
 
-          private:
-            RwLock &_lock;
-        };
+      private:
+        RwLock &_lock;
+    };
 
-        class WriteLockGuard
-        {
-          public:
-            WriteLockGuard(RwLock &lock);
-            ~WriteLockGuard();
-            WriteLockGuard(const WriteLockGuard &) = delete;
-            WriteLockGuard(WriteLockGuard &&) = delete;
+    class WriteLockGuard
+    {
+      public:
+        WriteLockGuard(RwLock &lock);
+        ~WriteLockGuard();
+        WriteLockGuard(const WriteLockGuard &) = delete;
+        WriteLockGuard& operator=(const WriteLockGuard &) = delete;
 
-          private:
-            RwLock &_lock;
-        };
-    } 
+      private:
+        RwLock &_lock;
+    };
 }
 
 #endif

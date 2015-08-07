@@ -7,6 +7,7 @@
 #include "config.h"
 #include "loggerThread.h"
 #include "loggerJob.h"
+#include "ioEvent.h"
 #include "epoll.h"
 
 namespace parrot
