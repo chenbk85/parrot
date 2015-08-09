@@ -5,7 +5,7 @@
 
 namespace parrot
 {
-    enum class eIoAction : uint8_t;
+    enum class eIoAction : uint16_t;
 
     class EpollTrigger : public IoEvent
     {

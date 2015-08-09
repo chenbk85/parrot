@@ -1,6 +1,8 @@
+#if defined(__linux__)
 #include <cerrno>
-#include <ctime>
+#include <chrono>
 #include <system_error>
+
 #include <unistd.h>
 
 #include "epollImpl.h"
@@ -44,14 +46,20 @@ namespace parrot
 
     int EpollImpl::waitIoEvents(int32_t ms)
     {
-        std::time_t waitTo = std::time(nullptr) * 1000 + ms;
         int32_t needWait = ms;
+        std::chrono::time_point<std::chrono::system_clock> waitTo;
         int ret = 0;
+
+        if (ms >= 0)
+        {
+            waitTo = std::chrono::system_clock::now() +
+                std::chrono::milliseconds(ms);
+        }
         
         while (true)
         {
             ret = ::epoll_wait(_epollFd, _events.get(),
-                                   _epollSize, needWait);
+                               _epollSize, needWait);
             if (ret >= 0)
             {
                 break;
@@ -59,8 +67,14 @@ namespace parrot
             
             if (errno == EINTR)
             {
-                std::time_t curr = std::time(nullptr) * 1000;
-                needWait = ms - (waitTo - curr);
+                if (ms < 0)
+                {
+                    continue;
+                }
+                
+                auto curr = std::chrono::system_clock::now();
+                needWait = std::chrono::duration_cast<
+                    std::chrono::milliseconds>(waitTo - curr).count();
 
                 if (needWait <= 0)
                 {
@@ -192,3 +206,5 @@ namespace parrot
         _trigger->trigger();
     }
 }
+
+#endif

@@ -1,3 +1,5 @@
+#if defined(__linux__)
+
 #include "ioEvent.h"
 #include "epollImpl.h"
 #include "epoll.h"
@@ -54,3 +56,5 @@ namespace parrot
         _epollImpl->stopWaiting();
     }
 }
+
+#endif

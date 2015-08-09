@@ -1,6 +1,8 @@
 #ifndef __BASE_SYS_INC_EPOLLIMPL_H__
 #define __BASE_SYS_INC_EPOLLIMPL_H__
 
+#if defined(__linux__)
+
 #include <cstdint>
 #include <memory>
 #include <sys/epoll.h>
@@ -9,7 +11,7 @@ namespace parrot
 {
     class IoEvent;
     class EpollTrigger;
-    enum class eIoAction : uint8_t;
+    enum class eIoAction : uint16_t;
 
     class EpollImpl
     {
@@ -79,5 +81,7 @@ namespace parrot
         std::unique_ptr<struct epoll_event[]>    _events;
     };
 }
+
+#endif // #if defined(__linux__)
 
 #endif

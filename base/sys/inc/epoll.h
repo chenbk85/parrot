@@ -1,6 +1,7 @@
 #ifndef __BASE_SYS_INC_EPOLL_H__
 #define __BASE_SYS_INC_EPOLL_H__
 
+#if defined (__linux__)
 #include <cstdint>
 
 namespace parrot
@@ -29,4 +30,5 @@ namespace parrot
     };
 }
 
+#endif
 #endif
