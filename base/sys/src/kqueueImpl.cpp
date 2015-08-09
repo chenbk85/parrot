@@ -11,10 +11,17 @@ namespace parrot
 {
     KqueueImpl::KqueueImpl(uint32_t maxEvCount) noexcept:
         _kqueueFd(-1),
-        _keventCount(maxEvCount + 1), // +1 for the trigger.
+        _keventCount((maxEvCount + 1) * 2), // +1 for the trigger. 
         _trigger(new EventTrigger()),
         _events(new struct kevent[_keventCount])
     {
+        // Kqueue doesn't support updating filter. So to update a filter,
+        // we need to remove it from kqueue and add the event with new filter
+        // again. For this system, this behaviour will be unacceptable.
+        // So I will add <fd, EVFILT_READ> and <fd, EVFILT_WRITE> at
+        // the same time, and set EV_DISABLE/EV_ENABLE to <fd, EVFILT_WRITE>
+        // to handle write event. That's why
+        // _keventCount = (maxEvCount + 1) * 2;
     }
 
     KqueueImpl::~KqueueImpl()
@@ -43,7 +50,7 @@ namespace parrot
         ts->tv_nsec = (ms % 1000) * 1000000;
     }
 
-    void KqueueImpl::waitIoEvents(int32_t ms)
+    uint32_t KqueueImpl::waitIoEvents(int32_t ms)
     {
         std::unique_ptr<struct timespec> needWait;
         std::chrono::time_point<std::chrono::system_clock> waitTo;
@@ -81,6 +88,8 @@ namespace parrot
                 msToTimespec(needWait.get(), leftMs);
             }
         }
+
+        return ret;
     }
 
     void KqueueImpl::addEvent(IoEvent *ev, int filter)

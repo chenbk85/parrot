@@ -4,11 +4,14 @@
 #if defined(__APPLE__)
 
 #include <cstdint>
+#include <memory>
 
 namespace parrot
 {
+    class IoEvent;
+    class EventTrigger;
     enum class eIoAction : uint16_t;
-    
+
     class KqueueImpl
     {
       public:
@@ -36,5 +39,4 @@ namespace parrot
 }
 
 #endif // #if defined(__APPLE__)
-
 #endif
