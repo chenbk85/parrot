@@ -1,8 +1,13 @@
 #ifndef __BASE_SYS_INC_EVENTNOTIFIER_H__
 #define __BASE_SYS_INC_EVENTNOTIFIER_H__
 
+#include <cstdint>
+
 namespace parrot
 {
+    class IoEvent;
+    enum class eIoAction : uint16_t;
+    
     class EventNotifier
     {
       public:
