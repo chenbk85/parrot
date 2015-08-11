@@ -10,11 +10,12 @@ namespace parrot
         None,
         Read,
         Write,
-        IoEnd,
+        ReadHup,
+        IoEOF,
         Error,
         Remove,
         TotalFlags
-    };
+     };
 
     class IoEvent
     {
@@ -35,13 +36,33 @@ namespace parrot
         int getFd() const noexcept;
 
         // Retrive the epoll events.
-        int getEpollEvents() const noexcept;
+        const EnumClassBitset<eIoAction> &getActions() const noexcept;
 
-        // Set the epoll events.
-        //
-        // Params:
-        // * events: EPOLLIN|EPOLLOUT ...
-        void setEpollEvents(int events) noexcept;
+        // Help function to mark the event to read.
+        void setIoRead() noexcept;
+
+        // Help function to mark the event to write.
+        void setIoWrite() noexcept;
+
+        int getFilter() const noexcept;
+
+        void setFilter(int filter) noexcept;
+
+        void setFlags(int flags) noexcept;
+
+        int getFlags() const noexcept;
+
+        // Is the event error?
+        bool isError() const noexcept;
+        
+        // Is the peer closed the socket?
+        bool isEof() const noexcept;
+
+        // Implement this function to handle epoll event.
+        bool isReadAvail() const noexcept;
+
+        // Implement this function to handle epoll event.
+        bool isWriteAvail() const noexcept;
 
         // Implement this function to handle epoll event.
         virtual eIoAction handleIoEvent() = 0;
@@ -69,8 +90,10 @@ namespace parrot
         static void manipulateFd(int fd, int flags);
 
       private:
-        int _fd;
-        int _epollEvents;
+        int                                 _fd;
+        int                                 _filter;
+        int                                 _flags;
+        EnumClassBitset<eIoAction>          _actions;
     };
 }
 
