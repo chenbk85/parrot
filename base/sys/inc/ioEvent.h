@@ -7,12 +7,13 @@ namespace parrot
 {
     enum class eIoAction : uint16_t
     {
-        None   = 0x00,
-        Read   = 0x01,
-        Write  = 0x02,
-        End    = 0x04,
-        Error  = 0x08,    
-        Remove = 0x10
+        None,
+        Read,
+        Write,
+        IoEnd,
+        Error,
+        Remove,
+        TotalFlags
     };
 
     class IoEvent

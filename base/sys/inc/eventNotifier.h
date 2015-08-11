@@ -2,6 +2,7 @@
 #define __BASE_SYS_INC_EVENTNOTIFIER_H__
 
 #include <cstdint>
+#include "enumClassBitset.h"
 
 namespace parrot
 {
@@ -11,17 +12,26 @@ namespace parrot
     class EventNotifier
     {
       public:
-        EventNotifier();
-        virtual ~EventNotifier();
+        EventNotifier() {}
+        virtual ~EventNotifier() {}
 
       public:
         virtual void create() = 0;
+
         virtual uint32_t waitIoEvents(int32_t ms) = 0;
-        virtual void addEvent(IoEvent *ev, eIoAction action) = 0;
-        virtual void updateEventAction(IoEvent *ev eIoAction action) = 0;
-        virtual void delEvent(IoEvent *ev, eIoAction action) = 0;
+
+        virtual void addEvent(
+            IoEvent *ev, const Enumclassbitset<eIoAction> &act) = 0;
+
+        virtual void updateEventAction(
+            IoEvent *ev, const Enumclassbitset<eIoAction> &act) = 0;
+
+        virtual void delEvent(IoEvent *ev) = 0;
+
         virtual IoEvent* getIoEvent(uint32_t idx) const noexcept = 0;
-        virtual int getFilter(uint32_t idx) const noexcept = 0;
+
+        virtual Enumclassbitset<eIoAction> getActions(
+            uint32_t idx) const noexcept = 0;
     };
 }
 

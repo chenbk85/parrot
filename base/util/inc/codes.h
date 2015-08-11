@@ -4,7 +4,7 @@
 #include <system_error>
 #include "parrotCategory.h"
 
-namespace parrot
+namespace parrot 
 {
     enum class Codes
     {

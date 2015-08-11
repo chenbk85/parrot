@@ -4,8 +4,7 @@
 #include <string>
 #include <cstdint>
 
-namespace parrot
-{
+namespace parrot {
     struct Config
     {
         virtual ~Config() = default;
