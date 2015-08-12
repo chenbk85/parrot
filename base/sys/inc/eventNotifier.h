@@ -2,7 +2,6 @@
 #define __BASE_SYS_INC_EVENTNOTIFIER_H__
 
 #include <cstdint>
-#include "enumClassBitset.h"
 
 namespace parrot
 {
