@@ -1,8 +1,17 @@
 #include <unistd.h>
 #include <fcntl.h>
+
+#if defined(__linux__)
+#include <sys/epoll.h>
+#elif defined(__APPLE__)
+
+#endif
+
 #include <system_error>
 
 #include "ioEvent.h"
+
+
 
 namespace parrot
 {
@@ -10,7 +19,7 @@ namespace parrot
         _fd(-1),
         _filter(-1),
         _flags(-1),
-        _action(eIOAction::None)
+        _action(eIoAction::None)
     {
     }
 
@@ -36,7 +45,7 @@ namespace parrot
 #elif defined(__APPLE__)
         _filter = EVFILT_READ;
 #endif
-        _action = eIOAction::Read;
+        _action = eIoAction::Read;
     }
 
     void IoEvent::setIoWrite() noexcept
@@ -46,7 +55,7 @@ namespace parrot
 #elif defined(__APPLE__)
         _filter = EVFILT_WRITE;
 #endif
-        _action = eIOAction::Write;
+        _action = eIoAction::Write;
     }
 
     eIoAction IoEvent::getCurrAction() const noexcept
@@ -115,7 +124,7 @@ namespace parrot
     bool IoEvent::isReadAvail() const noexcept
     {
 #if defined(__linux__)
-        if (_filter & EPOLLRD)
+        if (_filter & EPOLLIN)
         {
             return true;
         }

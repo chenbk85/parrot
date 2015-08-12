@@ -186,7 +186,7 @@ namespace parrot
 
         while (!isStopped())
         {
-            ret = _notifer->waitIoEvents(-1);
+            ret = _notifier->waitIoEvents(-1);
             if (ret <= 0)
             {
                 continue;
@@ -194,7 +194,7 @@ namespace parrot
 
             for (auto i = 0u; i < ret; ++i)
             {
-                ev = _epoll->getIoEvent(i);
+                ev = _notifier->getIoEvent(i);
                 ev->handleIoEvent();
             }
 

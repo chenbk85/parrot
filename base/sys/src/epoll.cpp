@@ -7,7 +7,8 @@
 namespace parrot
 {
     Epoll::Epoll(uint32_t size) noexcept:
-    _epollImpl(new EpollImpl(size))
+        EventNotifier(),
+        _epollImpl(new EpollImpl(size))
     {
     }
 

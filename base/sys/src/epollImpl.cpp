@@ -45,7 +45,7 @@ namespace parrot
         addEvent(_trigger.get());
     }
 
-    int EpollImpl::waitIoEvents(int32_t ms)
+    uint32_t EpollImpl::waitIoEvents(int32_t ms)
     {
         int32_t needWait = ms;
         std::chrono::time_point<std::chrono::system_clock> waitTo;
@@ -115,7 +115,7 @@ namespace parrot
         struct epoll_event event;
         event.data.u64 = 0;
         event.data.ptr = ev;
-        event.events = events;
+        event.events = ev->getFilter();
 
         int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_ADD, fd, &event);
 

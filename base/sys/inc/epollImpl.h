@@ -13,15 +13,15 @@ namespace parrot
     class EventTrigger;
     enum class eIoAction : uint16_t;
 
-    class EpollImpl : public EventNotifier
+    class EpollImpl final
     {
       public:
         explicit EpollImpl(uint32_t size) noexcept;
-        virtual ~EpollImpl();
+        ~EpollImpl();
 
       public:
         // Create the epoll.
-        void create() override;
+        void create();
 
         // Wait io events for N milliseconds. If interrupt, it will continue
         // waiting.
@@ -31,31 +31,31 @@ namespace parrot
         //
         // Return
         // The number of events.
-        uint32_t waitIoEvents(int32_t ms) override;
+        uint32_t waitIoEvents(int32_t ms);
 
         // Add io event to epoll.
         //
         // Params:
         // * ev: The io event.
-        void addEvent(IoEvent *ev) override;
+        void addEvent(IoEvent *ev);
 
         // Notify read event.
         //
         // Params:
         // * ev: The io event.
-        void monitorRead(IoEvent *ev) override;
+        void monitorRead(IoEvent *ev);
  
         // Notify write event.
         //
         // Params:
         // * ev: The io event.
-        void monitorWrite(IoEvent *ev) override;
+        void monitorWrite(IoEvent *ev);
 
         // Delete io event from epoll.
         //
         // Params:
         // * ev: The io event.
-        void delEvent(IoEvent *ev) override;
+        void delEvent(IoEvent *ev);
 
         // Retrieve the need-to-handle event notified by epoll.
         //
@@ -64,10 +64,10 @@ namespace parrot
         //
         // Return:
         //  The IoEvent pointer.
-        IoEvent *getIoEvent(uint32_t idx) const noexcept override;
+        IoEvent *getIoEvent(uint32_t idx) const noexcept;
 
         // Make epoll_wait return by writing to a fd.
-        void stopWaiting() override;
+        void stopWaiting();
 
       private:
         int32_t                                  _epollFd;
