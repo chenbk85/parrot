@@ -11,7 +11,7 @@
 namespace parrot
 {
     class LoggerJob;
-    class Epoll;
+    class EventNotifier;
     class Config;
 
     class LoggerThread: public ThreadBase
@@ -46,7 +46,7 @@ namespace parrot
         std::string                                _logFullPath;
         uint64_t                                   _currFileSize;
         int                                        _logFd;
-        std::unique_ptr<Epoll>                     _epoll;
+        std::unique_ptr<EventNotifier>             _notifier;
         const Config *                             _config;
     };
 }

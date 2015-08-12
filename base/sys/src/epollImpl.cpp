@@ -8,7 +8,7 @@
 #include "epollImpl.h"
 #include "macroFuncs.h"
 #include "ioEvent.h"
-#include "epollTrigger.h"
+#include "eventTrigger.h"
 
 namespace parrot
 {
@@ -39,9 +39,10 @@ namespace parrot
         }
 
         _events.reset(new struct epoll_event[_epollSize]);
-        _trigger = std::unique_ptr<EpollTrigger>(new EpollTrigger());
+        _trigger = std::unique_ptr<EventTrigger>(new EventTrigger());
         _trigger->create();
-        addEvent(_trigger.get(), EPOLLIN);
+        _trigger->setIoRead();
+        addEvent(_trigger.get());
     }
 
     int EpollImpl::waitIoEvents(int32_t ms)
@@ -91,7 +92,7 @@ namespace parrot
         return ret;
     }
 
-    void EpollImpl::addEvent(IoEvent *ev, int events)
+    void EpollImpl::addEvent(IoEvent *ev)
     {
         int fd = ev->getFd();
         if (fd == -1)
@@ -102,8 +103,8 @@ namespace parrot
             return;
         }
 
-        int oldEvents = ev->getEpollEvents();
-        if (oldEvents != -1)
+        int filter = ev->getFilter();
+        if (filter != -1)
         {
 #if defined(DEBUG)            
             PARROT_ASSERT(0);
@@ -123,11 +124,9 @@ namespace parrot
             throw std::system_error(errno, std::system_category(),
                                     "EpollImpl::addEvent");
         }
-
-        ev->setEpollEvents(events);
     }
 
-    void EpollImpl::modifyEvent(IoEvent *ev, int events)
+    void EpollImpl::monitorRead(IoEvent *ev)
     {
         int fd = ev->getFd();
         if (fd == -1)
@@ -138,19 +137,17 @@ namespace parrot
             return;
         }
 
-        int oldEvents = ev->getEpollEvents();
-        if (oldEvents == -1)
+        if (ev->getCurrAction() == eIoAction::Read) 
         {
-#if defined(DEBUG)            
-            PARROT_ASSERT(0);
-#endif
-            return;            
+            return;
         }
+
+        ev->setIoRead();
 
         struct epoll_event event;
         event.data.u64 = 0;
         event.data.ptr = ev;
-        event.events = events;
+        event.events = ev->getFilter();
 
         int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_MOD, fd, &event);
 
@@ -159,7 +156,38 @@ namespace parrot
             throw std::system_error(errno, std::system_category(),
                                     "EpollImpl::modifyEvent");
         }
-        ev->setEpollEvents(events);
+    }
+
+    void EpollImpl::monitorWrite(IoEvent *ev)
+    {
+        int fd = ev->getFd();
+        if (fd == -1)
+        {
+#if defined(DEBUG)            
+            PARROT_ASSERT(0);
+#endif
+            return;
+        }
+
+        if (ev->getCurrAction() == eIoAction::Write) 
+        {
+            return;
+        }
+
+        ev->setIoWrite();
+
+        struct epoll_event event;
+        event.data.u64 = 0;
+        event.data.ptr = ev;
+        event.events = ev->getFilter();
+
+        int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_MOD, fd, &event);
+
+        if (ret < 0)
+        {
+            throw std::system_error(errno, std::system_category(),
+                                    "EpollImpl::modifyEvent");
+        }
     }
 
     void EpollImpl::delEvent(IoEvent *ev)
@@ -173,8 +201,8 @@ namespace parrot
             return;
         }
 
-        int oldEvents = ev->getEpollEvents();
-        if (oldEvents == -1)
+        int filter = ev->getFilter();
+        if (filter == -1)
         {
 #if defined(DEBUG)            
             PARROT_ASSERT(0);
@@ -188,17 +216,14 @@ namespace parrot
             throw std::system_error(errno, std::system_category(),
                                     "EpollImpl::delEvent");
         }
-        ev->setEpollEvents(-1);
+        ev->close();
     }
 
     IoEvent* EpollImpl::getIoEvent(uint32_t idx) const noexcept
     {
-        return (IoEvent *)_events[idx].data.ptr;
-    }
-
-    int EpollImpl::getEvents(uint32_t idx) const noexcept
-    {
-        return _events[idx].events;
+        IoEvent *ev = (IoEvent *)_events[idx].data.ptr;
+        ev->setFilter(_events[idx].events);
+        return ev;
     }
 
     void EpollImpl::stopWaiting()

@@ -8,12 +8,15 @@ namespace parrot
 {
     IoEvent::IoEvent() noexcept:
         _fd(-1),
-        _epollEvents(-1)
+        _filter(-1),
+        _flags(-1),
+        _action(eIOAction::None)
     {
     }
 
     IoEvent::~IoEvent()
     {
+        close();
     }
 
     void IoEvent::setFd(int fd) noexcept
@@ -33,6 +36,7 @@ namespace parrot
 #elif defined(__APPLE__)
         _filter = EVFILT_READ;
 #endif
+        _action = eIOAction::Read;
     }
 
     void IoEvent::setIoWrite() noexcept
@@ -42,6 +46,12 @@ namespace parrot
 #elif defined(__APPLE__)
         _filter = EVFILT_WRITE;
 #endif
+        _action = eIOAction::Write;
+    }
+
+    eIoAction IoEvent::getCurrAction() const noexcept
+    {
+        return _action;
     }
 
     int IoEvent::getFilter() const noexcept
@@ -138,6 +148,18 @@ namespace parrot
 
         return false;
 #endif
+    }
+
+    void IoEvent::close() noexcept
+    {
+        if (_fd >= 0) 
+        {
+            ::close(_fd);
+            _fd = -1;
+            _filter = -1;
+            _flags = -1;
+            _action = eIoAction::None;
+        }
     }
 
     /////////////////////////////////////////////////////////////////////////

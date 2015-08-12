@@ -20,18 +20,17 @@ namespace parrot
 
         virtual uint32_t waitIoEvents(int32_t ms) = 0;
 
-        virtual void addEvent(
-            IoEvent *ev, const Enumclassbitset<eIoAction> &act) = 0;
+        virtual void addEvent(IoEvent *ev) = 0;
+        
+        virtual void monitorRead(IoEvent *ev) = 0;
 
-        virtual void updateEventAction(
-            IoEvent *ev, const Enumclassbitset<eIoAction> &act) = 0;
+        virtual void monitorWrite(IoEvent *ev) = 0;
 
         virtual void delEvent(IoEvent *ev) = 0;
 
         virtual IoEvent* getIoEvent(uint32_t idx) const noexcept = 0;
 
-        virtual Enumclassbitset<eIoAction> getActions(
-            uint32_t idx) const noexcept = 0;
+        virtual void stopWaiting() = 0;
     };
 }
 

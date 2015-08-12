@@ -22,20 +22,26 @@ namespace parrot
         _epollImpl->create();
     }
 
-    int Epoll::waitIoEvents(int32_t ms)
+    uint32_t Epoll::waitIoEvents(int32_t ms)
     {
         return _epollImpl->waitIoEvents(ms);
     }
 
-    void Epoll::addEvent(IoEvent *ev, int events)
+    void Epoll::addEvent(IoEvent *ev)
     {
-        _epollImpl->addEvent(ev, events);
+        _epollImpl->addEvent(ev);
     }
-        
-    void Epoll::modifyEvent(IoEvent *ev, int events)
+
+    void Epoll::monitorRead(IoEvent *ev)
     {
-        _epollImpl->modifyEvent(ev, events);
+        _epollImpl->monitorRead(ev);
     }
+
+    void Epoll::monitorWrite(IoEvent *ev)
+    {
+        _epollImpl->monitorWrite(ev);
+    }
+
     void Epoll::delEvent(IoEvent *ev)
     {
         _epollImpl->delEvent(ev);
@@ -44,11 +50,6 @@ namespace parrot
     IoEvent* Epoll::getIoEvent(uint32_t idx) const noexcept
     {
         return _epollImpl->getIoEvent(idx);
-    }
-
-    int Epoll::getEvents(uint32_t idx) const noexcept
-    {
-        return _epollImpl->getEvents(idx);
     }
 
     void Epoll::stopWaiting()

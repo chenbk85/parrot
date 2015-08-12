@@ -10,11 +10,7 @@ namespace parrot
         None,
         Read,
         Write,
-        ReadHup,
-        IoEOF,
-        Error,
-        Remove,
-        TotalFlags
+        Remove
      };
 
     class IoEvent
@@ -35,14 +31,13 @@ namespace parrot
         // Retrive the associated fd.
         int getFd() const noexcept;
 
-        // Retrive the epoll events.
-        const EnumClassBitset<eIoAction> &getActions() const noexcept;
-
         // Help function to mark the event to read.
         void setIoRead() noexcept;
 
         // Help function to mark the event to write.
         void setIoWrite() noexcept;
+
+        eIoAction getCurrAction() const noexcept;
 
         int getFilter() const noexcept;
 
@@ -66,6 +61,8 @@ namespace parrot
 
         // Implement this function to handle epoll event.
         virtual eIoAction handleIoEvent() = 0;
+
+        void close() noexcept;
 
       public:
         // static help functions.
@@ -93,7 +90,7 @@ namespace parrot
         int                                 _fd;
         int                                 _filter;
         int                                 _flags;
-        EnumClassBitset<eIoAction>          _actions;
+        eIoAction                           _action;
     };
 }
 

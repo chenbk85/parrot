@@ -10,18 +10,18 @@
 namespace parrot
 {
     class IoEvent;
-    class EpollTrigger;
+    class EventTrigger;
     enum class eIoAction : uint16_t;
 
-    class EpollImpl
+    class EpollImpl : public EventNotifier
     {
       public:
         explicit EpollImpl(uint32_t size) noexcept;
-        ~EpollImpl();
+        virtual ~EpollImpl();
 
       public:
         // Create the epoll.
-        void create();
+        void create() override;
 
         // Wait io events for N milliseconds. If interrupt, it will continue
         // waiting.
@@ -31,27 +31,31 @@ namespace parrot
         //
         // Return
         // The number of events.
-        int waitIoEvents(int32_t ms);
+        uint32_t waitIoEvents(int32_t ms) override;
 
         // Add io event to epoll.
         //
         // Params:
         // * ev: The io event.
-        // * events: Epoll flags, EPOLLIN|...
-        void addEvent(IoEvent *ev, int events);
+        void addEvent(IoEvent *ev) override;
 
-        // Update io event in epoll.
+        // Notify read event.
         //
         // Params:
         // * ev: The io event.
-        // * events: Epoll flags, EPOLLIN|...        
-        void modifyEvent(IoEvent *ev, int events);
+        void monitorRead(IoEvent *ev) override;
  
+        // Notify write event.
+        //
+        // Params:
+        // * ev: The io event.
+        void monitorWrite(IoEvent *ev) override;
+
         // Delete io event from epoll.
         //
         // Params:
         // * ev: The io event.
-        void delEvent(IoEvent *ev);
+        void delEvent(IoEvent *ev) override;
 
         // Retrieve the need-to-handle event notified by epoll.
         //
@@ -60,24 +64,15 @@ namespace parrot
         //
         // Return:
         //  The IoEvent pointer.
-        IoEvent *getIoEvent(uint32_t idx) const noexcept;
-
-        // Retrieve the events of IoEvent notified by epoll.
-        //
-        // Params:
-        // * idx: The event index.
-        //
-        // Return:
-        //  The epoll events.
-        int getEvents(uint32_t idx) const noexcept;
+        IoEvent *getIoEvent(uint32_t idx) const noexcept override;
 
         // Make epoll_wait return by writing to a fd.
-        void stopWaiting();
+        void stopWaiting() override;
 
       private:
         int32_t                                  _epollFd;
         uint32_t                                 _epollSize;
-        std::unique_ptr<EpollTrigger>            _trigger;
+        std::unique_ptr<EventTrigger>            _trigger;
         std::unique_ptr<struct epoll_event[]>    _events;
     };
 }

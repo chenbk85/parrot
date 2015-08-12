@@ -19,7 +19,11 @@ namespace parrot
         _logFullPath(),
         _currFileSize(0),
         _logFd(-1),
-        _epoll(new Epoll(1)),
+#if defined(__linux__)
+        _notifier(new Epoll(1)),
+#elif defined(__APPLE__)
+        _notifier(new Epoll(1)),        
+#endif
         _config(cfg)
     {
         if ((_config->_logPath).empty() || (_config->_logName).empty())
@@ -42,7 +46,7 @@ namespace parrot
 
     void LoggerThread::beforeStart()
     {
-        _epoll->create();
+        _notifier->create();
     }
 
     void LoggerThread::addJob(std::unique_ptr<LoggerJob> &&job) noexcept
@@ -51,12 +55,12 @@ namespace parrot
         _logJobList.push_back(std::move(job));
         _jobListLock.unlock();
 
-        _epoll->stopWaiting();
+        _notifier->stopWaiting();
     }
 
     void LoggerThread::stop()
     {
-        _epoll->stopWaiting();
+        _notifier->stopWaiting();
         ThreadBase::stop();
 
         ::close(_logFd);
@@ -178,17 +182,17 @@ namespace parrot
     void LoggerThread::run()
     {
         IoEvent *ev = nullptr;
-        int ret = 0;
+        uint32_t ret = 0;
 
         while (!isStopped())
         {
-            ret = _epoll->waitIoEvents(-1);
+            ret = _notifer->waitIoEvents(-1);
             if (ret <= 0)
             {
                 continue;
             }
 
-            for (int i = 0; i < ret; ++i)
+            for (auto i = 0u; i < ret; ++i)
             {
                 ev = _epoll->getIoEvent(i);
                 ev->handleIoEvent();

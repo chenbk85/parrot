@@ -1,18 +1,18 @@
 #include <unistd.h>
 #include <system_error>
 #include "ioEvent.h"
-#include "epollTrigger.h"
+#include "eventTrigger.h"
 
 namespace parrot
 {
-    EpollTrigger::EpollTrigger():
+    EventTrigger::EventTrigger():
         IoEvent{},
         _pipeFds{-1, -1},
         _buffer(new unsigned char[4096])
     {
     }
 
-    EpollTrigger::~EpollTrigger()
+    EventTrigger::~EventTrigger()
     {
         if (_pipeFds[0] != -1)
         {
@@ -29,13 +29,13 @@ namespace parrot
         setFd(-1);
     }
 
-    void EpollTrigger::create()
+    void EventTrigger::create()
     {
         int ret = ::pipe(_pipeFds);
         if (ret < 0)
         {
             throw std::system_error(errno, std::system_category(),
-                                    "EpollTrigger::create");
+                                    "EventTrigger::create");
         }
 
         // Make fd for reading nonblocking.
@@ -43,7 +43,7 @@ namespace parrot
         setFd(_pipeFds[0]);
     }
 
-    void EpollTrigger::trigger()
+    void EventTrigger::trigger()
     {
         while (true)
         {
@@ -60,11 +60,11 @@ namespace parrot
             }
 
             throw std::system_error(errno, std::system_category(),
-                                    "EpollTrigger::trigger");
+                                    "EventTrigger::trigger");
         }
     }
 
-    void EpollTrigger::acknowledge()
+    void EventTrigger::acknowledge()
     {
         int ret = 0;
         
@@ -88,12 +88,24 @@ namespace parrot
             }
 
             throw std::system_error(errno, std::system_category(),
-                                    "EpollTrigger::acknowledge");
+                                    "EventTrigger::acknowledge");
         }
     }
 
-    eIoAction EpollTrigger::handleIoEvent()
+    eIoAction EventTrigger::handleIoEvent()
     {
+        if (isError())
+        {
+            throw std::system_error(errno, std::system_category(),
+                                    "EventTrigger::handleIoEvent: error.");
+        }
+
+        if (isEof())
+        {
+            throw std::system_error(errno, std::system_category(),
+                                    "EventTrigger::handleIoEvent: eof.");
+        }
+
         acknowledge();
         return eIoAction::None;
     }

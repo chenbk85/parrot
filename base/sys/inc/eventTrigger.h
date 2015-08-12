@@ -1,5 +1,5 @@
-#ifndef __BASE_SYS_INC_EPOLLTRIGGER_H__
-#define __BASE_SYS_INC_EPOLLTRIGGER_H__
+#ifndef __BASE_SYS_INC_EVENTTRIGGER_H__
+#define __BASE_SYS_INC_EVENTTRIGGER_H__
 
 #include <memory>
 
@@ -7,13 +7,13 @@ namespace parrot
 {
     enum class eIoAction : uint16_t;
 
-    class EpollTrigger : public IoEvent
+    class EventTrigger : public IoEvent
     {
       public:
-        EpollTrigger();
-        ~EpollTrigger();
-        EpollTrigger(const EpollTrigger&) = delete;
-        EpollTrigger& operator=(const EpollTrigger&) = delete;
+        EventTrigger();
+        ~EventTrigger();
+        EventTrigger(const EventTrigger&) = delete;
+        EventTrigger& operator=(const EventTrigger&) = delete;
 
       public:
         void create();
