@@ -11,7 +11,6 @@ namespace parrot
 {
     class IoEvent;
     class EventTrigger;
-    enum class eIoAction : uint16_t;
 
     class EpollImpl final
     {

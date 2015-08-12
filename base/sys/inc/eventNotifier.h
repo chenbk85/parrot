@@ -6,7 +6,6 @@
 namespace parrot
 {
     class IoEvent;
-    enum class eIoAction : uint16_t;
     
     class EventNotifier
     {

@@ -15,7 +15,7 @@ namespace parrot
     {
       public:
         explicit Epoll(uint32_t size) noexcept;
-        ~Epoll();
+        virtual ~Epoll();
 
       public:
         void create() override;
