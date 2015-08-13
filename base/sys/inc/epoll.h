@@ -16,6 +16,8 @@ namespace parrot
       public:
         explicit Epoll(uint32_t size) noexcept;
         virtual ~Epoll();
+        Epoll(const Epoll&) = delete;
+        Epoll& operator=(const Epoll&) = delete;
 
       public:
         void create() override;

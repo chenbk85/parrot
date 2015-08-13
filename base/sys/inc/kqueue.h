@@ -17,6 +17,8 @@ namespace parrot
       public:
         explicit Kqueue(uint32_t size) noexcept;
         virtual ~Kqueue();
+        Kqueue(const Kqueue&) = delete;
+        Kqueue& operator=(const Kqueue&) = delete;
 
       public:
         void create() override;
@@ -30,6 +32,7 @@ namespace parrot
 
       private:
         KqueueImpl *_impl;
+    };
 }
 
 

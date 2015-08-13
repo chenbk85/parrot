@@ -12,6 +12,8 @@ namespace parrot
       public:
         EventNotifier() {}
         virtual ~EventNotifier() {}
+        EventNotifier(const EventNotifier&) = delete;
+        EventNotifier& operator=(const EventNotifier&) = delete;
 
       public:
         virtual void create() = 0;

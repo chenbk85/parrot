@@ -11,7 +11,7 @@ namespace parrot
     {
       public:
         EventTrigger();
-        ~EventTrigger();
+        virtual ~EventTrigger();
         EventTrigger(const EventTrigger&) = delete;
         EventTrigger& operator=(const EventTrigger&) = delete;
 
