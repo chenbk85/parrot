@@ -1,5 +1,4 @@
 #if defined(__APPLE__)
-
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
@@ -26,7 +25,7 @@ namespace parrot
 
     KqueueImpl::~KqueueImpl()
     {
-        closeKqueue();
+        close();
     }
 
     void KqueueImpl::create()
@@ -37,6 +36,10 @@ namespace parrot
             throw std::system_error(errno, std::system_category(),
                                     "KqueueImpl::create");            
         }
+
+        _trigger->create();
+        _trigger->setAction(eIoAction::Read);
+        addEvent(_trigger.get());
     }
 
     void KqueueImpl::msToTimespec(struct timespec *ts, uint32_t ms)
@@ -92,7 +95,7 @@ namespace parrot
         return ret;
     }
 
-    void KqueueImpl::addEvent(IoEvent *ev, int filter)
+    void KqueueImpl::addEvent(IoEvent *ev)
     {
         int fd = ev->getFd();
         if (fd < 0)
@@ -103,22 +106,39 @@ namespace parrot
             return;
         }
         
-        struct kevent ke;
-        ::EV_SET(&ke, fd, filter, EV_ADD, 0, 0, ev);
+        struct kevent kev[2];
+        eIoAction act = ev->getAction();
 
-        int ret = ::kevent(_kqueueFd, &ke, 1, nullptr, 0, nullptr);
+        if (act == eIoAction::Read)
+        {
+            ev->setIoRead();
+            ::EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_DISABLE, 0, 0, ev);
+            ::EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_ENABLE, 0, 0, ev);
+        }
+        else if (act == eIoAction::Write)
+        {
+            ev->setIoWrite();
+            ::EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_ENABLE, 0, 0, ev);
+            ::EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_DISABLE, 0, 0, ev);
+        }
+        else
+        {
+#if defined(DEBUG)            
+            PARROT_ASSERT(0);
+#endif
+            return;
+        }
+
+        int ret = ::kevent(_kqueueFd, kev, 2, nullptr, 0, nullptr);
         if (ret == -1)
         {
             throw std::system_error(errno, std::system_category(),
                                     "KqueueImpl::addEvent");
         }
-
-        ev->setFilter(filter);
     }
-    
-    void KqueueImpl::updateEventFilter(IoEvent *ev, int filter)
+
+    void KqueueImpl::monitorRead(IoEvent *ev)
     {
-        int oldFilter = ev->getFilter();
         int fd = ev->getFd();
 
         if (fd < 0)
@@ -129,7 +149,31 @@ namespace parrot
             return;
         }
 
-        if (filter < 0)
+        if (ev->getAction() == eIoAction::Read)
+        {
+            return;
+        }
+
+        // Set the event to READ.
+        ev->setIoRead();
+
+        struct kevent kev[2];
+        ::EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_DISABLE, 0, 0, ev);
+        ::EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_ENABLE, 0, 0, ev);
+
+        int ret = ::kevent(_kqueueFd, kev, 2, nullptr, 0, nullptr);
+        if (ret == -1)
+        {
+            throw std::system_error(errno, std::system_category(),
+                                    "KqueueImpl::monitorRead");
+        }
+    }
+
+    void KqueueImpl::monitorWrite(IoEvent *ev)
+    {
+        int fd = ev->getFd();
+
+        if (fd < 0)
         {
 #if defined(DEBUG)            
             PARROT_ASSERT(0);
@@ -137,30 +181,23 @@ namespace parrot
             return;
         }
 
-        struct kevent ke;
-        ::EV_SET(&ke, fd, oldFilter, EV_DELETE, 0, 0, ev);
-        
-        int ret = ::kevent(_kqueueFd, &ke, 1, nullptr, 0, nullptr);
-        if (ret == -1)
+        if (ev->getAction() == eIoAction::Write)
         {
-            throw std::system_error(errno, std::system_category(),
-                                    "KqueueImpl::updateEventFilter:remove");
-        }
-
-        if (ret != 1)
-        {
-#if defined(DEBUG)            
-            PARROT_ASSERT(0);
-#endif
             return;
         }
 
-        ::EV_SET(&ke, fd, oldFilter, EV_ADD, 0, 0, ev);
-        ret = ::kevent(_kqueueFd, &ke, 1, nullptr, 0, nullptr);
+        // Set the event to READ.
+        ev->setIoWrite();
+
+        struct kevent kev[2];
+        ::EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_ENABLE, 0, 0, ev);
+        ::EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_DISABLE, 0, 0, ev);
+
+        int ret = ::kevent(_kqueueFd, kev, 2, nullptr, 0, nullptr);
         if (ret == -1)
         {
             throw std::system_error(errno, std::system_category(),
-                                    "KqueueImpl::updateEventFilter:add");
+                                    "KqueueImpl::monitorWrite");
         }
     }
     
@@ -175,44 +212,27 @@ namespace parrot
             return;
         }
 
-        int filter = ev->getFilter();
-        if (filter < 0)
-        {
-#if defined(DEBUG)            
-            PARROT_ASSERT(0);
-#endif
-            return;
-        }
+        struct kevent kev[2];
+        ::EV_SET(&kev[0], fd, EVFILT_WRITE, EV_DELETE, 0, 0, ev);
+        ::EV_SET(&kev[1], fd, EVFILT_READ, EV_DELETE, 0, 0, ev);
 
-        struct kevent ke;
-        ::EV_SET(&ke, fd, filter, EV_DELETE, 0, 0, ev);
-        
-        int ret = ::kevent(_kqueueFd, &ke, 1, nullptr, 0, nullptr);
+        int ret = ::kevent(_kqueueFd, &kev, 2, nullptr, 0, nullptr);
         if (ret == -1)
         {
             throw std::system_error(errno, std::system_category(),
                                     "KqueueImpl::delEvent");
         }
-        
-        if (ret != 1)
-        {
-#if defined(DEBUG)            
-            PARROT_ASSERT(0);
-#endif
-        }
     }
     
     IoEvent * KqueueImpl::getIoEvent(uint32_t idx) const noexcept
     {
-        return (IoEvent*)_events[idx].udata;
+        IoEvent *ev = (IoEvent*)_events[idx].udata;
+        ev->setFilter(_events[idx].filter);
+        ev->setFlags(_events[idx].flags);
+        return ev;
     }
 
-    int KqueueImpl::getFilter(uint32_t idx) const noexcept
-    {
-        return _events[idx].flags;
-    }
-
-    void KqueueImpl::closeKqueue()
+    void KqueueImpl::close()
     {
         if (_kqueueFd != -1)
         {
@@ -222,4 +242,4 @@ namespace parrot
     }
 }
 
-#endif
+#endif // __APPLE__

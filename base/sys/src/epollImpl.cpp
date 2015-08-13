@@ -22,11 +22,7 @@ namespace parrot
 
     EpollImpl::~EpollImpl()
     {
-        if (_epollFd >= 0)
-        {
-            ::close(_epollFd);
-            _epollFd = -1;
-        }
+        close();
     }
 
     void EpollImpl::create()
@@ -41,7 +37,7 @@ namespace parrot
         _events.reset(new struct epoll_event[_epollSize]);
         _trigger = std::unique_ptr<EventTrigger>(new EventTrigger());
         _trigger->create();
-        _trigger->setIoRead();
+        _trigger->setAction(eIoAction::Read);
         addEvent(_trigger.get());
     }
 
@@ -103,22 +99,30 @@ namespace parrot
             return;
         }
 
-        int filter = ev->getFilter();
-        if (filter != -1)
+        struct epoll_event event;
+        event.data.u64 = 0;
+        event.data.ptr = ev;
+
+        eIoAction act = ev->getAction();
+        if (act == eIoAction::Read)
+        {
+            ev->setIoRead();
+        }
+        else if (act == eIoAction::Write)
+        {
+            ev->setIoWrite();
+        }
+        else
         {
 #if defined(DEBUG)            
             PARROT_ASSERT(0);
 #endif
-            return;            
+            return;
         }
 
-        struct epoll_event event;
-        event.data.u64 = 0;
-        event.data.ptr = ev;
         event.events = ev->getFilter();
 
         int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_ADD, fd, &event);
-
         if (ret < 0)
         {
             throw std::system_error(errno, std::system_category(),
@@ -137,7 +141,7 @@ namespace parrot
             return;
         }
 
-        if (ev->getCurrAction() == eIoAction::Read) 
+        if (ev->getAction() == eIoAction::Read) 
         {
             return;
         }
@@ -169,7 +173,7 @@ namespace parrot
             return;
         }
 
-        if (ev->getCurrAction() == eIoAction::Write) 
+        if (ev->getAction() == eIoAction::Write) 
         {
             return;
         }
@@ -230,6 +234,15 @@ namespace parrot
     {
         _trigger->trigger();
     }
+
+    void EpollImpl::close()
+    {
+        if (_epollFd >= 0)
+        {
+            ::close(_epollFd);
+            _epollFd = -1;
+        }
+    }
 }
 
-#endif
+#endif // __linux__

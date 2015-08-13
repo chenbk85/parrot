@@ -15,9 +15,15 @@ namespace parrot
 
     class IoEvent
     {
+#if defined(__linux__)
+        friend class EpollImpl;
+#elif defined(__APPLE__)
+        friend class KqueueImpl;
+#endif
+
       public:
         IoEvent() noexcept;
-        ~IoEvent();
+        virtual ~IoEvent();
         IoEvent(const IoEvent&) = delete;
         IoEvent &operator=(const IoEvent&) = delete;
 
@@ -31,21 +37,11 @@ namespace parrot
         // Retrive the associated fd.
         int getFd() const noexcept;
 
-        // Help function to mark the event to read.
-        void setIoRead() noexcept;
+        // Default to read or write.
+        void setAction(eIoAction act) noexcept;
 
-        // Help function to mark the event to write.
-        void setIoWrite() noexcept;
-
-        eIoAction getCurrAction() const noexcept;
-
-        int getFilter() const noexcept;
-
-        void setFilter(int filter) noexcept;
-
-        void setFlags(int flags) noexcept;
-
-        int getFlags() const noexcept;
+        // Retrive current action.
+        eIoAction getAction() const noexcept;
 
         // Is the event error?
         bool isError() const noexcept;
@@ -63,6 +59,21 @@ namespace parrot
         virtual eIoAction handleIoEvent() = 0;
 
         void close() noexcept;
+
+      protected:
+        // Help function to mark the event to read.
+        void setIoRead() noexcept;
+
+        // Help function to mark the event to write.
+        void setIoWrite() noexcept;
+
+        int getFilter() const noexcept;
+
+        void setFilter(int filter) noexcept;
+
+        void setFlags(int flags) noexcept;
+
+        int getFlags() const noexcept;
 
       public:
         // static help functions.

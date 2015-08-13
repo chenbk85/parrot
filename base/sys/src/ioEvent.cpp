@@ -38,6 +38,11 @@ namespace parrot
         return _fd;
     }
 
+    void IoEvent::setAction(eIoAction act) noexcept
+    {
+        _action = act;
+    }
+
     void IoEvent::setIoRead() noexcept
     {
 #if defined(__linux__)
@@ -58,7 +63,7 @@ namespace parrot
         _action = eIoAction::Write;
     }
 
-    eIoAction IoEvent::getCurrAction() const noexcept
+    eIoAction IoEvent::getAction() const noexcept
     {
         return _action;
     }

@@ -17,6 +17,8 @@ namespace parrot
       public:
         explicit EpollImpl(uint32_t size) noexcept;
         ~EpollImpl();
+        EpollImpl(const EpollImpl &kq) = delete;
+        EpollImpl& operator=(const EpollImpl &kq) = delete;
 
       public:
         // Create the epoll.
@@ -67,6 +69,9 @@ namespace parrot
 
         // Make epoll_wait return by writing to a fd.
         void stopWaiting();
+
+        // Close epoll.
+        void close();
 
       private:
         int32_t                                  _epollFd;
