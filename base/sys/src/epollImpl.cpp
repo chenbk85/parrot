@@ -220,7 +220,10 @@ namespace parrot
             throw std::system_error(errno, std::system_category(),
                                     "EpollImpl::delEvent");
         }
-        ev->close();
+
+        ev->setAction(eIoAction::Remove);
+        ev->setFilter(-1);
+        ev->setFlags(-1);
     }
 
     IoEvent* EpollImpl::getIoEvent(uint32_t idx) const noexcept

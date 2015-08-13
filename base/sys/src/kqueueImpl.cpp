@@ -42,17 +42,6 @@ namespace parrot
         addEvent(_trigger.get());
     }
 
-    void KqueueImpl::msToTimespec(struct timespec *ts, uint32_t ms)
-    {
-        if (ts == nullptr)
-        {
-            return;
-        }
-        
-        ts->tv_sec = ms / 1000;
-        ts->tv_nsec = (ms % 1000) * 1000000;
-    }
-
     uint32_t KqueueImpl::waitIoEvents(int32_t ms)
     {
         std::unique_ptr<struct timespec> needWait;
@@ -222,6 +211,10 @@ namespace parrot
             throw std::system_error(errno, std::system_category(),
                                     "KqueueImpl::delEvent");
         }
+
+        ev->setAction(eIoAction::Remove);
+        ev->setFilter(-1);
+        ev->setFlags(-1);
     }
     
     IoEvent * KqueueImpl::getIoEvent(uint32_t idx) const noexcept
@@ -244,6 +237,17 @@ namespace parrot
             ::close(_kqueueFd);
             _kqueueFd = -1;
         }
+    }
+
+    void KqueueImpl::msToTimespec(struct timespec *ts, uint32_t ms)
+    {
+        if (ts == nullptr)
+        {
+            return;
+        }
+        
+        ts->tv_sec = ms / 1000;
+        ts->tv_nsec = (ms % 1000) * 1000000;
     }
 }
 
