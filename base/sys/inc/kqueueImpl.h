@@ -31,6 +31,7 @@ namespace parrot
         void monitorWrite(IoEvent *ev);
         void delEvent(IoEvent *ev);
         IoEvent * getIoEvent(uint32_t idx) const noexcept;
+        void stopWaiting();
         void close();
 
       private:

@@ -232,6 +232,11 @@ namespace parrot
         return ev;
     }
 
+    void KqueueImpl::stopWaiting()
+    {
+        _trigger->trigger();
+    }
+
     void KqueueImpl::close()
     {
         if (_kqueueFd != -1)

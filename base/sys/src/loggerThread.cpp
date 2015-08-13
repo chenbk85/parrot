@@ -9,6 +9,7 @@
 #include "loggerJob.h"
 #include "ioEvent.h"
 #include "epoll.h"
+#include "kqueue.h"
 
 namespace parrot
 {
@@ -22,7 +23,7 @@ namespace parrot
 #if defined(__linux__)
         _notifier(new Epoll(1)),
 #elif defined(__APPLE__)
-        _notifier(new Epoll(1)),        
+        _notifier(new Kqueue(1)),
 #endif
         _config(cfg)
     {
