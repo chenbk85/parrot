@@ -1,8 +1,10 @@
 #include <system_error>
+#include <cstring>
 
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include "ipHelper.h"
 #include "ioEvent.h"
 #include "tcpClient.h"
 
@@ -11,12 +13,14 @@ namespace parrot
     TcpClient::TcpClient():
         IoEvent(),
         _srvIp(),
-        _srvPort(0)
+        _srvPort(0),
+        _connected(false)
     {
     }
 
     TcpClient::~TcpClient()
     {
+        disconnect();
     }
 
     void TcpClient::connect(const std::string &srvIp, uint16_t srvPort)
@@ -24,7 +28,19 @@ namespace parrot
         _srvIp = srvIp;
         _srvPort = srvPort;
 
-        int fd = ::socket(AF_INET, SOCK_STREAM, 0);
+        IPHelper ipHelper;
+        ipHelper.setIP(srvIp);
+
+        int fd = -1;
+
+        if (ipHelper.isIPv4())
+        {
+            fd = ::socket(AF_INET, SOCK_STREAM, 0);
+        }
+        else
+        {
+            fd = ::socket(AF_INET6, SOCK_STREAM, 0);
+        }
 
         if (fd < 0)
         {
@@ -34,30 +50,49 @@ namespace parrot
 
         setNonBlock(fd);
 
-        socklen_t addrLen = sizeof(struct sockaddr_in);
-        struct sockaddr* addr; 
-        struct sockaddr_in addrIn; 
+        socklen_t           addrLen = 0;
+        struct sockaddr*    addr    = nullptr; 
+        struct sockaddr_in  addr4;
+        struct sockaddr_in6 addr6;
 
-        addr = (struct sockaddr*)&peer_addr_in;
-        addrIn.sin_family = AF_INET;
-        addrIn.sin_port = htons(_srvPort);
-        addrIn.sin_addr.s_addr = ;
-        memset(addrIn.sin_zero, 0, sizeof(addrIn.sin_zero));
+        if (ipHelper.isIPv4())
+        {
+            addrLen = sizeof(struct sockaddr_in);
+            addr = (struct sockaddr*)&addr4;
+            addr4.sin_family = AF_INET;
+            addr4.sin_port = htons(_srvPort);
+            addr4.sin_addr = ipHelper.getIPv4Bin();
+            std::memset(addr4.sin_zero, 0, sizeof(addr4.sin_zero));
+        }
+        else
+        {
+            addrLen = sizeof(struct sockaddr_in6);
+            addr = (struct sockaddr*)&addr6;
+            addr6.sin6_family = AF_INET6;
+            addr6.sin6_port = htons(_srvPort);
+            addr6.sin6_addr = ipHelper.getIPv6Bin();
+        }
 
-        struct sockaddr addr;
-        addr
-
-        int ret = connect(fd, );
-
+        if (::connect(fd, addr, addrLen) == 0 || EISCONN == errno)
+        {
+            setFd(fd);
+            _connected = true;
+        }
     }
 
-    void TcpClient::setConnected()
+    void TcpClient::setConnected() noexcept
     {
-
+        _connected = true;
     }
 
-    bool TcpClient::isConnected()
+    bool TcpClient::isConnected() const noexcept
     {
+        return _connected;
+    }
 
+    void TcpClient::disconnect()
+    {
+        close();
+        _connected = false;
     }
 }

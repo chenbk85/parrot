@@ -60,6 +60,10 @@ namespace parrot
 
         void close() noexcept;
 
+      public:
+        uint32_t send(const char* buff, uint32_t buffLen);
+        uint32_t recv(char* buff, uint32_t buffLen);
+
       protected:
         // Help function to mark the event to read.
         void setIoRead() noexcept;

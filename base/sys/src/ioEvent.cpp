@@ -6,9 +6,11 @@
 #elif defined(__APPLE__)
 
 #endif
-
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <system_error>
 
+#include "macroFuncs.h"
 #include "ioEvent.h"
 
 
@@ -174,6 +176,65 @@ namespace parrot
             _flags = -1;
             _action = eIoAction::None;
         }
+    }
+
+    /////////////////////////////////////////////////////////////////////////
+    /// Send/Recv/Read/Write
+    //////////////
+    uint32_t IoEvent::send(const char* buff, uint32_t buffLen)
+    {
+        if (!buff || buffLen == 0 || _fd < 0)
+        {
+            PARROT_ASSERT(0);
+        }
+
+        ssize_t ret = 0;
+        while (true)
+        {
+            ret = ::send(_fd, buff, buffLen, 0);
+            if (ret != -1)
+            {
+                break;
+            }
+
+            if (errno == EAGAIN)
+            {
+                continue;
+            }
+
+            throw std::system_error(errno, std::system_category(),
+                                    "IoEvent::send");
+        }
+
+        return ret;
+    }
+
+    uint32_t IoEvent::recv(char* buff, uint32_t buffLen)
+    {
+        if (!buff || buffLen == 0 || _fd < 0)
+        {
+            PARROT_ASSERT(0);
+        }
+
+        ssize_t ret = 0;
+        while (true)
+        {
+            ret = ::recv(_fd, buff, buffLen, 0);
+            if (ret != -1)
+            {
+                break;
+            }
+
+            if (errno == EAGAIN)
+            {
+                continue;
+            }
+
+            throw std::system_error(errno, std::system_category(),
+                                    "IoEvent::recv");
+        }
+
+        return ret;
     }
 
     /////////////////////////////////////////////////////////////////////////
