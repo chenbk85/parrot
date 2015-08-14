@@ -18,13 +18,15 @@ namespace parrot
 
       public:
         void connect(const std::string &srvIp, uint16_t srvPort);
+        void reset();
+        void setConnected();
         bool isConnected();
         void send(const char* buf, uint32_t len, uint32_t &sentLen);
         void recv(char* buf, uint32_t len, uint32_t &recvLen);
 
-      private:
-        std::string _srvIp;
-        uint16_t    _srvPort;
+      protected:
+        std::string  _srvIp;
+        uint16_t     _srvPort;
     };
 }
 
