@@ -20,9 +20,9 @@ COMMAND_COLOR        := 4
 # Complier and linker
 COMPLIER             := g++ -std=c++11
 ifdef RELEASE
-    COMPLIER_OPTIONS := -Wall -Wextra -Werror -O3 -DRELEASE
+    COMPLIER_OPTIONS := -Wall -Wextra -Werror -O3 -Wnon-virtual-dtor -fno-strict-aliasing -DRELEASE
 else
-    COMPLIER_OPTIONS := -g -Wall -Wextra -Werror -DDEBUG
+    COMPLIER_OPTIONS := -g -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing -DDEBUG
 endif
 LINKER               := g++ -std=c++11
 LINKER_OPTIONS       := -Wl,-rpath,$(PRJ_ROOT)/libs

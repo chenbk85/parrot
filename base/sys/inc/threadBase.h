@@ -17,7 +17,7 @@ namespace parrot
     {
       public:
         ThreadBase();
-        ~ThreadBase();
+        virtual ~ThreadBase();
         ThreadBase(const ThreadBase&) = delete;
         ThreadBase& operator=(const ThreadBase &) = delete;
 
