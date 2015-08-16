@@ -4,11 +4,14 @@
 #if defined(__linux__)
 #include <sys/epoll.h>
 #elif defined(__APPLE__)
-
+#include <sys/event.h>
+#include <sys/time.h>
 #endif
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include <system_error>
+#include <string>
 
 #include "macroFuncs.h"
 #include "ioEvent.h"
@@ -18,7 +21,7 @@
 namespace parrot
 {
     IoEvent::IoEvent() noexcept:
-        _fd(-1),
+    _fd(-1),
         _filter(-1),
         _flags(-1),
         _action(eIoAction::None)

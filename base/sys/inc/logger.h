@@ -6,7 +6,7 @@
 
 namespace parrot
 {
-    class Config;
+    struct Config;
     class LoggerThread;
 
     class Logger

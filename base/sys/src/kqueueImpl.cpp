@@ -2,9 +2,15 @@
 #include <sys/types.h>
 #include <sys/event.h>
 #include <sys/time.h>
+#include <unistd.h>
 
 #include <system_error>
 #include <chrono>
+
+#include "ioEvent.h"
+#include "kqueueImpl.h"
+#include "eventTrigger.h"
+#include "macroFuncs.h"
 
 namespace parrot
 {
@@ -58,7 +64,7 @@ namespace parrot
 
         while (true)
         {
-            ret = ::kqueue(_kqueueFd, nullptr, 0, _events.get(),
+            ret = ::kevent(_kqueueFd, nullptr, 0, _events.get(),
                            _keventCount, needWait.get());
             if (ret >= 0)
             {
@@ -101,14 +107,14 @@ namespace parrot
         if (act == eIoAction::Read)
         {
             ev->setIoRead();
-            ::EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_DISABLE, 0, 0, ev);
-            ::EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_ENABLE, 0, 0, ev);
+            EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_DISABLE, 0, 0, ev);
+            EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_ENABLE, 0, 0, ev);
         }
         else if (act == eIoAction::Write)
         {
             ev->setIoWrite();
-            ::EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_ENABLE, 0, 0, ev);
-            ::EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_DISABLE, 0, 0, ev);
+            EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_ENABLE, 0, 0, ev);
+            EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_DISABLE, 0, 0, ev);
         }
         else
         {
@@ -147,8 +153,8 @@ namespace parrot
         ev->setIoRead();
 
         struct kevent kev[2];
-        ::EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_DISABLE, 0, 0, ev);
-        ::EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_ENABLE, 0, 0, ev);
+        EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_DISABLE, 0, 0, ev);
+        EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_ENABLE, 0, 0, ev);
 
         int ret = ::kevent(_kqueueFd, kev, 2, nullptr, 0, nullptr);
         if (ret == -1)
@@ -179,8 +185,8 @@ namespace parrot
         ev->setIoWrite();
 
         struct kevent kev[2];
-        ::EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_ENABLE, 0, 0, ev);
-        ::EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_DISABLE, 0, 0, ev);
+        EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD|EV_ENABLE, 0, 0, ev);
+        EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD|EV_DISABLE, 0, 0, ev);
 
         int ret = ::kevent(_kqueueFd, kev, 2, nullptr, 0, nullptr);
         if (ret == -1)
@@ -202,10 +208,10 @@ namespace parrot
         }
 
         struct kevent kev[2];
-        ::EV_SET(&kev[0], fd, EVFILT_WRITE, EV_DELETE, 0, 0, ev);
-        ::EV_SET(&kev[1], fd, EVFILT_READ, EV_DELETE, 0, 0, ev);
+        EV_SET(&kev[0], fd, EVFILT_WRITE, EV_DELETE, 0, 0, ev);
+        EV_SET(&kev[1], fd, EVFILT_READ, EV_DELETE, 0, 0, ev);
 
-        int ret = ::kevent(_kqueueFd, &kev, 2, nullptr, 0, nullptr);
+        int ret = ::kevent(_kqueueFd, kev, 2, nullptr, 0, nullptr);
         if (ret == -1)
         {
             throw std::system_error(errno, std::system_category(),

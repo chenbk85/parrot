@@ -144,7 +144,7 @@ namespace parrot
                 struct sockaddr_in6* addr_in6 = 
                     (struct sockaddr_in6*)(rp->ai_addr);
                 (void)inet_ntop(rp->ai_family, 
-                                addr_in6->sin6_addr.s6_addr32, 
+                                addr_in6->sin6_addr.s6_addr, 
                                 buff, sizeof(buff));
                 ipv6List.emplace_back(buff);
             }

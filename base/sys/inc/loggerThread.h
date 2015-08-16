@@ -12,7 +12,7 @@ namespace parrot
 {
     class LoggerJob;
     class EventNotifier;
-    class Config;
+    struct Config;
 
     class LoggerThread: public ThreadBase
     {
