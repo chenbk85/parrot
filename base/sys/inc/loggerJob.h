@@ -22,7 +22,7 @@ namespace parrot
     {
         enum
         {
-            DEF_LOG_BUFF_LEN = 1024
+            DEF_HEADER_LEN   = 56
         };
 
       public:
@@ -34,7 +34,7 @@ namespace parrot
 
       public:
         void doLog(eLoggerLevel level, int lineNo, 
-                   const char * fmt, va_list &args) noexcept;
+                   const std::string &msg) noexcept;
         int createHeader(eLoggerLevel level, int lineNo) noexcept;
         const char* getLevelStr(eLoggerLevel level) noexcept;
         const char * getLogBuff() const noexcept;
