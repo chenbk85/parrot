@@ -7,7 +7,17 @@ namespace parrot
 {
     class WinIocp
     {
+      public:
+        WinIocp(uint32_t threadNum, uint32_t dequeueCount);
+        ~WinIocp();
+        WinIocp(const WinIocp&) = delete;
+        WinIocp& operator=(const WinIocp&) = delete;
+
+      public:
+        void create();
         
+
+      private:
     };
 }
 
