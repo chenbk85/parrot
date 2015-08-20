@@ -13,7 +13,7 @@ namespace parrot
     class WinIocpImpl
     {
       public:
-        WinIocpImpl(fileHdl iocp, uint32_t dequeueCount);
+        WinIocpImpl(HANDLE iocp, uint32_t dequeueCount);
         ~WinIocpImpl();
         WinIocpImpl(const WinIocpImpl&) = delete;
         WinIocpImpl& operator=(const WinIocpImpl&) = delete;

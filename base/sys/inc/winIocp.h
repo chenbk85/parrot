@@ -5,10 +5,12 @@
 
 namespace parrot
 {
+    class WinIocpImpl;
+
     class WinIocp : public EventNotifier
     {
       public:
-        WinIocp(uint32_t threadNum, uint32_t dequeueCount);
+        WinIocp(HANDLE iocp, uint32_t dequeueCount);
         ~WinIocp();
         WinIocp(const WinIocp&) = delete;
         WinIocp& operator=(const WinIocp&) = delete;
@@ -31,6 +33,7 @@ namespace parrot
         void stopWaiting() override;
 
       private:
+        WinIocpImpl *_impl;
     };
 }
 
