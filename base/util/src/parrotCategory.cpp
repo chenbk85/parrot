@@ -14,6 +14,12 @@ namespace parrot
         {
             case Codes::OK:
                 return "OK";
+            case Codes::ERR_FILE_OPEN:
+                return "ERR_FILE_OPEN";
+            case Codes::ERR_FILE_WRITE:
+                return "ERR_FILE_WRITE";
+            case Codes::ERR_FILE_READ:
+                return "ERR_FILE_READ";
             default:
                 return std::string("Unknown code ") + std::to_string(ec);
         }

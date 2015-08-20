@@ -7,7 +7,7 @@
 #include "ioEvent.h"
 #include "epoll.h"
 #include "kqueue.h"
-
+#include "codes.h"
 
 namespace parrot
 {
@@ -75,7 +75,8 @@ namespace parrot
 
         if (!_fileStream.is_open())
         {
-            throw std::runtime_error("LoggerThread::createLog:open");
+            throw std::system_error(Codes::ERR_FILE_OPEN, parrotCategory(), 
+                                    "LoggerThread::createLog");
         }
 
         _currFileSize = static_cast<uint64_t>(_fileStream.tellp());
@@ -89,7 +90,8 @@ namespace parrot
             
             if (_fileStream.fail()) 
             {
-                throw std::runtime_error("LoggerThread::createLog:writeToLog");
+                throw std::system_error(Codes::ERR_FILE_WRITE, parrotCategory(), 
+                                        "LoggerThread::createLog");
             }
 
             _currFileSize += j->getLogLen();

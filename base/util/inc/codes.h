@@ -8,7 +8,10 @@ namespace parrot
 {
     enum class Codes
     {
-        OK                   = 200
+        OK                   = 200,
+        ERR_FILE_OPEN        = 10000,
+        ERR_FILE_WRITE       = 10001,
+        ERR_FILE_READ        = 10002
     };
 
     std::error_code make_error_code(Codes e) noexcept
