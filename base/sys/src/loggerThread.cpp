@@ -1,8 +1,5 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <assert.h>
-#include <unistd.h>
+#include <cassert>
+#include <cstdio> // For rename.
 
 #include "config.h"
 #include "loggerThread.h"
@@ -10,6 +7,7 @@
 #include "ioEvent.h"
 #include "epoll.h"
 #include "kqueue.h"
+
 
 namespace parrot
 {
@@ -19,7 +17,7 @@ namespace parrot
         _logJobList(),
         _logFullPath(),
         _currFileSize(0),
-        _logFd(-1),
+        _fileStream(),
 #if defined(__linux__)
         _notifier(new Epoll(1)),
 #elif defined(__APPLE__)
@@ -29,7 +27,7 @@ namespace parrot
     {
         if ((_config->_logPath).empty() || (_config->_logName).empty())
         {
-            assert(0);
+            assert(false);
         }
 
         auto len = (_config->_logPath).length();
@@ -63,71 +61,38 @@ namespace parrot
     {
         _notifier->stopWaiting();
         ThreadBase::stop();
-
-        ::close(_logFd);
-        _logFd = -1;
+        _fileStream.close();
     }
 
     void LoggerThread::createLog()
     {
-        if (_logFd >= 0)
+        if (_fileStream.is_open())
         {
             return;
         }
 
-        _logFd = ::open(_logFullPath.c_str(), O_WRONLY|O_CREAT|O_APPEND, 0777);
+        _fileStream.open(_logFullPath.c_str(), std::ios::out | std::ios::app);
 
-        if (_logFd < 0)
+        if (!_fileStream.is_open())
         {
-            throw std::system_error(errno, std::system_category(), 
-                                    "LoggerThread::createLog:open");
+            throw std::runtime_error("LoggerThread::createLog:open");
         }
 
-        struct stat st;
-        if (fstat(_logFd, &st) < 0)
-        {
-            throw std::system_error(errno, std::system_category(), 
-                                    "LoggerThread::createLog:fstat");            
-        }
-        _currFileSize = st.st_size;
+        _currFileSize = static_cast<uint64_t>(_fileStream.tellp());
     }
 
     void LoggerThread::writeToLog(JobListType &jobList)
     {
         for (auto &j: jobList)
         {
-            auto buff = j->getLogBuff();
-            auto len = j->getLogLen();
-            auto needWrite = len;
-            int ret = 0;
-
-            while (true)
+            _fileStream << j->getLogBuff();
+            
+            if (_fileStream.fail()) 
             {
-                ret = ::write(_logFd, buff, needWrite);
-                if (ret >= 0)
-                {
-                    needWrite -= ret;
-                    if (needWrite == 0)
-                    {
-                        _currFileSize += len;
-                        break;
-                    }
-                    else
-                    {
-                        buff = buff + len - needWrite;
-                    }
-                }
-                else 
-                {
-                    if (errno == EINTR)
-                    {
-                        continue;
-                    }
-
-                    throw std::system_error(errno, std::system_category(), 
-                                            "LoggerThread::writeToLog:write");
-                }
+                throw std::runtime_error("LoggerThread::createLog:writeToLog");
             }
+
+            _currFileSize += j->getLogLen();
         }
 
         jobList.clear();
@@ -143,8 +108,7 @@ namespace parrot
         std::string oldName = "";
         std::string newName = "";
 
-        ::close(_logFd);
-        _logFd = -1;
+        _fileStream.close();
         _currFileSize = 0u;
 
         for (auto i = _config->_rotateNum; i > 0u; --i)
@@ -159,7 +123,7 @@ namespace parrot
             }
 
             newName = _logFullPath + '.' + std::to_string(i);
-            ::rename(oldName.c_str(), newName.c_str());
+            std::rename(oldName.c_str(), newName.c_str());
         }
     }
 

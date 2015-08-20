@@ -5,6 +5,7 @@
 #include <list>
 #include <string>
 #include <memory>
+#include <fstream>
 
 #include "threadBase.h"
 
@@ -45,7 +46,7 @@ namespace parrot
         JobListType                                _logJobList;
         std::string                                _logFullPath;
         uint64_t                                   _currFileSize;
-        int                                        _logFd;
+        std::ofstream                              _fileStream;
         std::unique_ptr<EventNotifier>             _notifier;
         const Config *                             _config;
     };

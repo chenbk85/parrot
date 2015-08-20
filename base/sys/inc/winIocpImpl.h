@@ -17,7 +17,16 @@ namespace parrot
         WinIocpImpl& operator=(const WinIocpImpl&) = delete;
 
       public:
-        void create();
+        static HANDLE createIocp(uint32_t threadNum);
+
+      public:
+        void waitIoEvents(int32_t ms);
+        void addEvent(IoEvent *ev);
+        void monitorRead(IoEvent *ev);
+        void monitorWrite(IoEvent *ev);
+        IoEvent* getIoEvent(uint32_t idx) const noexcept;
+        void stopWaiting();
+        void close();
         
       private:
         HANDLE                                _completionPort;
