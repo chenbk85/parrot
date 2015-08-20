@@ -28,7 +28,7 @@ namespace parrot
 
         virtual void delEvent(IoEvent *ev) = 0;
 
-        virtual IoEvent* getIoEvent(uint32_t idx) const noexcept = 0;
+        virtual IoEvent* getIoEvent(uint32_t idx) const = 0;
 
         virtual void stopWaiting() = 0;
     };

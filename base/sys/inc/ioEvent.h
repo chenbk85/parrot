@@ -58,7 +58,7 @@ namespace parrot
         // Implement this function to handle epoll event.
         virtual eIoAction handleIoEvent() = 0;
 
-        void close() noexcept;
+        virtual void close() noexcept;
 
       public:
         uint32_t send(const char* buff, uint32_t buffLen);
@@ -101,7 +101,7 @@ namespace parrot
         // * flags: The file descripotrs, e.g., O_NONBLOCK ...
         static void manipulateFd(int fd, int flags);
 
-      private:
+      protected:
         int                                 _fd;
         int                                 _filter;
         int                                 _flags;

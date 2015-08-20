@@ -1,10 +1,10 @@
 #if defined(_WIN32)
-
+#include <cassert.h>
 #include "macroFuncs.h"
 
 namespace parrot
 {
-    WinIocpImpl::WinIocpImpl(HANDLE iocp, uint32_t dequeueCount):
+    WinIocpImpl::WinIocpImpl(fileHdl iocp, uint32_t dequeueCount):
         _comletionPort(iocp),
         _overlappedEntryArr(new OVERLAPPED_ENTRY[dequeueCount]),
         _dequeueCount(dequeueCount)
@@ -30,21 +30,21 @@ namespace parrot
         return iocp;
     }
 
-    void WinIocpImpl::waitIoEvents(int32_t ms)
+    uint32_t WinIocpImpl::waitIoEvents(int32_t ms)
     {
         void *lpCompletionKey = NULL;
         ULONG numberRemoved = 0;
-        BOOL ret = FALSE;
+        bool ret = false;
 
         if (ms <= 0)
         {
-            ret = GetQueuedCompletionStatusEx(
+            ret = (bool)GetQueuedCompletionStatusEx(
                 _comletionPort, _overlappedEntryArr.get(), _dequeueCount,
                 &numberRemoved, INFINITE, false);
         }
         else
         {
-            ret = GetQueuedCompletionStatusEx(
+            ret = (bool)GetQueuedCompletionStatusEx(
                 _comletionPort, _overlappedEntryArr.get(), _dequeueCount,
                 &numberRemoved, ms, false);
         }
@@ -55,9 +55,11 @@ namespace parrot
                 GetLastError(), std::system_category(), 
                 "WinIocpImpl::waitIoEvents");            
         }
+
+        return static_cast<uint32_t>(numberRemoved);
     }
 
-    void WinIocpImpl::addEvent(IoEvent *ev)
+    void WinIocpImpl::addEvent(WinIoEvent *ev)
     {
         if (CreateIoCompletionPort(ev->getHandle(), _comletionPort, 
                                    (ULONG_PTR)ev, 0) == NULL)
@@ -68,58 +70,61 @@ namespace parrot
         }
         else
         {
-            cout << "CreateIoCompletionPort Client success." << endl;
-
-            
-            ZeroMemory(&data->Overlapped, sizeof(data->Overlapped));
-            ZeroMemory(data->Buffer, sizeof(data->Buffer));
-
-            data->opCode = IO_READ;
-            data->nTotalBytes = 0;
-            data->wsabuf.buf = data->Buffer;
-            data->wsabuf.len = sizeof(data->Buffer);
-            data->activeSocket = ls;
-            DWORD dwFlags = 0;
-            int nRet = WSARecv(ls, &data->wsabuf, 1,
-                               NULL, &dwFlags, &data->Overlapped, NULL);
-
-            if (nRet == SOCKET_ERROR && (ERROR_IO_PENDING != WSAGetLastError()))
+            eIoAction act = ev->getAction();
+            if (act == eIoAction::Read)
             {
-                cout << "WASRecvFailed:: Reason Code::"
-                     << WSAGetLastError() << endl;
-                closesocket(ls);
-                delete data;
+                postRead(ev)
+            }
+            else if (act == eIoAction::Write)
+            {
+                postWrite(ev);
             }
             else
             {
-                cout << "WSARecv success." << endl;
+                assert(false);
             }
         }
     }
 
-    void WinIocpImpl::monitorRead(IoEvent *ev)
+    void WinIocpImpl::postRead(WinIoEvent *ev)
     {
+        DWORD dwFlags = 0;
+        int ret = WSARecv(ev->getSocket(), ev->getWSABuf(), 1,
+                          NULL, &dwFlags, ev->getOverLapped(), NULL);
 
+        auto err = WSAGetLastError();
+        if (ret == SOCKET_ERROR && (ERROR_IO_PENDING != err))
+        {
+            throw std::system_error(err, std::system_category(), 
+                "WinIocpImpl::postRead");
+        }
     }
 
-    void WinIocpImpl::monitorWrite(IoEvent *ev)
+    void WinIocpImpl::postWrite(WinIoEvent *ev)
     {
+        DWORD dwFlags = 0;
+        int ret = WSASend(ev->getSocket(), ev->getWSABuf(), 1,
+                          NULL, &dwFlags, ev->getOverLapped(), NULL);
 
+        auto err = WSAGetLastError();
+        if (ret == SOCKET_ERROR && (ERROR_IO_PENDING != err))
+        {
+            throw std::system_error(err, std::system_category(),
+                "WinIocpImpl::postWrite");
+        }
     }
 
-    IoEvent* WinIocpImpl::getIoEvent(uint32_t idx) const noexcept
+    WinIoEvent* WinIocpImpl::getIoEvent(uint32_t idx) const
     {
-
+        WinIoEvent *ev = (WinIoEvent*)_overlappedEntryArr[idx].Internal;
+        ev->setBytesTransferred(
+            _overlappedEntryArr[idx].dwNumberOfBytesTransferred);
+        return ev;
     }
 
     void WinIocpImpl::stopWaiting()
     {
-
-    }
-
-    void WinIocpImpl::close()
-    {
-
+        PostQueuedCompletionStatus(_comletionPort, 0, NULL, NULL);
     }
 }
 

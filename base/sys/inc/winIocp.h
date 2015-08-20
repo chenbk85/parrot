@@ -5,7 +5,7 @@
 
 namespace parrot
 {
-    class WinIocp
+    class WinIocp : public EventNotifier
     {
       public:
         WinIocp(uint32_t threadNum, uint32_t dequeueCount);
@@ -14,8 +14,21 @@ namespace parrot
         WinIocp& operator=(const WinIocp&) = delete;
 
       public:
-        void create();
+        void create() override;
+
+        uint32_t waitIoEvents(int32_t ms) override;
+
+        void addEvent(IoEvent *ev) override;
         
+        void monitorRead(IoEvent *ev) override;
+
+        void monitorWrite(IoEvent *ev) override;
+
+        void delEvent(IoEvent *ev) override;
+
+        IoEvent* getIoEvent(uint32_t idx) const override;
+
+        void stopWaiting() override;
 
       private:
     };

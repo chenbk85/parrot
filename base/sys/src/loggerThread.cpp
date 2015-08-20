@@ -1,7 +1,7 @@
-#include <cassert>
 #include <cstdio> // For rename.
 
 #include "config.h"
+#include "macroFuncs.h"
 #include "loggerThread.h"
 #include "loggerJob.h"
 #include "ioEvent.h"
@@ -27,7 +27,7 @@ namespace parrot
     {
         if ((_config->_logPath).empty() || (_config->_logName).empty())
         {
-            assert(false);
+            PARROT_ASSERT(false);
         }
 
         auto len = (_config->_logPath).length();
