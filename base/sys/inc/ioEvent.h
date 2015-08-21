@@ -2,6 +2,7 @@
 #define __BASE_SYS_INC_IOEVENT_H__
 
 #include <cstdint>
+#include "unifyPlatDef.h"
 
 namespace parrot
 {
@@ -11,7 +12,7 @@ namespace parrot
         Read,
         Write,
         Remove
-     };
+    };
 
     class IoEvent
     {
@@ -22,7 +23,7 @@ namespace parrot
 #endif
 
       public:
-        IoEvent() noexcept;
+        IoEvent();
         virtual ~IoEvent();
         IoEvent(const IoEvent&) = delete;
         IoEvent &operator=(const IoEvent&) = delete;
@@ -32,53 +33,54 @@ namespace parrot
         //
         // Params:
         // * fd: File descriptor.
-        void setFd(int fd) noexcept;
+        void setFd(int fd);
         
         // Retrive the associated fd.
-        int getFd() const noexcept;
+        int getFd() const;
 
         // Default to read or write.
-        void setAction(eIoAction act) noexcept;
+        void setAction(eIoAction act);
 
         // Retrive current action.
-        eIoAction getAction() const noexcept;
+        eIoAction getAction() const;
 
         // Is the event error?
-        bool isError() const noexcept;
+        virtual bool isError() const;
         
         // Is the peer closed the socket?
-        bool isEof() const noexcept;
+        virtual bool isEof() const;
 
         // Implement this function to handle epoll event.
-        bool isReadAvail() const noexcept;
+        virtual bool isReadAvail() const;
 
         // Implement this function to handle epoll event.
-        bool isWriteAvail() const noexcept;
+        virtual bool isWriteAvail() const;
 
         // Implement this function to handle epoll event.
         virtual eIoAction handleIoEvent() = 0;
 
-        virtual void close() noexcept;
-
-      public:
-        uint32_t send(const char* buff, uint32_t buffLen);
-        uint32_t recv(char* buff, uint32_t buffLen);
+        virtual void close();
 
       protected:
         // Help function to mark the event to read.
-        void setIoRead() noexcept;
+        void setIoRead();
 
         // Help function to mark the event to write.
-        void setIoWrite() noexcept;
+        void setIoWrite();
 
-        int getFilter() const noexcept;
+        int getFilter() const;
 
-        void setFilter(int filter) noexcept;
+        void setFilter(int filter);
 
-        void setFlags(int flags) noexcept;
+        void setFlags(int flags);
 
-        int getFlags() const noexcept;
+        int getFlags() const;
 
+      public:
+#if defined(__APPLE__) || defined(__linux__)
+        uint32_t send(const char* buff, uint32_t buffLen);
+        uint32_t recv(char* buff, uint32_t buffLen);
+#endif
       public:
         // static help functions.
         
@@ -86,20 +88,28 @@ namespace parrot
         //
         // Params:
         // * fd: The target file descriptor.
-        static void setNonBlock(int fd);
+        // * on: If true, make the fd nonblock. or make it block.
+        static void setNonBlock(sockhdl fd, bool on = true);
 
         // Turn off nagle algorithm.
         //
         // Params:
         // * fd: The target file descriptor.
-        static void setNoDelay(int fd);
+        static void setNoDelay(sockhdl fd);
 
-        // Wrap fcntl.
+#if defined(_WIN32)
+        // Set the socket exclusive.
         //
         // Params:
-        // * fd:    The file descriptor.
-        // * flags: The file descripotrs, e.g., O_NONBLOCK ...
-        static void manipulateFd(int fd, int flags);
+        // * fd: The target file descriptor.
+        static void setExclusiveAddr(sockhdl fd);
+#elif defined(__linux__) || defined(__APPLE__)
+        // Do not use reuse addr in Windows.
+        //
+        // Params:
+        // * fd: The target file descriptor.
+        static void setReuseAddr(sockhdl fd);
+#endif
 
       protected:
         int                                 _fd;

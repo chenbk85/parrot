@@ -3,7 +3,9 @@
 
 #if defined(_WIN32)
 
+#include <windef.h>
 #include <WinSock2.h>
+
 
 namespace parrot
 {
@@ -18,15 +20,17 @@ namespace parrot
       public:
         SOCKET getSocket();
         void setSocket(SOCKET s);
+        void setTransport(Transport *t);
         WSAOVERLAPPED* getOverLapped();
         WSABUF* getWSABuf();
         void close() override;
         void setBytesTransferred(uint32_t count);
-      private:
+
+      protected:
         void postRead(WinIoEvent *ev);
         void postWrite(WinIoEvent *ev);
 
-      private:
+      protected:
         WSAOVERLAPPED               _overLapped;
         WSABUF                      _wsaBuf;
         SOCKET                      _socket;

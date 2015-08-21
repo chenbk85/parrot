@@ -20,6 +20,9 @@ namespace parrot
         WinIocp& operator=(const WinIocp&) = delete;
 
       public:
+        static HANDLE createIocp(uint32_t threadNum);
+
+      public:
         uint32_t waitIoEvents(int32_t ms) override;
 
         void addEvent(WinIoEvent *ev) override;

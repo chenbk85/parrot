@@ -13,7 +13,8 @@ namespace parrot
         SimpleEventNotifierImpl();
         ~SimpleEventNotifierImpl();
         SimpleEventNotifierImpl(const SimpleEventNotifierImpl&) = delete;
-        SimpleEventNotifierImpl& operator=(const SimpleEventNotifierImpl&) = delete;
+        SimpleEventNotifierImpl& operator=(
+            const SimpleEventNotifierImpl&) = delete;
 
       public:
         uint32_t waitIoEvents(int32_t ms);

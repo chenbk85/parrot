@@ -6,13 +6,13 @@
 #include <windef.h>
 #include <winsock2.h>
 
-typedef sockhdl SOCKET;
-typedef filehdl HANDLE;
+typedef SOCKET sockhdl;
+typedef HANDLE filehdl;
 
 #elif defined (__linux__) || defined(__APPLE__)
 
-typedef sockhdl int;
-typedef filehdl int;
+typedef int sockhdl;
+typedef int filehdl;
 
 #endif
 

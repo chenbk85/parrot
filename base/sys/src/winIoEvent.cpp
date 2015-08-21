@@ -20,6 +20,8 @@ namespace parrot
 
     WinIoEvent::~WinIoEvent()
     {
+        _transport = nullptr;
+        close();
     }
 
     SOCKET WinIoEvent::getSocket()
@@ -30,6 +32,11 @@ namespace parrot
     void WinIoEvent::setSocket(SOCKET s)
     {
         _socket = s;
+    }
+
+    void WinIoEvent::setTransport(Transport *t)
+    {
+        _transport = t;
     }
 
     WSAOVERLAPPED* WinIoEvent::getOverLapped()
@@ -53,6 +60,15 @@ namespace parrot
         }
 
         return &_wsaBuf;
+    }
+
+    void WinIoEvent::close()
+    {
+        if (_socket != INVALID_SOCKET)
+        {
+            ::closesocket(_socket);
+            _socket = INVALID_SOCKET;
+        }
     }
 
     void WinIoEvent::setBytesTransferred(uint32_t count)

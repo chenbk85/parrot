@@ -19,6 +19,11 @@ namespace parrot
         _impl = nullptr;
     }
 
+    HANDLE WinIocp::createIocp(uint32_t threadNum)
+    {
+        return WinIocp::createIocp(threadNum);
+    }
+
     uint32_t WinIocp::waitIoEvents(int32_t ms)
     {
         return _impl->waitIoEvents(ms);

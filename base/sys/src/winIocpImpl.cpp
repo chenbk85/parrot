@@ -2,9 +2,11 @@
 #include <cassert.h>
 #include "macroFuncs.h"
 
+#include "winIocpImpl.h"
+
 namespace parrot
 {
-    WinIocpImpl::WinIocpImpl(fileHdl iocp, uint32_t dequeueCount):
+    WinIocpImpl::WinIocpImpl(HANDLE iocp, uint32_t dequeueCount):
         _comletionPort(iocp),
         _overlappedEntryArr(new OVERLAPPED_ENTRY[dequeueCount]),
         _dequeueCount(dequeueCount)
