@@ -1,11 +1,14 @@
 #if defined(_WIN32)
 
+#include "eventNotifier.h"
+#include "winIoEvent.h"
 #include "winIocpImpl.h"
 #include "winIocp.h"
 
 namespace parrot
 {
     WinIocp::WinIocp(HANDLE iocp, uint32_t dequeueCount):
+        EventNotifier(),
         _impl(new WinIocpImpl(iocp, dequeueCount))
     {
     }
@@ -21,7 +24,7 @@ namespace parrot
         return _impl->waitIoEvents(ms);
     }
 
-    void WinIocp::addEvent(IoEvent *ev)
+    void WinIocp::addEvent(WinIoEvent *ev)
     {
         impl->addEvent(ev);
     }

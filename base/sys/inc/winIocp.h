@@ -3,8 +3,12 @@
 
 #if defined(_WIN32)
 
+#include <cstdint>
+#include <windef.h>
+
 namespace parrot
 {
+    class WinIoEvent;
     class WinIocpImpl;
 
     class WinIocp : public EventNotifier
@@ -16,19 +20,11 @@ namespace parrot
         WinIocp& operator=(const WinIocp&) = delete;
 
       public:
-        void create() override;
-
         uint32_t waitIoEvents(int32_t ms) override;
 
-        void addEvent(IoEvent *ev) override;
+        void addEvent(WinIoEvent *ev) override;
         
-        void monitorRead(IoEvent *ev) override;
-
-        void monitorWrite(IoEvent *ev) override;
-
-        void delEvent(IoEvent *ev) override;
-
-        IoEvent* getIoEvent(uint32_t idx) const override;
+        WinIoEvent* getIoEvent(uint32_t idx) const override;
 
         void stopWaiting() override;
 

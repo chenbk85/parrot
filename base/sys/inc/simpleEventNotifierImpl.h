@@ -1,6 +1,7 @@
 #ifndef __BASE_SYS_INC_SIMPLEEVENTNOTIFIERIMPL_H__
 #define __BASE_SYS_INC_SIMPLEEVENTNOTIFIERIMPL_H__
 
+#include <cstdint>
 #include <mutex>
 #include <condition_variable>
 
