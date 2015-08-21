@@ -21,7 +21,7 @@ namespace parrot
         _currFileSize(0),
         _fileStream(),
 #if defined(__linux__)
-        _notifier(new Epoll(1)),
+        _notifier(new SimpleEventNotifier()),
 #elif defined(__APPLE__)
         _notifier(new Kqueue(1)),
 #elif defined(_WIN32)
@@ -79,8 +79,9 @@ namespace parrot
 
         if (!_fileStream.is_open())
         {
-            throw std::system_error((int)Codes::ERR_FILE_OPEN, ParrotCat(), 
-                                    "LoggerThread::createLog");
+            throw std::system_error(
+                static_cast<int>(Codes::ERR_FILE_OPEN), ParrotCategory(), 
+                "LoggerThread::createLog");
         }
 
         _currFileSize = static_cast<uint64_t>(_fileStream.tellp());
@@ -94,10 +95,10 @@ namespace parrot
             
             if (_fileStream.fail()) 
             {
-                throw std::system_error((int)Codes::ERR_FILE_WRITE, ParrotCat(), 
-                                        "LoggerThread::createLog");
+                throw std::system_error(
+                    static_cast<int>(Codes::ERR_FILE_WRITE), ParrotCategory(), 
+                    "LoggerThread::createLog");
             }
-
             _currFileSize += j->getLogLen();
         }
 
@@ -158,10 +159,6 @@ namespace parrot
         while (!isStopped())
         {
             ret = _notifier->waitIoEvents(-1);
-            if (ret <= 0)
-            {
-                continue;
-            }
 
             for (auto i = 0u; i < ret; ++i)
             {

@@ -14,15 +14,9 @@ namespace parrot
         ERR_FILE_READ        = 10002
     };
 
-    std::error_code make_error_code(Codes e) noexcept
-    {
-        return std::error_code{static_cast<int>(e), ParrotCategory()};
-    }
+    std::error_code make_error_code(Codes e) noexcept;
 
-    std::error_condition make_error_condition(Codes e) noexcept
-    {
-        return std::error_condition{static_cast<int>(e), ParrotCategory()};
-    }
+    std::error_condition make_error_condition(Codes e) noexcept;
 }
 
 namespace std

@@ -6,7 +6,7 @@
 
 namespace parrot
 {
-    class ParrotCat : public std::error_category 
+    class ParrotCategoryImpl : public std::error_category 
     {
       public:
         const char * name() const noexcept override;

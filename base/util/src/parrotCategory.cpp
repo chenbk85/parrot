@@ -3,12 +3,12 @@
 
 namespace parrot
 {
-    const char * ParrotCat::name() const noexcept
+    const char * ParrotCategoryImpl::name() const noexcept
     {
         return "parrot";
     }
 
-    std::string ParrotCat::message(int ec) const noexcept
+    std::string ParrotCategoryImpl::message(int ec) const noexcept
     {
         switch (static_cast<Codes>(ec))
         {
@@ -28,7 +28,7 @@ namespace parrot
     const std::error_category& ParrotCategory() noexcept
     {
         // C++11 guarantees that this initialisation is thread-safe.
-        static ParrotCat obj;
+        static ParrotCategoryImpl obj;
         return obj;
     }
 }
