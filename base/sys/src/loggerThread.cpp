@@ -21,7 +21,7 @@ namespace parrot
         _currFileSize(0),
         _fileStream(),
 #if defined(__linux__)
-        _notifier(new SimpleEventNotifier()),
+        _notifier(new Epoll(1)),
 #elif defined(__APPLE__)
         _notifier(new Kqueue(1)),
 #elif defined(_WIN32)
