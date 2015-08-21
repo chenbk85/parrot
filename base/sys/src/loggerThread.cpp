@@ -1,4 +1,5 @@
 #include <cstdio> // For rename.
+#include <string>
 
 #include "config.h"
 #include "macroFuncs.h"
@@ -8,6 +9,7 @@
 #include "epoll.h"
 #include "kqueue.h"
 #include "codes.h"
+#include "simpleEventNotifier.h"
 
 namespace parrot
 {
@@ -22,6 +24,8 @@ namespace parrot
         _notifier(new Epoll(1)),
 #elif defined(__APPLE__)
         _notifier(new Kqueue(1)),
+#elif defined(_WIN32)
+        _notifier(new SimpleEventNotifier())
 #endif
         _config(cfg)
     {
@@ -75,7 +79,7 @@ namespace parrot
 
         if (!_fileStream.is_open())
         {
-            throw std::system_error(Codes::ERR_FILE_OPEN, parrotCategory(), 
+            throw std::system_error((int)Codes::ERR_FILE_OPEN, ParrotCat(), 
                                     "LoggerThread::createLog");
         }
 
@@ -90,7 +94,7 @@ namespace parrot
             
             if (_fileStream.fail()) 
             {
-                throw std::system_error(Codes::ERR_FILE_WRITE, parrotCategory(), 
+                throw std::system_error((int)Codes::ERR_FILE_WRITE, ParrotCat(), 
                                         "LoggerThread::createLog");
             }
 

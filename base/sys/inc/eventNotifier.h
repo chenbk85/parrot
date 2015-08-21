@@ -16,17 +16,17 @@ namespace parrot
         EventNotifier& operator=(const EventNotifier&) = delete;
 
       public:
-        virtual void create() = 0;
+        virtual void create() {}
 
         virtual uint32_t waitIoEvents(int32_t ms) = 0;
 
-        virtual void addEvent(IoEvent *ev) = 0;
+        virtual void addEvent(IoEvent *) {}
         
-        virtual void monitorRead(IoEvent *ev) = 0;
+        virtual void monitorRead(IoEvent *) {}
 
-        virtual void monitorWrite(IoEvent *ev) = 0;
+        virtual void monitorWrite(IoEvent *) {}
 
-        virtual void delEvent(IoEvent *ev) = 0;
+        virtual void delEvent(IoEvent *) {}
 
         virtual IoEvent* getIoEvent(uint32_t idx) const = 0;
 

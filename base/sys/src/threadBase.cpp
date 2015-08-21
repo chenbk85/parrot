@@ -76,6 +76,9 @@ namespace parrot
 
         // Here, Reacquire _lock again.
         _sleeping = false;
+
+        // Release the lock;
+        lk.unlock();
     }
 
     std::thread::id ThreadBase::getThreadId() const
@@ -87,6 +90,10 @@ namespace parrot
     {
         std::unique_lock<std::mutex> lk(_lock);
         _sleeping = false;
+        
+        // Release the lock.
+        lk.unlock();
+
         _condVar.notify_one();
     }
 }

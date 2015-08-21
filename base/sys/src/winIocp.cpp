@@ -16,10 +16,6 @@ namespace parrot
         _impl = nullptr;
     }
 
-    void WinIocp::create()
-    {
-    }
-
     uint32_t WinIocp::waitIoEvents(int32_t ms)
     {
         return _impl->waitIoEvents(ms);
@@ -30,18 +26,6 @@ namespace parrot
         impl->addEvent(ev);
     }
         
-    void WinIocp::monitorRead(IoEvent *)
-    {
-    }
-
-    void WinIocp::monitorWrite(IoEvent *)
-    {
-    }
-
-    void WinIocp::delEvent(IoEvent *)
-    {
-    }
-
     WinIoEvent* WinIocp::getIoEvent(uint32_t idx) const
     {
         return _impl->getIoEvent(idx);

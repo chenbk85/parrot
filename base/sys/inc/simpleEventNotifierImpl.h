@@ -1,6 +1,7 @@
 #ifndef __BASE_SYS_INC_SIMPLEEVENTNOTIFIERIMPL_H__
 #define __BASE_SYS_INC_SIMPLEEVENTNOTIFIERIMPL_H__
 
+#include <atomic>
 #include <mutex>
 #include <condition_variable>
 
@@ -20,6 +21,7 @@ namespace parrot
 
       public:
         bool                           _waiting;
+        std::atomic<uint32_t>          _signalCount;
         std::mutex                     _lock;
         std::condition_variable        _condVar;        
     };
