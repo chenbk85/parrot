@@ -1,7 +1,5 @@
 #include <iostream>
 #include <memory>
-#include <stdarg.h>
-#include <stdio.h>
 
 #include "config.h"
 #include "logger.h"
@@ -9,8 +7,9 @@
 #include <thread>
 #include <chrono>
 
-#include <sys/types.h>
+#if defined(__linux) || defined(__APPLE__)
 #include <sys/stat.h>
+#endif
 
 using namespace std;
 
@@ -18,7 +17,9 @@ using namespace std;
 
 int main()
 {
+#if defined(__linux) || defined(__APPLE__)
     umask(0133);
+#endif
 
     std::unique_ptr<parrot::Config> cfg (new parrot::Config());
     cfg->_logPath = ".";
