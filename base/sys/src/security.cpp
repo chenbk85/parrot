@@ -1,6 +1,12 @@
 #include "security.h"
+
+#include <openssl/crypto.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+
 #include <vector>
 #include <mutex>
+#include <set>
 #include <functional>
 
 ////////////////////////////////////////////////////////////////////////////
@@ -72,7 +78,7 @@ namespace parrot
         gLockVec.reserve(count);
         for (int i = 0; i != count; ++i)
         {
-            gLockVec.push_back(new std::mutex());
+            gLockVec.emplace_back(new std::mutex());
         }
 
         // Register static lock callbacks;
@@ -84,9 +90,21 @@ namespace parrot
         CRYPTO_set_dynlock_lock_callback(dynLockFunctionCallback);
         CRYPTO_set_dynlock_destroy_callback(dynDestroyFunctionCallback);
 
-
+        // Init library.
         SSL_library_init();
         SSL_load_error_strings();
+
+        OpenSSL_add_all_algorithms();
+        OpenSSL_add_all_ciphers();
+        OpenSSL_add_all_digests();
+    }
+
+    void Security::freeThreadErrQueue(const std::thread::id &id)
+    {
+        CRYPTO_THREADID tid;
+        std::hash<std::thread::id> hasher;
+        tid.val = (unsigned long)hasher(id);
+        ERR_remove_thread_state(&tid);
     }
 
     void Security::deinit()
@@ -103,7 +121,10 @@ namespace parrot
         {
             delete *it;
         }
-
         gLockVec.clear();
+
+        EVP_cleanup();
+        CRYPTO_cleanup_all_ex_data();
+        ERR_free_strings();
     }
 }

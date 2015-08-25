@@ -13,8 +13,13 @@ namespace parrot
         
       public:
         static void init();
+        static void freeThreadErrQueue(const std::thread::id &id);
         static void deinit();
-        static ssl_ctx* genSslCtx();
+        static ssl_ctx* genSslCtx(const string &keyPath, 
+                                  const string &certPath, 
+                                  bool verifyPeer = false);
+
+        
     };
 }
 
