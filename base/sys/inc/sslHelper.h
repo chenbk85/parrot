@@ -7,7 +7,6 @@
 
 namespace parrot
 {
-
     class SslHelper
     {
       public:
