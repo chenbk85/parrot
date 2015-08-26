@@ -1,8 +1,13 @@
 #ifndef __BASE_SECURITY_INC_SECURITY_H__
 #define __BASE_SECURITY_INC_SECURITY_H__
 
+#include <string>
+#include <thread>
+#include <openssl/ssl.h>
+
 namespace parrot
 {
+
     class Security
     {
       public:
@@ -35,8 +40,11 @@ namespace parrot
         // * certPath    The absolute file path of cert file.
         // * verifyPeer  Verify peer if true.
         // * depth       The verify depth.
-        static ssl_ctx* genSslCtx(const string &keyPath, 
-                                  const string &certPath, 
+        //
+        // Return:
+        //  A SSL_CTX pointer.
+        static SSL_CTX* genSslCtx(const std::string &keyPath, 
+                                  const std::string &certPath, 
                                   bool verifyPeer = false,
                                   int depth = 1);
 
@@ -52,7 +60,7 @@ namespace parrot
         //
         // Return:
         //   True if successful.
-        static bool checkConnection(SSL *ssl, const string &host);
+        static bool checkConnection(SSL *ssl, const std::string &host);
 
         // deinit
         //

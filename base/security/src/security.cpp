@@ -1,6 +1,7 @@
 #include <openssl/crypto.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
+#include <openssl/x509v3.h>
 
 #include <vector>
 #include <mutex>
@@ -10,11 +11,12 @@
 
 #include "security.h"
 #include "macroFuncs.h"
+#include "stringHelper.h"
 
 ////////////////////////////////////////////////////////////////////////////
 /// Static locking.
 //////////////
-static std::vector<mutex*> gLockVec;
+static std::vector<std::mutex*> gLockVec;
 
 static void lockingFunctionCallback(int mode, int n, 
                                     const char * /*file*/, int /*line*/)
@@ -76,7 +78,7 @@ static void dynDestroyFunctionCallback(struct CRYPTO_dynlock_value *l,
 //
 // Tries to find a match for hostname in the certificate's 
 // Subject Alternative Name extension.
-static bool matchesCommonName(const string &host, const X509 *cert)
+static bool matchesCommonName(const std::string &host, const X509 *cert)
 {
     int commonNameLoc = -1;
     X509_NAME_ENTRY *commonNameEntry = nullptr;
@@ -108,13 +110,13 @@ static bool matchesCommonName(const string &host, const X509 *cert)
     commonNameStr = (char *) ASN1_STRING_data(commonNameAsn1);
 
     // Make sure there isn't an embedded NUL character in the CN
-    if (ASN1_STRING_length(commonNameAsn1) != strlen(commonNameStr)) 
+    if (ASN1_STRING_length(commonNameAsn1) != std::strlen(commonNameStr)) 
     {
         return false;
     }
 
     // Compare expected hostname with the CN
-    if (std::strcmp(host.c_str(), commonNameStr) == 0) 
+    if (parrot::iStringCmp(host.c_str(), commonNameStr)) 
     {
         return true;
     }
@@ -128,14 +130,15 @@ static bool matchesCommonName(const string &host, const X509 *cert)
 //
 // Tries to find a match for hostname in the certificate's 
 // Subject Alternative Name extension.
-static bool matchesSubjectAlternativeName(const string &host, const X509 *cert)
+static bool matchesSubjectAlternativeName(const std::string &host, 
+                                          const X509 *cert)
 {
     int sanNamesNb = -1;
     STACK_OF(GENERAL_NAME) *sanNames = nullptr;
 
     // Try to extract the names within the SAN extension from the certificate
-    sanNames = X509_get_ext_d2i((X509 *) cert, NID_subject_alt_name, 
-                                nullptr, nullptr);
+    sanNames = (stack_st_GENERAL_NAME*)X509_get_ext_d2i(
+        (X509 *) cert, NID_subject_alt_name, nullptr, nullptr);
     if (sanNames == nullptr) 
     {
         return false;
@@ -163,7 +166,7 @@ static bool matchesSubjectAlternativeName(const string &host, const X509 *cert)
             else 
             {
                 // Compare expected hostname with the DNS name
-                if (std::strcmp(host.c_str(), dnsName) == 0) 
+                if (parrot::iStringCmp(host.c_str(), dnsName)) 
                 {
                     res = true;
                     break;
@@ -184,6 +187,10 @@ namespace parrot
 
     void Security::init()
     {
+        OpenSSL_add_all_algorithms();
+        OpenSSL_add_all_ciphers();
+        OpenSSL_add_all_digests();
+
         // Create locks for static lock functions.
         int count = CRYPTO_num_locks();
         gLockVec.reserve(count);
@@ -204,10 +211,6 @@ namespace parrot
         // Init library.
         SSL_library_init();
         SSL_load_error_strings();
-
-        OpenSSL_add_all_algorithms();
-        OpenSSL_add_all_ciphers();
-        OpenSSL_add_all_digests();
     }
 
     void Security::freeThreadErrQueue(const std::thread::id &id)
@@ -218,8 +221,8 @@ namespace parrot
         ERR_remove_thread_state(&tid);
     }
 
-    SSL_CTX* Security::genSslCtx(const string &keyPath, 
-                                 const string &certPath, 
+    SSL_CTX* Security::genSslCtx(const std::string &keyPath, 
+                                 const std::string &certPath, 
                                  bool verifyPeer,
                                  int depth)
     {
@@ -232,7 +235,8 @@ namespace parrot
             PARROT_ASSERT(0);
         }
 
-        if (SSL_CTX_load_verify_locations(sslCtx, certPath, nullptr) != 1)
+        if (SSL_CTX_load_verify_locations(sslCtx, certPath.c_str(), 
+                                          nullptr) != 1)
         {
             PARROT_ASSERT(0);
         }
@@ -242,7 +246,7 @@ namespace parrot
             PARROT_ASSERT(0);
         }
 
-        if (SSL_use_certificate_chain_file(sslCtx, certPath.c_str()) != 1)
+        if (SSL_CTX_use_certificate_chain_file(sslCtx, certPath.c_str()) != 1)
         {
             PARROT_ASSERT(0);
         }
@@ -269,7 +273,7 @@ namespace parrot
         return sslCtx;
     }
 
-    bool checkConnection(SSL *ssl, const string &host)
+    bool checkCertHostname(SSL *ssl, const std::string &host)
     {
         X509 *cert = nullptr;
         if (SSL_get_verify_result(ssl) != X509_V_OK)
