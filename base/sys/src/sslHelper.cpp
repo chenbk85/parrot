@@ -9,7 +9,7 @@
 #include <functional>
 #include <cstring>
 
-#include "security.h"
+#include "sslHelper.h"
 #include "macroFuncs.h"
 #include "stringHelper.h"
 
@@ -182,10 +182,10 @@ static bool matchesSubjectAlternativeName(const std::string &host,
 //////////////////////////////////////////////////////////////////////////////
 namespace parrot
 {
-    Security::Security() = default;
-    Security::~Security() = default;
+    SslHelper::SslHelper() = default;
+    SslHelper::~SslHelper() = default;
 
-    void Security::init()
+    void SslHelper::init()
     {
         OpenSSL_add_all_algorithms();
         OpenSSL_add_all_ciphers();
@@ -213,7 +213,7 @@ namespace parrot
         SSL_load_error_strings();
     }
 
-    void Security::freeThreadErrQueue(const std::thread::id &id)
+    void SslHelper::freeThreadErrQueue(const std::thread::id &id)
     {
         CRYPTO_THREADID tid;
         std::hash<std::thread::id> hasher;
@@ -221,7 +221,7 @@ namespace parrot
         ERR_remove_thread_state(&tid);
     }
 
-    SSL_CTX* Security::genSslCtx(const std::string &keyPath, 
+    SSL_CTX* SslHelper::genSslCtx(const std::string &keyPath, 
                                  const std::string &certPath, 
                                  bool verifyPeer,
                                  int depth)
@@ -231,7 +231,7 @@ namespace parrot
 
         if (!sslCtx)
         {
-            // If here, did you forget to call Security::init()?
+            // If here, did you forget to call SslHelper::init()?
             PARROT_ASSERT(0);
         }
 
@@ -257,7 +257,12 @@ namespace parrot
             PARROT_ASSERT(0);
         }
 
-        if (verifyPeer) 
+        // Enable nonblock.
+        SSL_CTX_set_mode(sslCtx, 
+                         SSL_MODE_ENABLE_PARTIAL_WRITE |
+                         SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+
+        if (verifyPeer)
         {
             SSL_CTX_set_verify(
                 sslCtx, 
@@ -273,7 +278,13 @@ namespace parrot
         return sslCtx;
     }
 
-    bool checkCertHostname(SSL *ssl, const std::string &host)
+    SSL* SslHelper::genSsl(SSL_CTX *ctx)
+    {
+        SSL * ssl = SSL_new(ctx);
+        return ssl;
+    }
+
+    bool SslHelper::checkCertHostname(SSL *ssl, const std::string &host)
     {
         X509 *cert = nullptr;
         if (SSL_get_verify_result(ssl) != X509_V_OK)
@@ -296,7 +307,7 @@ namespace parrot
         return true;
     }
 
-    void Security::deinit()
+    void SslHelper::deinit()
     {
         // First, clear callbacks.
         CRYPTO_set_locking_callback(nullptr);
