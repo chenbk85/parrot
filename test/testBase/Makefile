@@ -25,9 +25,9 @@ COMMAND_COLOR        := 4
 
 # Complier and linker
 COMPLIER             := g++ -std=c++11
-COMPLIER_OPTIONS     := -g -Wall -Wextra -Werror -DDEBUG
+CPPFLAGS             := -g -Wall -Wextra -Werror -DDEBUG
 LINKER               := g++
-LINKER_OPTIONS       := -Wl,-rpath,$(PRJ_ROOT)/libs -L$(PRJ_ROOT)/libs
+LDFLAGS              := -Wl,-rpath,$(PRJ_ROOT)/libs -L$(PRJ_ROOT)/libs
 
 # Commands
 RM                   := rm -rf
@@ -44,12 +44,12 @@ all: $(OBJECTS) $(LIBRARIES) $(BINARIES)
 
 ./bin/testLogger: ./obj/testLogger.o $(LIBRARIES)
 	@tput setaf $(NOTICE_COLOR); echo "Building binary $@"; tput setaf $(COMMAND_COLOR)
-	$(LINKER) $(LINKER_OPTIONS) $< -o $@ $(LINK_LIBS)
+	$(LINKER) $(LDFLAGS) $< -o $@ $(LINK_LIBS)
 	@echo; tput setaf 0
 
 ./obj/%.o: ./src/%.cpp
 	@tput setaf $(NOTICE_COLOR); echo "Building source $^"; tput setaf $(COMMAND_COLOR)
-	$(COMPLIER) $(COMPLIER_OPTIONS) $(DEPEND_INC) -c $^ -o $@
+	$(COMPLIER) $(CPPFLAGS) $(DEPEND_INC) -c $^ -o $@
 	@echo; tput setaf 0
 
 .PHONY: clean

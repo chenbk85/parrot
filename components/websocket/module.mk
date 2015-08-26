@@ -3,7 +3,7 @@ MODULE := $(shell basename $(subdirectory))
 $(MODULE)_DIR         := $(subdirectory)
 $(MODULE)_TARGET      := $(PRJ_ROOT)/libs/lib$(MODULE).a
 $(MODULE)_DEP_COMP    :=
-$(MODULE)_DEP_BASE    := util
+$(MODULE)_DEP_BASE    := sys util
 
 $(MODULE)_SRC         := $(wildcard $($(MODULE)_DIR)/src/*.cpp)
 $(MODULE)_INC         := $($(MODULE)_DIR)/inc

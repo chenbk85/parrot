@@ -2,8 +2,6 @@ MODULE := $(shell basename $(subdirectory))
 
 $(MODULE)_DIR         := $(subdirectory)
 $(MODULE)_TARGET      := $(PRJ_ROOT)/libs/lib$(MODULE).a
-$(MODULE)_CPPFLAGS    :=
-$(MODULE)_LDFLAGS     :=
 $(MODULE)_DEP_COMP    :=
 $(MODULE)_DEP_BASE    :=
 
@@ -33,7 +31,7 @@ $($(MODULE)_DIR)/obj/%.o: LOCAL_CPPFLAGS := $($(MODULE)_CPPFLAGS)
 $($(MODULE)_DIR)/obj/%.o: LOCAL_INCLUDE  := $($(MODULE)_INC)
 $($(MODULE)_DIR)/obj/%.o: $($(MODULE)_DIR)/src/%.cpp
 	@tput setaf $(NOTICE_COLOR); echo "Building source $^"; tput setaf $(COMMAND_COLOR)
-	$(COMPLIER) $(COMPLIER_OPTIONS) $(LOCAL_CPPFLAGS) $(LOCAL_INCLUDE) -c $^ -o $@
+	$(COMPLIER) $(CPPFLAGS) $(LOCAL_INCLUDE) -c $^ -o $@
 	@echo; tput setaf 0
 
 $($(MODULE)_TARGET): LOCAL_TARGET := $($(MODULE)_TARGET)
