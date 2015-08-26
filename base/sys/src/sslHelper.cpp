@@ -110,7 +110,7 @@ static bool matchesCommonName(const std::string &host, const X509 *cert)
     commonNameStr = (char *) ASN1_STRING_data(commonNameAsn1);
 
     // Make sure there isn't an embedded NUL character in the CN
-    if (ASN1_STRING_length(commonNameAsn1) != std::strlen(commonNameStr)) 
+    if (ASN1_STRING_length(commonNameAsn1) != (int)std::strlen(commonNameStr)) 
     {
         return false;
     }
@@ -158,7 +158,8 @@ static bool matchesSubjectAlternativeName(const std::string &host,
             char *dnsName = (char *) ASN1_STRING_data(currentName->d.dNSName);
 
             // Make sure there isn't an embedded NUL character in the DNS name
-            if (ASN1_STRING_length(currentName->d.dNSName) != strlen(dnsName))
+            if (ASN1_STRING_length(currentName->d.dNSName) != 
+                (int)std::strlen(dnsName))
             {
                 res = false;
                 break;

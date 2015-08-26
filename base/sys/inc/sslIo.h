@@ -1,6 +1,10 @@
 #ifndef __BASE_SYS_INC_SSLIO_H__
 #define __BASE_SYS_INC_SSLIO_H__
 
+#include <openssl/ssl.h>
+#include <string>
+#include <cstdint>
+
 namespace parrot
 {
     enum class SslIoStatus
@@ -10,6 +14,8 @@ namespace parrot
         RetryAtReadFd,
         Error
     };
+
+    class IoEvent;
 
     class SslIo : public IoEvent
     {
@@ -81,11 +87,11 @@ namespace parrot
         void closeSsl();
 
       protected:
-        SslIoStatus handleResult(int ret, const string &funcName);
+        SslIoStatus handleResult(int ret, const std::string &funcName);
 
       protected:
         SSL * _ssl;
-    }
+    };
 }
 
 #endif

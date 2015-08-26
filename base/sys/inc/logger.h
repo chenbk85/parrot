@@ -37,7 +37,7 @@ namespace parrot
         if (parrot::Logger::instance()->canLog(         \
                 parrot::eLoggerLevel::Info))            \
         {                                               \
-            ostringstream ostr;                         \
+            std::ostringstream ostr;                    \
             ostr << msg;                                \
             parrot::Logger::instance()->log(            \
                 parrot::eLoggerLevel::Info, __LINE__,   \
@@ -52,7 +52,7 @@ namespace parrot
         if (parrot::Logger::instance()->canLog(         \
                 parrot::eLoggerLevel::Debug))           \
         {                                               \
-            ostringstream ostr;                         \
+            std::ostringstream ostr;                    \
             ostr << msg;                                \
             parrot::Logger::instance()->log(            \
                 parrot::eLoggerLevel::Debug, __LINE__,  \
@@ -67,7 +67,7 @@ namespace parrot
         if (parrot::Logger::instance()->canLog(         \
                 parrot::eLoggerLevel::Warn))            \
         {                                               \
-            ostringstream ostr;                         \
+            std::ostringstream ostr;                    \
             ostr << msg;                                \
             parrot::Logger::instance()->log(            \
                 parrot::eLoggerLevel::Warn, __LINE__,   \
@@ -82,7 +82,7 @@ namespace parrot
             if (parrot::Logger::instance()->canLog(         \
                     parrot::eLoggerLevel::Error))           \
             {                                               \
-                ostringstream ostr;                         \
+                std::ostringstream ostr;                    \
                 ostr << msg;                                \
                 parrot::Logger::instance()->log(            \
                     parrot::eLoggerLevel::Error, __LINE__,  \
@@ -97,7 +97,7 @@ namespace parrot
             if (parrot::Logger::instance()->canLog(         \
                     parrot::eLoggerLevel::Fatal))           \
             {                                               \
-                ostringstream ostr;                         \
+                std::ostringstream ostr;                    \
                 ostr << msg;                                \
                 parrot::Logger::instance()->log(            \
                     parrot::eLoggerLevel::Fatal, __LINE__,  \

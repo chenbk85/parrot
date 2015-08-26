@@ -1,5 +1,6 @@
 #include <openssl/err.h>
 
+#include "ioEvent.h"
 #include "sslIo.h"
 #include "logger.h"
 
@@ -53,15 +54,15 @@ namespace parrot
     {
         int rLen = SSL_read(_ssl, buff, (int)len);
 
-        if (wLen > 0)
+        if (rLen > 0)
         {
             recvLen = rLen;
         }
 
-        return handleResult(wLen, "sslRecv");
+        return handleResult(rLen, "sslRecv");
     }
 
-    SslIoStatus SslIo::handleResult(int ret, const string &funcName)
+    SslIoStatus SslIo::handleResult(int ret, const std::string &funcName)
     {
         SslIoStatus status = SslIoStatus::Error;
 
@@ -72,10 +73,10 @@ namespace parrot
         else if (ret == 0)
         {
             char errBuf[512];
-            int err = SSL_get_error(_ssl, wLen);
+            int err = SSL_get_error(_ssl, ret);
             ERR_error_string_n(err, errBuf, sizeof(errBuf));
             LOG_ERROR("SslIo::handleResult: " << funcName << ".  Ret is " 
-                      << ret << ". Err is " << errbuf << ".");
+                      << ret << ". Err is " << errBuf << ".");
         }
         else
         {
@@ -96,7 +97,7 @@ namespace parrot
                     ERR_error_string_n(err, errBuf, sizeof(errBuf));
                     LOG_ERROR("SslIo::handleResult: " << funcName 
                               << ".  Ret is " << ret << ". Err is " 
-                              << errbuf << ".");
+                              << errBuf << ".");
                     break;
             }
         }
