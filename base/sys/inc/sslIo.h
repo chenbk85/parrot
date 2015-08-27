@@ -5,16 +5,10 @@
 #include <string>
 #include <cstdint>
 
+#include "codes.h"
+
 namespace parrot
 {
-    enum class SslIoStatus
-    {
-        Ok,
-        RetryAtWriteFd,
-        RetryAtReadFd,
-        Error
-    };
-
     class IoEvent;
 
     class SslIo : public IoEvent
@@ -43,8 +37,11 @@ namespace parrot
         // do ssl handshake.
         //
         // Return:
-        //  The status of handshake.
-        SslIoStatus doSslConnect();
+        //  ST_RetryWhenReadable
+        //  ST_RetryWhenWriteable
+        //  ST_Ok
+        //  ERR_Fail
+        Codes doSslConnect();
 
         // doSslAccept
         //
@@ -52,10 +49,13 @@ namespace parrot
         // do ssl handshake.
         //
         // Return:
-        //  The status of handshake.
-        SslIoStatus doSslAccept();
+        //  ST_RetryWhenReadable
+        //  ST_RetryWhenWriteable
+        //  ST_Ok
+        //  ERR_Fail
+        Codes doSslAccept();
 
-        // sslSend
+        // send
         //
         // Send buffer to peer.
         //
@@ -65,10 +65,14 @@ namespace parrot
         // * sentLen  [out]     The bytes has been sent.
         //
         // Return:
-        //  The status of sslSend.
-        SslIoStatus sslSend(const char *buff, uint32_t len, uint32_t &sentLen);
+        //  ST_RetryWhenReadable
+        //  ST_RetryWhenWriteable
+        //  ST_Ok
+        //  ERR_Fail
+        Codes send(const char *buff, uint32_t len, 
+                      uint32_t &sentLen) override;
 
-        // sslRecv
+        // recv
         //
         // Read data from connection.
         //
@@ -78,8 +82,11 @@ namespace parrot
         // * recvLen  [out]     The bytes has been read.
         //
         // Return:
-        //  The status of sslRecv.
-        SslIoStatus sslRecv(char *buff, uint32_t len, uint32_t &recvLen);
+        //  ST_RetryWhenReadable
+        //  ST_RetryWhenWriteable
+        //  ST_Ok
+        //  ERR_Fail
+        Codes recv(char *buff, uint32_t len, uint32_t &recvLen) override;
 
         // closeSsl
         //
@@ -87,7 +94,20 @@ namespace parrot
         void closeSsl();
 
       protected:
-        SslIoStatus handleResult(int ret, const std::string &funcName);
+        // handshake
+        //
+        // Process the return value of ssl operations.
+        //
+        // Param:
+        // * ret         The return value.
+        // * function    The name of the caller function.
+        //
+        // Return:
+        //  ST_RetryWhenReadable
+        //  ST_RetryWhenWriteable
+        //  ST_Ok
+        //  ERR_Fail
+        Codes handleResult(int ret, const std::string &funcName);
 
       protected:
         SSL * _ssl;

@@ -1,4 +1,3 @@
-
 #if defined(__linux__)
 #include <unistd.h>
 #include <fcntl.h>
@@ -204,9 +203,8 @@ namespace parrot
     /////////////////////////////////////////////////////////////////////////
     /// Send/Recv/Read/Write
     //////////////
-    uint32_t IoEvent::send(const char* buff, uint32_t buffLen)
+    Codes IoEvent::send(const char* buff, uint32_t buffLen, uint32_t &sentLen)
     {
-
         if (!buff || buffLen == 0 || _fd < 0)
         {
             PARROT_ASSERT(0);
@@ -218,6 +216,7 @@ namespace parrot
             ret = ::send(_fd, buff, buffLen, 0);
             if (ret != -1)
             {
+                sentLen = ret;
                 break;
             }
 
@@ -230,10 +229,10 @@ namespace parrot
                                     "IoEvent::send");
         }
 
-        return ret;
+        return Codes::ST_Ok;
     }
 
-    uint32_t IoEvent::recv(char* buff, uint32_t buffLen)
+    Codes IoEvent::recv(char* buff, uint32_t buffLen, uint32_t &rcvdLen)
     {
         if (!buff || buffLen == 0 || _fd < 0)
         {
@@ -246,6 +245,7 @@ namespace parrot
             ret = ::recv(_fd, buff, buffLen, 0);
             if (ret != -1)
             {
+                rcvdLen = ret;
                 break;
             }
 
@@ -258,7 +258,7 @@ namespace parrot
                                     "IoEvent::recv");
         }
 
-        return ret;
+        return Codes::ST_Ok;
     }
 #endif
 

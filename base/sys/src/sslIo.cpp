@@ -24,20 +24,19 @@ namespace parrot
         SSL_set_bio(_ssl, bio, bio);
     }
 
-    SslIoStatus SslIo::doSslConnect()
+    Codes SslIo::doSslConnect()
     {
         int ret = SSL_connect(_ssl);
         return handleResult(ret, "doSslConnect");
     }
 
-    SslIoStatus SslIo::doSslAccept()
+    Codes SslIo::doSslAccept()
     {
         int ret = SSL_accept(_ssl);
         return handleResult(ret, "doSslAccept");
     }
 
-    SslIoStatus SslIo::sslSend(const char *buff, uint32_t len, 
-                               uint32_t &sentLen)
+    Codes SslIo::send(const char *buff, uint32_t len, uint32_t &sentLen)
     {
         int wLen = SSL_write(_ssl, buff, (int)len);
 
@@ -49,8 +48,7 @@ namespace parrot
         return handleResult(wLen, "sslSend");
     }
 
-    SslIoStatus SslIo::sslRecv(char *buff, uint32_t len, 
-                                      uint32_t &recvLen)
+    Codes SslIo::recv(char *buff, uint32_t len, uint32_t &recvLen)
     {
         int rLen = SSL_read(_ssl, buff, (int)len);
 
@@ -62,13 +60,13 @@ namespace parrot
         return handleResult(rLen, "sslRecv");
     }
 
-    SslIoStatus SslIo::handleResult(int ret, const std::string &funcName)
+    Codes SslIo::handleResult(int ret, const std::string &funcName)
     {
-        SslIoStatus status = SslIoStatus::Error;
+        Codes code = Codes::ERR_Fail;
 
         if (ret > 0) 
         {
-            status = SslIoStatus::Ok;
+            code = Codes::ST_Ok;
         }
         else if (ret == 0)
         {
@@ -85,11 +83,11 @@ namespace parrot
             switch (err)
             {
                 case SSL_ERROR_WANT_READ:
-                    status = SslIoStatus::RetryAtReadFd;
+                    code = Codes::ST_RetryWhenReadable;
                     break;
 
                 case SSL_ERROR_WANT_WRITE:
-                    status = SslIoStatus::RetryAtWriteFd;
+                    code = Codes::ST_RetryWhenWriteable;
                     break;
                 
                 default:
@@ -102,7 +100,7 @@ namespace parrot
             }
         }
 
-        return status;
+        return code;
     }
 
     void SslIo::closeSsl()

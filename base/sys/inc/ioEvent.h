@@ -2,7 +2,7 @@
 #define __BASE_SYS_INC_IOEVENT_H__
 
 #include <cstdint>
-#include "unifyPlatDef.h"
+#include "codes"
 
 namespace parrot
 {
@@ -78,8 +78,10 @@ namespace parrot
 
       public:
 #if defined(__APPLE__) || defined(__linux__)
-        uint32_t send(const char* buff, uint32_t buffLen);
-        uint32_t recv(char* buff, uint32_t buffLen);
+        virtual Codes send(const char* buff, uint32_t buffLen, 
+                           uint32_t &sentLen);
+        virtual Codes recv(char* buff, uint32_t buffLen, 
+                           uint32_t &rcvdLen);
 #endif
       public:
         // static help functions.
