@@ -1,8 +1,12 @@
 #ifndef __COMPONENT_WEBSOCKET_INC_WSTRANSLAYER_H__
 #define __COMPONENT_WEBSOCKET_INC_WSTRANSLAYER_H__
 
+#include <list>
+#include <memory>
 #include <vector>
 #include <cstdint>
+
+#include "codes.h"
 
 namespace parrot
 {
@@ -13,6 +17,7 @@ namespace parrot
             SEND_BUFF_LEN = 65536,
             RECV_BUFF_LEN = 65536
         };
+        friend class WsParser;
 
       public:
         WsTranslayer(IoEvent *io);

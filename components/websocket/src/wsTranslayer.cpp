@@ -1,5 +1,10 @@
+#include "ioEvent.h"
+#include "wsPacket.h"
+#include "wsParser.h"
 #include "wsTranslayer.h"
 
+#include <algorithm>
+#include <iterator>
 
 namespace parrot
 {
@@ -35,7 +40,7 @@ namespace parrot
         return code;
     }
 
-    void WsTranslayer::sendData()
+    Codes WsTranslayer::sendData()
     {
         uint32_t sentLen = 0;
         Codes code = _io->send(&_sendVec[_sentLen], 
@@ -54,8 +59,33 @@ namespace parrot
         return code;        
     }
 
+    Codes WsTranslayer::sendPacket(
+        std::list<std::shared_ptr<WsPacket>> &pktList)
+    {
+        for (auto it = pktList.begin(); it != pktList.end(); ++it)
+        {
+            std::copy_n((*it)->getBuffer(), (*it)->length(), 
+                        std::back_inserter(_sendVec));
+        }
+
+        if (_sendVec.size() > SEND_BUFF_LEN)
+        {
+            LOG_WARN("WsTranslayer::sendPacket: _sendVec reallocated. "
+                     "Try to change the SEND_BUFF_LEN to a bigger value. "
+                     "Current size is " << _sendVec.size() << ".");
+        }
+    }
+
     Codes WsTranslayer::sendPacket(const WsPacket &pkt)
     {
-        
+        std::copy_n(pkt.getBuffer(), pkt.length(), 
+                    std::back_inserter(_sendVec));
+
+        if (_sendVec.size() > SEND_BUFF_LEN)
+        {
+            LOG_WARN("WsTranslayer::sendPacket: _sendVec reallocated. "
+                     "Try to change the SEND_BUFF_LEN to a bigger value. "
+                     "Current size is " << _sendVec.size() << ".");
+        }
     }
 }
