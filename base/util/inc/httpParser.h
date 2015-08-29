@@ -21,7 +21,6 @@
 #ifndef __BASE_UTIL_INC_HTTPPARSER_H__
 #define __BASE_UTIL_INC_HTTPPARSER_H__
 
-#define http_parser_h
 #ifdef __cplusplus
 extern "C" {
 #endif
