@@ -39,7 +39,7 @@ help:
 	@echo "make clean     - Remove object files, generated libraries, binaries and emacs tmp files."
 	@echo "make tarball   - To create a release tarball."
 
-include $(SUB_MAKEFILES)
+include Platform.mk $(SUB_MAKEFILES)
 
 .PHONY: all
 all: $(OBJECTS) $(LIBRARIES) $(BINARIES)

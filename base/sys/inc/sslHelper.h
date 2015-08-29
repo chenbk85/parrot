@@ -3,7 +3,8 @@
 
 #include <string>
 #include <thread>
-#include <openssl/ssl.h>
+
+#include "openssl/ssl.h"
 
 namespace parrot
 {

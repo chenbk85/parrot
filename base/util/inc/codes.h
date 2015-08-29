@@ -21,6 +21,7 @@ namespace parrot
         WS_GoingAway                     = 1001,
         WS_ProtocolError                 = 1002,
         WS_UnsupportedData               = 1003,
+        // 1004 is reserved.
         WS_NoStatusRcvd                  = 1005,
         WS_AbnormalClosure               = 1006,
         WS_InvalidFramePayloadData       = 1007,
