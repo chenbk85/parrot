@@ -88,18 +88,34 @@ namespace parrot
 
         std::string value = std::string(at, length);
         strToLower(value);
-        
-        _headerDic.emplace(std::make_pair(_lastHeaderField,
-                                          std::string(at, length)));
+        _headerDic[_lastHeaderField] = std::move(value);
         _lastHeaderField = "";
         return 0;
     }
 
     int WsParser::onHeaderComplete(http_parser *p)
     {
-
+        if (!validSecWebSocketKey)
+        {
+            return 1;
+        }
+        
         
         delete _parser;
         _parser = nullptr;
     }
+
+    bool WsParser::validSecWebSocketKey()
+    {
+        auto it = _headerDic.find("sec_websocket_key");
+        if (it == _headerDic.end() || it->empty())
+        {
+            return false;
+        }
+
+        // According to RFC6455, we do not need to decode the key. 
+        return true;
+    }
+
+    bool WsParser::
 }

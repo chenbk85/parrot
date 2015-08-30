@@ -15,6 +15,12 @@ namespace parrot
     {
         using HeaderDic = std::unordered_map<std::string, std::string>;
 
+        enum
+        {
+            kWebSockerVer = 16,
+            kSecWebsocketKeyLen = 16
+        };
+
         enum class WsParseState
         {
             HttpHandshake,
