@@ -2146,7 +2146,6 @@ http_method_str (enum http_method m)
   return ELEM_AT(method_strings, m, "<unknown>");
 }
 
-
 void
 http_parser_init (http_parser *parser, enum http_parser_type t)
 {

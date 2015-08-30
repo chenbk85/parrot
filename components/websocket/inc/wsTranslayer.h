@@ -35,7 +35,6 @@ namespace parrot
         uint32_t                  _sentLen;
 
         std::vector<char>         _recvVec;
-        uint32_t                  _rcvdLen;
         uint32_t                  _needRecvLen;
 
         IoEvent *                 _io;

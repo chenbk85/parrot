@@ -21,6 +21,8 @@
 #ifndef __BASE_UTIL_INC_HTTPPARSER_H__
 #define __BASE_UTIL_INC_HTTPPARSER_H__
 
+#include <functional>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -84,8 +86,10 @@ typedef struct http_parser_settings http_parser_settings;
  * many times for each string. E.G. you might get 10 callbacks for "on_url"
  * each providing just a few characters more data.
  */
-typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);
-typedef int (*http_cb) (http_parser*);
+using http_data_cb = std::function<int(http_parser*, const char*at, size_t length)>;
+using http_cb = std::function<int(http_parser*)>;
+//typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);
+//typedef int (*http_cb) (http_parser*);
 
 
 /* Request Methods */

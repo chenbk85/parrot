@@ -1,4 +1,5 @@
 #include "stringHelper.h"
+#include <algorithm>
 #include <locale>
 
 namespace parrot
@@ -21,4 +22,16 @@ namespace parrot
 
         return true;
     }
+
+    void strToLower(std::string &str)
+    {
+        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
+    }
+
+    void strToUpper(std::string &str)
+    {
+        std::transform(str.begin(), str.end(), str.begin(), ::toupper);
+    }
+
+
 }

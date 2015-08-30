@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 
+#include "httpParser.h"
 #include "codes.h"
 
 
@@ -14,6 +15,12 @@ namespace parrot
     {
         using HeaderDic = std::unordered_map<std::string, std::string>;
 
+        enum class WsParseState
+        {
+            HttpHandshake,
+            DataFrame
+        };
+
       public:
         explicit WsParser(WsTranslayer *trans);
         ~WsParser();
@@ -24,8 +31,10 @@ namespace parrot
         Codes parse();
 
       private:
-        WsTranslayer *                         _trans;
-        HeaderDic                              _headerDic;
+        WsParseState                             _parseState;
+        WsTranslayer *                           _trans;
+        HeaderDic                                _headerDic;
+        string                                   _lastHeaderField;
     };
 }
 
