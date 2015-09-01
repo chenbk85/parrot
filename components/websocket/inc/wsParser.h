@@ -6,7 +6,6 @@
 #include "httpParser.h"
 #include "codes.h"
 
-
 namespace parrot
 {
     class WsTranslayer;
@@ -17,8 +16,7 @@ namespace parrot
 
         enum
         {
-            kWebSockerVer = 16,
-            kSecWebsocketKeyLen = 16
+            kWebSockerVer = 16
         };
 
         enum class WsParseState
@@ -43,5 +41,4 @@ namespace parrot
         string                                   _lastHeaderField;
     };
 }
-
 #endif

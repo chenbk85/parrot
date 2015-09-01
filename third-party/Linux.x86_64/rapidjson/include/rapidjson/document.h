@@ -18,6 +18,7 @@
 /*! \file document.h */
 
 #include "reader.h"
+#include "memorystream.h"
 #include "internal/meta.h"
 #include "internal/strfunc.h"
 #include <new>      // placement new
@@ -1971,6 +1972,15 @@ public:
     */
     GenericDocument& Parse(const Ch* str) {
         return Parse<kParseDefaultFlags>(str);
+    }
+
+    //! Parse JSON text from a read-only string with length (with \ref kParseDefaultFlags)
+    /*! \param str Read-only string to be parsed.
+        \param len The length of the string.
+    */
+    GenericDocument& Parse(const Ch* str, size_t len) {
+        MemoryStream ms(str, len);
+        return ParseStream<kParseDefaultFlags, UTF8<> >(ms);
     }
     //!@}
 

@@ -20,9 +20,9 @@ COMMAND_COLOR        := 4
 # Complier and linker
 COMPLIER             := g++ -std=c++11
 ifdef RELEASE
-    CPPFLAGS         := -Wall -Wextra -Werror -O3 -Wnon-virtual-dtor -fno-strict-aliasing -DRELEASE
+    CPPFLAGS         := -Wall -Wextra -Werror -O3 -Wnon-virtual-dtor -fno-strict-aliasing -DRELEASE -DRAPIDJSON_HAS_STDSTRING -DRAPIDJSON_SSE2 -DRAPIDJSON_SSE42
 else
-    CPPFLAGS         := -g -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing -DDEBUG
+    CPPFLAGS         := -g -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing -DDEBUG -DRAPIDJSON_HAS_STDSTRING -DRAPIDJSON_SSE2 -DRAPIDJSON_SSE42
 endif
 LINKER               := g++ -std=c++11
 LDFLAGS              := -Wl,-rpath,$(PRJ_ROOT)/libs
