@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 #include <cstdint>
 #include <functional>
 
@@ -39,53 +40,52 @@ namespace parrot
         // Json pointers:
         // getValue("/d/e", v) will set v to "f".
         // getValue("/d/g/1", v); will set v to 2.
-        //
-        void getValue(const std::string &key, uint32_t &v);
-        void getValue(const std::string &key, int32_t &v);
-        void getValue(const std::string &key, uint64_t &v);
-        void getValue(const std::string &key, int64_t &v);
-        void getValue(const std::string &key, float &v);
-        void getValue(const std::string &key, double &v);
-        void getValue(const std::string &key, std::string &v);
-        void getValue(const std::string &key, bool &v);
-        void getValue(const std::string &key, std::unique_ptr<Json> &v);
+        void getValue(const char *key, uint32_t &v);
+        void getValue(const char *key, int32_t &v);
+        void getValue(const char *key, uint64_t &v);
+        void getValue(const char *key, int64_t &v);
+        void getValue(const char *key, float &v);
+        void getValue(const char *key, double &v);
+        void getValue(const char *key, std::string &v);
+        void getValue(const char *key, bool &v);
+        void getValue(const char *key, std::unique_ptr<JsonImpl> &v);
 
-        void getValue(const std::string &key, std::vector<uint32_t> &v);
-        void getValue(const std::string &key, std::vector<int32_t> &v);
-        void getValue(const std::string &key, std::vector<uint64_t> &v);
-        void getValue(const std::string &key, std::vector<int32_t> &v);
-        void getValue(const std::string &key, std::vector<float> &v);
-        void getValue(const std::string &key, std::vector<double> &v);
-        void getValue(const std::string &key, std::vector<std::string> &v);
-        void getValue(const std::string &key, std::vector<bool> &v);
-        void getValue(const std::string &key, 
-                      std::vector<std::unique_ptr<Json>> &v);
+        void getValue(const char *key, std::vector<uint32_t> &v);
+        void getValue(const char *key, std::vector<int32_t> &v);
+        void getValue(const char *key, std::vector<uint64_t> &v);
+        void getValue(const char *key, std::vector<int64_t> &v);
+        void getValue(const char *key, std::vector<float> &v);
+        void getValue(const char *key, std::vector<double> &v);
+        void getValue(const char *key, std::vector<std::string> &v);
+        void getValue(const char *key, std::vector<bool> &v);
+        void getValue(const char *key, 
+                      std::vector<std::unique_ptr<JsonImpl>> &v);
 
-        void setValue(const std::string &key, uint32_t v);
-        void setValue(const std::string &key, int32_t v);
-        void setValue(const std::string &key, uint64_t v);
-        void setValue(const std::string &key, int64_t v);
-        void setValue(const std::string &key, float v);
-        void setValue(const std::string &key, double v);
-        void setValue(const std::string &key, std::string &v);
-        void setValue(const std::string &key, bool v);
-        void setValue(const std::string &key, std::unique_ptr<Json> &v);
+        void setValue(const char *key, uint32_t v);
+        void setValue(const char *key, int32_t v);
+        void setValue(const char *key, uint64_t v);
+        void setValue(const char *key, int64_t v);
+        void setValue(const char *key, float v);
+        void setValue(const char *key, double v);
+        void setValue(const char *key, std::string &v);
+        void setValue(const char *key, bool v);
+        void setValue(const char *key, std::unique_ptr<JsonImpl> &v);
 
-        void setValue(const std::string &key, std::vector<uint32_t> &v);
-        void setValue(const std::string &key, std::vector<int32_t> &v);
-        void setValue(const std::string &key, std::vector<uint64_t> &v);
-        void setValue(const std::string &key, std::vector<int32_t> &v);
-        void setValue(const std::string &key, std::vector<float> &v);
-        void setValue(const std::string &key, std::vector<double> &v);
-        void setValue(const std::string &key, std::vector<std::string> &v);
-        void setValue(const std::string &key, std::vector<bool> &v);
-        void setValue(const std::string &key, 
-                      std::vector<std::unique_ptr<Json>> &v);
+        void setValue(const char *key, std::vector<uint32_t> &v);
+        void setValue(const char *key, std::vector<int32_t> &v);
+        void setValue(const char *key, std::vector<uint64_t> &v);
+        void setValue(const char *key, std::vector<int64_t> &v);
+        void setValue(const char *key, std::vector<float> &v);
+        void setValue(const char *key, std::vector<double> &v);
+        void setValue(const char *key, std::vector<std::string> &v);
+        void setValue(const char *key, std::vector<bool> &v);
+        void setValue(const char *key, 
+                      std::vector<std::unique_ptr<JsonImpl>> &v);
 
-        bool containsKey(const std::string &key);
+        bool containsKey(const char *key);
 
-        void foreach(
-            std::function<void(const std::string &k, const JsonValue &v)> cb);
+//        void foreach(
+//            std::function<void(const std::string &k, const JsonValue &v)> cb);
 
         void toString();
 
