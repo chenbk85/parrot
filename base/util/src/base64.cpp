@@ -95,7 +95,7 @@ namespace parrot
         const unsigned char *bufin;
         uint32_t nprbytes;
 
-        bufin = (const unsigned char *) bufcoded
+        bufin = (const unsigned char *) bufcoded;
         while (pr2six[*(bufin++)] <= 63);
 
         nprbytes = (bufin - (const unsigned char *) bufcoded) - 1;
@@ -104,7 +104,7 @@ namespace parrot
         return nbytesdecoded + 1;
     }
 
-    uint32_t base64Decode(char *bufout, const char * bufcoded)
+    uint32_t base64Decode(char *out, const char * bufcoded)
     {
         uint32_t nbytesdecoded;
         const unsigned char *bufin;
@@ -116,7 +116,7 @@ namespace parrot
         nprbytes = (bufin - (const unsigned char *) bufcoded) - 1;
         nbytesdecoded = ((nprbytes + 3) / 4) * 3;
 
-        bufout = (unsigned char *) bufout;
+        bufout = (unsigned char *) out;
         bufin = (const unsigned char *) bufcoded;
 
         while (nprbytes > 4) {
