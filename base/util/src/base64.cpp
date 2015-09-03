@@ -104,19 +104,19 @@ namespace parrot
         return nbytesdecoded + 1;
     }
 
-    void base64Decode(std::vector<char> &vecOut, const char * bufcoded)
+    uint32_t base64Decode(char *bufout, const char * bufcoded)
     {
-        int nbytesdecoded;
+        uint32_t nbytesdecoded;
         const unsigned char *bufin;
         unsigned char *bufout;
-        int nprbytes;
+        uint32_t nprbytes;
 
         bufin = (const unsigned char *) bufcoded;
         while (pr2six[*(bufin++)] <= 63);
         nprbytes = (bufin - (const unsigned char *) bufcoded) - 1;
         nbytesdecoded = ((nprbytes + 3) / 4) * 3;
 
-        bufout = (unsigned char *) &vecOut[0];
+        bufout = (unsigned char *) bufout;
         bufin = (const unsigned char *) bufcoded;
 
         while (nprbytes > 4) {
@@ -147,22 +147,21 @@ namespace parrot
         *(bufout++) = '\0';
         nbytesdecoded -= (4 - nprbytes) & 3;
 
-        std::cout << nbytesdecoded << std::endl; 
-        vecOut.resize(nbytesdecoded);
+        return nbytesdecoded;
     }
 
-    int getBase64EncodeLen(int len)
+    uint32_t getBase64EncodeLen(uint32_t len)
     {
         return ((len + 2) / 3 * 4) + 1;
     }
 
-    void base64Encode(std::vector<char> &outVec, const char *in, uint32_t len)
+    uint32_t base64Encode(char *bufout, const char *in, uint32_t len)
     {
         uint32_t i;
         char *p;
         const unsigned char *str = (const unsigned char *)in;
     
-        p = &outVec[0];
+        p = bufout;
         for (i = 0; i < len - 2; i += 3) {
             *p++ = basis_64[(str[i] >> 2) & 0x3F];
             *p++ = basis_64[((str[i] & 0x3) << 4) |
@@ -186,6 +185,6 @@ namespace parrot
         }
 
         *p++ = '\0';
-        outVec.resize(p - &outVec[0]);
+        return p - bufout;
     }
 }
