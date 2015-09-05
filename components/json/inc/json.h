@@ -7,6 +7,10 @@
 #include <string>
 #include <functional>
 
+// Client should only include this file if they want to use json.
+// The reason why not use template to implement getValue and SetValue
+// is that I don't want expose the jsonImpl.h file which includes
+// the rapidjson header files.
 namespace parrot
 {
     class JsonImpl;
