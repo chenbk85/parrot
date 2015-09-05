@@ -1,34 +1,73 @@
+#include <rapidjson/pointer.h>
+#include <rapidjson/writer.h>
+#include <rapidjson/stringbuffer.h>
+
+#include "macroFuncs.h"
 #include "jsonImpl.h"
-#include "rapidjson/pointer.h"
+#include "json.h"
 
 namespace parrot
 {
     using rapidjson::Pointer;
+
+    JsonImpl::JsonImpl():
+        _isChild(false),
+        _child(nullptr),
+        _root(nullptr)
+    {
+    }
     
-    JsonImpl::JsonImpl(rapidjson::Value *pv):
-        _value(pv),
-        _doc(nullptr)
+    JsonImpl::JsonImpl(rapidjson::Document *root, rapidjson::Value *pv):
+        _isChild(true),
+        _child(pv),
+        _root(root)
     {
     }
 
     JsonImpl::~JsonImpl()
     {
-        _value = nullptr;
+        _child = nullptr;
 
-        delete _doc;
-        _doc = nullptr;
+        if (!_isChild)
+        {
+            delete _root;
+            _root = nullptr;
+        }
+    }
+
+    void JsonImpl::createRootObject()
+    {
+        PARROT_ASSERT(!_isChild);
+        if (_root)
+        {
+            delete _root;
+        }
+        _root = new rapidjson::Document();
+        _root->SetObject();
+    }
+
+    void JsonImpl::createRootArray()
+    {
+        PARROT_ASSERT(!_isChild);        
+        if (_root)
+        {
+            delete _root;
+        }        
+        _root = new rapidjson::Document();
+        _root->SetArray();
     }
 
     bool JsonImpl::parse(const char *buff, uint32_t len)
     {
-        if (_doc)
+        PARROT_ASSERT(!_isChild);        
+        if (_root)
         {
-            delete _doc;
+            delete _root;
         }
 
-        _doc = new rapidjson::Document();
-        _doc->Parse(buff, len);
-        if (_doc->HasParseError())
+        _root = new rapidjson::Document();
+        _root->Parse(buff, len);
+        if (_root->HasParseError())
         {
             return false;
         }
@@ -38,63 +77,65 @@ namespace parrot
 
     void JsonImpl::getValue(const char *key, uint32_t &v)
     {
-        v = (_value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc))->
+        v = (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))->
             GetUint();
     }
 
     void JsonImpl::getValue(const char *key, int32_t &v)
     {
-        v = (_value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc))->
+        v = (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))->
             GetInt();
     }
 
     void JsonImpl::getValue(const char *key, uint64_t &v)
     {
-        v = (_value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc))->
+        v = (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))->
             GetUint64();
     }
 
     void JsonImpl::getValue(const char *key, int64_t &v)
     {
-        v = (_value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc))->
+        v = (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))->
             GetInt64();
     }
 
     void JsonImpl::getValue(const char *key, float &v)
     {
         double d =
-            (_value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc))->
+            (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))->
             GetDouble();
         v = static_cast<float>(d);
     }
 
     void JsonImpl::getValue(const char *key, double &v)
     {
-        v = (_value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc))->
+        v = (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))->
             GetDouble();        
     }
 
     void JsonImpl::getValue(const char *key, std::string &v)
     {
-        v = (_value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc))->
+        v = (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))->
             GetString();
     }
 
     void JsonImpl::getValue(const char *key, bool &v)
     {
-        v = (_value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc))->
+        v = (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))->
             GetBool();        
     }
 
-    void JsonImpl::getValue(const char *key, std::unique_ptr<JsonImpl> &v)
+    void JsonImpl::getValue(const char *key, std::unique_ptr<Json> &v)
     {
-        auto t = _value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc);
-        v.reset(new JsonImpl(t));
+        auto t = _isChild ? Pointer(key).Get(*_child) :
+            Pointer(key).Get(*_root);
+        v.reset(new Json(new JsonImpl(_root, t)));
     }
 
     void JsonImpl::getValue(const char *key, std::vector<uint32_t> &v)
     {
-        auto t = _value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc);
+        auto t = _isChild ? Pointer(key).Get(*_child) :
+            Pointer(key).Get(*_root);
 
         for (auto i = 0u; i != t->Size(); ++i)
         {
@@ -104,7 +145,7 @@ namespace parrot
 
     void JsonImpl::getValue(const char *key, std::vector<int32_t> &v)
     {
-        auto t = _value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc);
+        auto t = _isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root);
 
         for (auto i = 0u; i != t->Size(); ++i)
         {
@@ -114,7 +155,7 @@ namespace parrot
 
     void JsonImpl::getValue(const char *key, std::vector<uint64_t> &v)
     {
-        auto t = _value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc);
+        auto t = _isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root);
 
         for (auto i = 0u; i != t->Size(); ++i)
         {
@@ -124,7 +165,7 @@ namespace parrot
 
     void JsonImpl::getValue(const char *key, std::vector<int64_t> &v)
     {
-        auto t = _value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc);
+        auto t = _isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root);
 
         for (auto i = 0u; i != t->Size(); ++i)
         {
@@ -134,7 +175,7 @@ namespace parrot
 
     void JsonImpl::getValue(const char *key, std::vector<float> &v)
     {
-        auto t = _value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc);
+        auto t = _isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root);
 
         for (auto i = 0u; i != t->Size(); ++i)
         {
@@ -144,7 +185,7 @@ namespace parrot
 
     void JsonImpl::getValue(const char *key, std::vector<double> &v)
     {
-        auto t = _value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc);
+        auto t = _isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root);
 
         for (auto i = 0u; i != t->Size(); ++i)
         {
@@ -154,7 +195,7 @@ namespace parrot
 
     void JsonImpl::getValue(const char *key, std::vector<std::string> &v)
     {
-        auto t = _value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc);
+        auto t = _isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root);
 
         for (auto i = 0u; i != t->Size(); ++i)
         {
@@ -164,7 +205,7 @@ namespace parrot
 
     void JsonImpl::getValue(const char *key, std::vector<bool> &v)
     {
-        auto t = _value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc);
+        auto t = _isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root);
 
         for (auto i = 0u; i != t->Size(); ++i)
         {
@@ -173,105 +214,85 @@ namespace parrot
     }
 
     void JsonImpl::getValue(const char *key, 
-                            std::vector<std::unique_ptr<JsonImpl>> &v)
+                            std::vector<std::unique_ptr<Json>> &v)
     {
-        auto t = _value ? Pointer(key).Get(*_value) : Pointer(key).Get(*_doc);
+        auto t = _isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root);
 
         for (auto i = 0u; i != t->Size(); ++i)
         {
-            v.emplace_back(new JsonImpl(&(*t)[i]));
+            v.emplace_back(new Json(new JsonImpl(_root, &(*t)[i])));
         }
     }
-/*
-    void JsonImpl::setValue(const char *key, uint32_t v)
-    {
 
+    //////////////////////////////////////////////////////////////////////////
+    void JsonImpl::setValue(const char *key, const char * v)
+    {
+        Pointer(key).Set(*_root, v);
     }
     
-    void JsonImpl::setValue(const char *key, int32_t v)
+    void JsonImpl::setValue(const char *key, std::unique_ptr<Json> &v)
     {
-
+        Pointer(key).Set(*_root, *(v->_impl->getObject()));
     }
+
     
-    void JsonImpl::setValue(const char *key, uint64_t v)
+    void JsonImpl::setValue(const char *key, const std::vector<std::string> &v)
     {
+        rapidjson::Value val(rapidjson::kArrayType);
+        rapidjson::Document::AllocatorType& allocator = _root->GetAllocator();
 
-    }
-    
-    void JsonImpl::setValue(const char *key, int64_t v)
-    {
+        for (auto it = v.begin(); it != v.end(); ++it)
+        {
+            val.PushBack(rapidjson::Value(it->c_str(), allocator), allocator);
+        }
 
-    }
-    
-    void JsonImpl::setValue(const char *key, float v)
-    {
-
-    }
-    
-    void JsonImpl::setValue(const char *key, double v)
-    {
-        
-    }
-    
-    void JsonImpl::setValue(const char *key, std::string &v)
-    {
-
-    }
-    
-    void JsonImpl::setValue(const char *key, bool v)
-    {
-
-    }
-    
-    void JsonImpl::setValue(const char *key, std::unique_ptr<JsonImpl> &v)
-    {
-
-    }
-
-    void JsonImpl::setValue(const char *key, std::vector<uint32_t> &v)
-    {
-
-    }
-    
-    void JsonImpl::setValue(const char *key, std::vector<int32_t> &v)
-    {
-
-    }
-    
-    void JsonImpl::setValue(const char *key, std::vector<uint64_t> &v)
-    {
-
-    }
-    
-    void JsonImpl::setValue(const char *key, std::vector<int32_t> &v)
-    {
-
-    }
-    
-    void JsonImpl::setValue(const char *key, std::vector<float> &v)
-    {
-
-    }
-    
-    void JsonImpl::setValue(const char *key, std::vector<double> &v);
-    {
-
-    }
-    
-    void JsonImpl::setValue(const char *key, std::vector<std::string> &v)
-    {
-
-    }
-    
-    void JsonImpl::setValue(const char *key, std::vector<bool> &v)
-    {
-
+        Pointer(key).Set(*_root, val);
     }
     
     void JsonImpl::setValue(const char *key, 
-                            std::vector<std::unique_ptr<JsonImpl>> &v)
+                            const std::vector<std::unique_ptr<Json>> &v)
     {
+        rapidjson::Value val(rapidjson::kArrayType);
+        rapidjson::Document::AllocatorType& allocator = _root->GetAllocator();
 
+        for (auto it = v.begin(); it != v.end(); ++it)
+        {
+            val.PushBack(*((*it)->_impl->getObject()), allocator);
+        }
+
+        Pointer(key).Set(*_root, val);
     }
-*/
+
+    rapidjson::Value * JsonImpl::getObject()
+    {
+        return _isChild ? _child : _root;
+    }
+
+    bool JsonImpl::containsKey(const char *key)
+    {
+        return Pointer(key).Get(*getObject()) == nullptr ? false : true;
+    }
+
+    void JsonImpl::foreach(
+        std::function<void(const char*, std::unique_ptr<Json>&&)> &cb)
+    {
+        rapidjson::Value *ptr = _isChild ? _child : _root;        
+        rapidjson::Value::MemberIterator itr;
+        if (_isChild)
+        {
+            for (itr = ptr->MemberBegin(); itr != ptr->MemberEnd(); ++itr)
+            {
+                cb((itr->name).GetString(),
+                   std::unique_ptr<Json>(new Json(new JsonImpl(_root, &(itr->value)))));
+            }
+        }
+    }
+
+    std::string JsonImpl::toString()
+    {
+        rapidjson::StringBuffer sb;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+        getObject()->Accept(writer);
+        return sb.GetString();
+    }
 }

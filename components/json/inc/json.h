@@ -1,24 +1,26 @@
-#ifndef __COMPONENT_JSON_INC_JSONIMPL_H__
-#define __COMPONENT_JSON_INC_JSONIMPL_H__
+#ifndef __COMPONENT_JSON_INC_JSON_H__
+#define __COMPONENT_JSON_INC_JSON_H__
 
-#include <memory>
-#include <string>
-#include <vector>
 #include <cstdint>
+#include <memory>
+#include <vector>
+#include <string>
 #include <functional>
-
-#include <rapidjson/document.h>
-#include <rapidjson/pointer.h>
 
 namespace parrot
 {
-    class Json;
-    class JsonImpl
+    class JsonImpl;
+    class Json
     {
+        friend class JsonImpl;
+        
       public:
-        JsonImpl();
-        JsonImpl(rapidjson::Document *root, rapidjson::Value *pv);
-        ~JsonImpl();
+        Json();
+        // Internal api.
+        explicit Json(JsonImpl *impl);
+        ~Json();
+        Json(const Json &) = delete;
+        Json & operator=(const Json &) = delete;
 
       public:
         void createRootObject();
@@ -66,62 +68,38 @@ namespace parrot
         void getValue(const char *key, 
                       std::vector<std::unique_ptr<Json>> &v);
 
-        template<typename T>
-        void setValue(const char *key, const T &v);
+        void setValue(const char *key, const uint32_t &v);
+        void setValue(const char *key, const int32_t &v);
+        void setValue(const char *key, const uint64_t &v);
+        void setValue(const char *key, const int64_t &v);
+        void setValue(const char *key, const float &v);
+        void setValue(const char *key, const double &v);
         void setValue(const char *key, const char *v);
+        void setValue(const char *key, const bool &v);
         void setValue(const char *key, std::unique_ptr<Json> &v);
 
-        template<typename T>
-        void setValue(const char *key, const std::vector<T> &v);
+        void setValue(const char *key, const std::vector<uint32_t> &v);
+        void setValue(const char *key, const std::vector<int32_t> &v);
+        void setValue(const char *key, const std::vector<uint64_t> &v);
+        void setValue(const char *key, const std::vector<int64_t> &v);
+        void setValue(const char *key, const std::vector<float> &v);
+        void setValue(const char *key, const std::vector<double> &v);
         void setValue(const char *key, const std::vector<std::string> &v);
+        void setValue(const char *key, const std::vector<bool> &v);
         void setValue(const char *key, 
-                      const std::vector<std::unique_ptr<Json>> &v);
+                      std::vector<std::unique_ptr<Json>> &v);
 
-
-
-        rapidjson::Value * getObject();
         bool containsKey(const char *key);
 
         void foreach(
             std::function<void(const char *k,
-                               std::unique_ptr<Json>&&)> &cb);
+                               std::unique_ptr<Json> &&v)> &cb);
 
         std::string toString();
 
       private:
-        bool                    _isChild;
-        rapidjson::Value*       _child;
-        rapidjson::Document*    _root;
+        JsonImpl * _impl;
     };
-
-    template<typename T>
-    void JsonImpl::setValue(const char *key, const T &v)
-    {
-        // Will allow ingeter bool, char, int, uint, long, ...
-        // Will allow float, double, ...
-        static_assert(std::is_integral<T>::value ||
-                      std::is_floating_point<T>::value, "Integer Required.");
-        rapidjson::Pointer(key).Set(*_root, v);
-    }
-    
-    template<typename T>
-    void JsonImpl::setValue(const char *key, const std::vector<T> &v)
-    {
-        // Will allow ingeter bool, char, int, uint, long, ...
-        // Will allow float, double, ...
-        static_assert(std::is_integral<T>::value ||
-                      std::is_floating_point<T>::value, "Integer Required.");
-        
-        rapidjson::Value val(rapidjson::kArrayType);
-        rapidjson::Document::AllocatorType& allocator = _root->GetAllocator();
-
-        for (auto it = v.begin(); it != v.end(); ++it)
-        {
-            val.PushBack(*it, allocator);
-        }
-
-        rapidjson::Pointer(key).Set(*_root, val);
-    }
 }
 
 #endif

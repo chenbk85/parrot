@@ -5,9 +5,35 @@ THIRD_PARTY_DIR := $(PRJ_ROOT)/third-party
 
 ifeq ($(uname_S), mingw64_win)
 
-else
+# Rapidjson
+CPPFLAGS      += -DRAPIDJSON_HAS_STDSTRING -DRAPIDJSON_SSE2 -DRAPIDJSON_SSE42
+endif
+
+ifeq ($(uname_S), Linux)
+
+# Openssl
 OPENSSL_INC := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/openssl/include
 OPENSSL_LIB := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/openssl/lib
 
+# Rapidjson
 RAPIDJSON_INC := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/rapidjson/include
+CPPFLAGS      += -DRAPIDJSON_HAS_STDSTRING -DRAPIDJSON_SSE2 -DRAPIDJSON_SSE42
+endif
+
+ifeq ($(uname_S), Darwin)
+
+# Openssl
+OPENSSL_INC       := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/openssl/include
+OPENSSL_LIB       := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/openssl/lib
+
+# Rapidjson
+RAPIDJSON_INC     := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/rapidjson/include
+CPPFLAGS          += -DRAPIDJSON_HAS_STDSTRING -DRAPIDJSON_SSE2
+
+# For clang
+ifndef RELEASE
+#CPPFLAGS          += -fsanitize=address -fno-omit-frame-pointer
+#LDFLAGS           += -fsanitize=address -fno-omit-frame-pointer
+endif
+
 endif

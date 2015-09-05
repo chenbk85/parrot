@@ -17,15 +17,12 @@ SUB_MAKEFILES        := $(shell find . -name module.mk)
 NOTICE_COLOR         := 2
 COMMAND_COLOR        := 4
 
-#Macro definition for third party libraries.
-RAPIDJSON_MACRO      := -DRAPIDJSON_HAS_STDSTRING -DRAPIDJSON_SSE2 #-DRAPIDJSON_SSE42
-
 # Complier and linker
 COMPLIER             := g++ -std=c++11
 ifdef RELEASE
-    CPPFLAGS         := -Wall -Wextra -Werror -O3 -Wnon-virtual-dtor -fno-strict-aliasing -DRELEASE $(RAPIDJSON_MACRO)
+    CPPFLAGS         := -Wall -Wextra -Werror -O3 -Wnon-virtual-dtor -fno-strict-aliasing -DRELEASE
 else
-    CPPFLAGS         := -g -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing -DDEBUG $(RAPIDJSON_MACRO)
+    CPPFLAGS         := -g -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing -DDEBUG
 endif
 LINKER               := g++
 LDFLAGS              := -Wl,-rpath,$(PRJ_ROOT)/libs
