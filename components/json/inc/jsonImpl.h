@@ -24,26 +24,6 @@ namespace parrot
         void createRootArray();
         bool parse(const char * buff, uint32_t len);
 
-        // getValue
-        //
-        // getValue from json. If first char of key is '/', it will be 
-        // interpreted as json pointer.
-        //
-        // E.g., for json: 
-        //  {
-        //    "a": 1, 
-        //    "b": "abc", 
-        //    "c": ["x", "y"], 
-        //    "d": {"e": "f", "g": [1, 2]}
-        //  }
-        //
-        // getValue("a", v) will set v to 1.
-        // getValue("b", v) will set v to "abc".
-        // getValue("c", v) will set v to vector<string>{"x", "y"}.
-        //
-        // Json pointers:
-        // getValue("/d/e", v) will set v to "f".
-        // getValue("/d/g/1", v); will set v to 2.
         void getValue(const char *key, uint32_t &v);
         void getValue(const char *key, int32_t &v);
         void getValue(const char *key, uint64_t &v);
