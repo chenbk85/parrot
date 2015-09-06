@@ -1,6 +1,9 @@
 #include "jsonImpl.h"
 #include "json.h"
 
+#include <iostream>
+using namespace std;
+
 namespace parrot
 {
     Json::Json():
@@ -220,13 +223,6 @@ namespace parrot
     bool Json::containsKey(const char *key)
     {
         return _impl->containsKey(key);
-    }
-
-    void Json::foreach(
-        std::function<void(const char *key,
-                           std::unique_ptr<Json> &&v)> &cb)
-    {
-        _impl->foreach(cb);
     }
 
     std::string Json::toString()

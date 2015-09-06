@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 #include <cstdint>
-#include <functional>
 
 #include <rapidjson/document.h>
 #include <rapidjson/pointer.h>
@@ -81,10 +80,6 @@ namespace parrot
 
         rapidjson::Value * getObject();
         bool containsKey(const char *key);
-
-        void foreach(
-            std::function<void(const char *k,
-                               std::unique_ptr<Json>&&)> &cb);
 
         std::string toString();
 

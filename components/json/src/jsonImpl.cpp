@@ -2,6 +2,9 @@
 #include <rapidjson/writer.h>
 #include <rapidjson/stringbuffer.h>
 
+#include <iostream>
+using namespace std;
+
 #include "macroFuncs.h"
 #include "jsonImpl.h"
 #include "json.h"
@@ -271,21 +274,6 @@ namespace parrot
     bool JsonImpl::containsKey(const char *key)
     {
         return Pointer(key).Get(*getObject()) == nullptr ? false : true;
-    }
-
-    void JsonImpl::foreach(
-        std::function<void(const char*, std::unique_ptr<Json>&&)> &cb)
-    {
-        rapidjson::Value *ptr = _isChild ? _child : _root;        
-        rapidjson::Value::MemberIterator itr;
-        if (_isChild)
-        {
-            for (itr = ptr->MemberBegin(); itr != ptr->MemberEnd(); ++itr)
-            {
-                cb((itr->name).GetString(),
-                   std::unique_ptr<Json>(new Json(new JsonImpl(_root, &(itr->value)))));
-            }
-        }
     }
 
     std::string JsonImpl::toString()

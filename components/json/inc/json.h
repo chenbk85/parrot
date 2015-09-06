@@ -5,7 +5,6 @@
 #include <memory>
 #include <vector>
 #include <string>
-#include <functional>
 
 // Client should only include this file if they want to use json.
 // The reason why not use template to implement getValue and SetValue
@@ -94,10 +93,6 @@ namespace parrot
                       std::vector<std::unique_ptr<Json>> &v);
 
         bool containsKey(const char *key);
-
-        void foreach(
-            std::function<void(const char *k,
-                               std::unique_ptr<Json> &&v)> &cb);
 
         std::string toString();
 
