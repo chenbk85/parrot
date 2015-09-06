@@ -17,7 +17,7 @@ OPENSSL_LIB := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/openssl/lib
 
 # Rapidjson
 RAPIDJSON_INC := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/rapidjson/include
-CPPFLAGS      += -DRAPIDJSON_HAS_STDSTRING -DRAPIDJSON_SSE2 -DRAPIDJSON_SSE42
+CPPFLAGS      += -DRAPIDJSON_HAS_STDSTRING -DRAPIDJSON_SSE2
 endif
 
 ifeq ($(uname_S), Darwin)
