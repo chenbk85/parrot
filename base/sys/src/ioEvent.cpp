@@ -33,7 +33,8 @@ namespace parrot
         _fd(-1),
         _filter(-1),
         _flags(-1),
-        _action(eIoAction::None)
+        _action(eIoAction::None),
+        _remoteIp()
     {
     }
 
@@ -80,6 +81,21 @@ namespace parrot
     eIoAction IoEvent::getAction() const
     {
         return _action;
+    }
+
+    void IoEvent::setRemoteAddr(const std::string &ip)
+    {
+        _remoteIp = ip;
+    }
+
+    void IoEvent::setRemoteAddr(std::string &&ip)
+    {
+        _remoteIp = std::move(ip);
+    }
+
+    const std::string& IoEvent::getRemoteAddr() const
+    {
+        return _remoteIp;
     }
 
     int IoEvent::getFilter() const

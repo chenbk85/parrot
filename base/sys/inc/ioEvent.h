@@ -2,6 +2,7 @@
 #define __BASE_SYS_INC_IOEVENT_H__
 
 #include <cstdint>
+#include <string>
 
 #include "codes.h"
 #include "unifyPlatDef.h"
@@ -63,6 +64,12 @@ namespace parrot
 
         virtual void close();
 
+        void setRemoteAddr(const std::string &ip);
+
+        void setRemoteAddr(std::string &&ip);
+
+        const std::string& getRemoteAddr() const;
+
       protected:
         // Help function to mark the event to read.
         void setIoRead();
@@ -120,6 +127,7 @@ namespace parrot
         int                                 _filter;
         int                                 _flags;
         eIoAction                           _action;
+        std::string                         _remoteIp;
     };
 }
 

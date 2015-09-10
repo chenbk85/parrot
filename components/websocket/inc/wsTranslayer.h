@@ -3,6 +3,7 @@
 
 #include <list>
 #include <memory>
+
 #include <vector>
 #include <cstdint>
 
@@ -12,12 +13,22 @@ namespace parrot
 {
     class WsTranslayer
     {
+        using HeaderDic = std::unordered_map<std::string, std::string>;
         enum
         {
+            HTTP_HANDSHAKE_LEN = 8192,
             SEND_BUFF_LEN = 65536,
             RECV_BUFF_LEN = 65536
         };
-        friend class WsParser;
+
+        enum TranslayerState
+        {
+            RecvHttpHandshake,
+            RecvHttpBody,
+            SendHttpHandshake,
+            RecvDataFrame,
+            SendDataFrame
+        };
 
       public:
         WsTranslayer(IoEvent *io);
@@ -28,16 +39,25 @@ namespace parrot
       public:
         void recvPacket();
         void getPacket();
-        bool sendPacket();
+        void sendPacket(std::unique_ptr<Packet> &&pkt);
+        void sendPacket(std::list<std::unique_ptr<Packet>> &&pktList);
         
       private:
-        std::vector<char>         _sendVec;
-        uint32_t                  _sentLen;
+        TranslayerState                          _state;
+        HeaderDic                                _headerDic;
+        WebSocket *                              _io;
+        std::list<std::unique_ptr<Packet>>       _pktList;
 
-        std::vector<char>         _recvVec;
-        uint32_t                  _needRecvLen;
+        WsParseState                             _parseState;
+        std::vector<char>                        _sendVec;
+        uint32_t                                 _sentLen;
 
-        IoEvent *                 _io;
+        std::vector<char>                        _recvVec;
+
+        uint32_t                                 _lastParsePos;
+        uint32_t                                 _httpBodyLen;
+        Codes                                    _httpResult;
+        const WsConfig *                         _wsConfig;
     };
 }
 

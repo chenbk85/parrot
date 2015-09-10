@@ -31,6 +31,9 @@ namespace parrot
             case Codes::HTTP_BadRequest:
                 ret = "HTTP_BadRequest";
                 break;
+            case Codes::HTTP_UpgradeRequired:
+                ret = "HTTP_UpgradeRequired";
+                break;
 
                 /////////////////////////////////////////////////
                 /// Websockets
@@ -135,6 +138,9 @@ namespace parrot
                 break;
             case Codes::ERR_Recv:
                 ret = "ERR_Recv";
+                break;
+            case Codes::ERR_HttpHeader:
+                ret = "ERR_HttpHeader";
                 break;
             default:
                 return std::string("Unknown code ") + std::to_string(ec);

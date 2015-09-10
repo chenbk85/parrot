@@ -14,6 +14,7 @@ namespace parrot
         HTTP_Processing                  = 102,
         HTTP_Ok                          = 200,
         HTTP_BadRequest                  = 400,
+        HTTP_UpgradeRequired             = 426,
 
         // According to RFC6455, websocket defines status codes between 1000
         // and 4999.
@@ -44,6 +45,7 @@ namespace parrot
         ST_RetryLater                    = 100030,
         ST_RetryWhenReadable             = 100031,
         ST_RetryWhenWriteable            = 100032,
+        ST_WSHttpHandshakeOk             = 100033,
 
         ST_Ok                            = 1000000,
 
@@ -53,7 +55,8 @@ namespace parrot
         ERR_FileWrite                    = 5000002,
         ERR_FileRead                     = 5000003,
         ERR_Send                         = 5000004,
-        ERR_Recv                         = 5000005
+        ERR_Recv                         = 5000005,
+        ERR_HttpHeader                   = 5000006
     };
 
     std::error_code make_error_code(Codes e) noexcept;

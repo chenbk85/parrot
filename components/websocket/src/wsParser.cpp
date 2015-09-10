@@ -1,3 +1,5 @@
+#include <string>
+
 #include "wsTranslayer.h"
 #include "wsParser.h"
 #include "macroFuncs.h"
@@ -8,7 +10,9 @@ namespace parrot
     WsParser::WsParser(WsTranslayer trans):
         _parseState(HttpHandshake),
         _trans(trans),
-        _headerDic()
+        _headerDic(),
+        _lastHeaderField(),
+        _lastParsePos(0)
     {
     }
 
@@ -25,7 +29,34 @@ namespace parrot
     {
         switch (_wsParseStatus)
         {
-            
+            case WsParseState::HttpHandshake:
+                if (_trans->recvVec.size() >= 4) // \r\n\r\n is 4 bytes long
+                {
+                    auto ret = std::string::find(
+                        &(_trans->recvVec)[0], _lastParsePos, 
+                        _trans->recvVec.size());
+
+                    if (ret == std::string::npos) // Not found.
+                    {
+                        _lastParsePos = recvVec.size() - 4;
+                        return Codes::ST_NeedRecv;
+                    }
+                    else
+                    {
+                        // Found \r\n\r\n.
+                        return parseHttpHandshake();
+                    }
+                }
+                break;
+
+            case WsParseState::HttpBody:
+                break;
+
+            case WsParseState::DataFrame:
+                break;
+            default:
+                PARROT_ASSERT(false);
+                break;
         }
     }
 
@@ -43,15 +74,92 @@ namespace parrot
 
         // Init parser.
         _parser = new http_parser();
-        if (!_parser)
-        {
-            PARROT_ASSERT(0);
-        }
         http_parser_init(parser, HTTP_REQUEST);
-        auto ret = http_parser_execute(_parser, &settings,
-                                       &(_trans->recvVec)[0],
-                                       (_trans->recvBuff).size());
-        
+        uint32_t ret = http_parser_execute(_parser, &settings,
+                                           &(_trans->recvVec)[0],
+                                           (_trans->recvBuff).size());
+
+        // Client must send upgrade. Or we just disconnect.
+        // Client can send upgrade with a body (RFC6455 allows). But if 
+        // client sends upgrade with chunk data, it won't work.
+        if (_parser->upgrade)
+        {
+            // Handle WebSocket.
+            auto it = _headerDic.find("content-length");
+            if (it == _headerDic.end())
+            {
+                // No body.
+                _parseState = WsParseState::DataFrame;
+            }
+            else
+            {
+                _httpBodyLen = (it->second).stoul();
+                if (_httpBodyLen > WsTranslayer::HTTP_HANDSHAKE_LEN)
+                {
+                    // The client should not send very big handshake packet.
+                    return Codes::ERR_HttpHeader;
+                }
+
+                uint32_t receivedBodyLen = 0;
+                auto ret = std::string::find(
+                    &(_trans->recvVec)[0], _lastParsePos, 
+                    _trans->recvVec.size());
+                    
+                ret += 4;
+                receivedBodyLen = (_trans->recvBuff).size() - ret;
+
+                if (bodyLen == receivedBodyLen)
+                {
+                    _parseState = WsParseState::DataFrame;
+                }
+                else
+                {
+                
+                }
+            }
+
+        }
+        else
+        {
+            return Codes::ERR_HttpHeader;
+        }
+    }
+
+    Codes WsParser::checkHttpBody()
+    {
+        // Handle WebSocket.
+        auto it = _headerDic.find("content-length");
+        if (it == _headerDic.end())
+        {
+            // No body.
+            _parseState = WsParseState::DataFrame;
+        }
+        else
+        {
+            uint32_t bodyLen = (it->second).stoul();
+            if (bodyLen > WsTranslayer::HTTP_HANDSHAKE_LEN)
+            {
+                // The client should not send very big handshake packet.
+                return Codes::ERR_HttpHeader;
+            }
+
+            uint32_t receivedBodyLen = 0;
+            auto ret = std::string::find(
+                &(_trans->recvVec)[0], _lastParsePos, 
+                _trans->recvVec.size());
+                    
+            ret += 4;
+            receivedBodyLen = (_trans->recvBuff).size() - ret;
+
+            if (bodyLen == receivedBodyLen)
+            {
+                _parseState = WsParseState::DataFrame;
+            }
+            else
+            {
+                
+            }
+        }
     }
 
     int WsParser::onUrl(http_parser *p, const char *at, size_t length)

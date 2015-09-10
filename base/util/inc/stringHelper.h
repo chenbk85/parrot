@@ -33,6 +33,39 @@ namespace parrot
     // Param:
     // * str   The string that will be converted.
     void strToUpper(std::string &str);
+
+    // iStringFind
+    //
+    // Case insensitive std::string::find().
+    //
+    // Param:
+    // * src    The string that will be searched.
+    // * target The string that needs to be found.
+    //
+    // Return:
+    //  If found, returnt the index of target of src, 
+    //  else return std::string::npos
+    size_t iStringFind(const std::string &src, const std::string &target);
+
+    // binToHexLowCase
+    //
+    // Binary to lower case hex string.
+    //
+    // Param:
+    // * bin    [IN ] The binary buffer.
+    // * binLen [IN ] The length of binary buffer.
+    // * result [OUT] The hex string result.
+    void binToHexLowCase(unsigned char *bin, uint32_t binLen, char *result);
+
+    // binToHexUpCase
+    //
+    // Binary to upper case hex string.
+    //
+    // Param:
+    // * bin    [IN ] The binary buffer.
+    // * binLen [IN ] The length of binary buffer.
+    // * result [OUT] The hex string result.
+    void binToHexUpCase(unsigned char *bin, uint32_t binLen, char *result);
 }
 
 #endif

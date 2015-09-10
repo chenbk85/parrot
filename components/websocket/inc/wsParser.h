@@ -22,6 +22,7 @@ namespace parrot
         enum class WsParseState
         {
             HttpHandshake,
+            HttpBody,
             DataFrame
         };
 
@@ -39,6 +40,8 @@ namespace parrot
         WsTranslayer *                           _trans;
         HeaderDic                                _headerDic;
         string                                   _lastHeaderField;
+        uint32_t                                 _lastParsePos;
+        uint32_t                                 _httpBodyLen;
     };
 }
 #endif

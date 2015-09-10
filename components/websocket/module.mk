@@ -4,7 +4,7 @@ $(MODULE)_DIR         := $(subdirectory)
 $(MODULE)_TARGET      := $(PRJ_ROOT)/libs/lib$(MODULE).a
 $(MODULE)_DEP_COMP    := json
 $(MODULE)_DEP_BASE    := sys util
-$(MODULE)_3RD_PARTY   := openssl
+$(MODULE)_3RD_PARTY   := openssl rapidjson
 
 $(MODULE)_SRC         := $(wildcard $($(MODULE)_DIR)/src/*.cpp)
 $(MODULE)_INC         := $($(MODULE)_DIR)/inc
