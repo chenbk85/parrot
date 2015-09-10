@@ -46,6 +46,7 @@ namespace parrot
         ST_RetryWhenReadable             = 100031,
         ST_RetryWhenWriteable            = 100032,
         ST_WSHttpHandshakeOk             = 100033,
+        ST_Complete                      = 100100,
 
         ST_Ok                            = 1000000,
 

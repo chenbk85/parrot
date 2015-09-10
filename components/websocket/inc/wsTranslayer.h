@@ -13,6 +13,8 @@ namespace parrot
 {
     class WsTranslayer
     {
+        friend class WsHttpResponse;
+
         using HeaderDic = std::unordered_map<std::string, std::string>;
         enum
         {
@@ -45,7 +47,7 @@ namespace parrot
       private:
         TranslayerState                          _state;
         HeaderDic                                _headerDic;
-        WebSocket *                              _io;
+        WebSocket &                              _io;
         std::list<std::unique_ptr<Packet>>       _pktList;
 
         WsParseState                             _parseState;
@@ -60,7 +62,5 @@ namespace parrot
         const WsConfig *                         _wsConfig;
     };
 }
-
-
 
 #endif

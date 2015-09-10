@@ -114,6 +114,9 @@ namespace parrot
             case Codes::ST_RetryWhenWriteable:
                 ret = "ST_RetryWhenWriteable";
                 break;
+            case Codes::ST_Complete:
+                ret = "ST_Complete";
+                break;
             case Codes::ST_Ok:
                 ret = "ST_Ok";
                 break;
