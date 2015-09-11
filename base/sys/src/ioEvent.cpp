@@ -238,6 +238,7 @@ namespace parrot
 
             if (errno == EAGAIN)
             {
+                sentLen = 0;
                 break;
             }
 
@@ -272,6 +273,7 @@ namespace parrot
 
             if (errno == EAGAIN)
             {
+                rcvdLen = 0;
                 break;
             }
 

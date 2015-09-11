@@ -44,7 +44,7 @@ namespace parrot
         catch (std::system_error &e)
         {
             code = Codes::ERR_Fail;
-            LOG_WARN("WsTranslayer::sendData: Failed. Code is " << e.code()
+            LOG_WARN("WsTranslayer::recvData: Failed. Code is " << e.code()
                      << ". Msg is " << e.code().message() 
                      << ". Remote is " << _io.getRemoteAddr() << ".";
         }
@@ -52,7 +52,6 @@ namespace parrot
         if (code == Codes::ST_Ok)
         {
             _rcvdLen += rcvdLen;
-            code = _parser->parse();
         }
         
         return code;
@@ -83,10 +82,15 @@ namespace parrot
             if (_sentLen == _sendVec.size())
             {
                 _sendVec.resize(0);
+                code == Codes::ST_Complete;
+            }
+            else
+            {
+                code = Codes::ST_NeedSend;
             }
         }
         
-        return code;        
+        return code;
     }
 
     Codes WsTranslayer::sendPacket(
@@ -151,10 +155,19 @@ namespace parrot
 
             case SendHttpHandshake:
             {
-                sendData();
-                if (code == Codes::ST_Ok)
+                code = sendData();
+                if (code == Codes::ST_Complete)
                 {
-
+                    _state = RecvDataFrame;
+                    return work();
+                }
+                else if (code == Codes::ST_NeedSend)
+                {
+                    return eIoAction::Write;
+                }
+                else
+                {
+                    return eIoAction::Remove;
                 }
             }
             break;
