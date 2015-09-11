@@ -26,7 +26,7 @@ namespace parrot
     // * bufcoded The base64 string.
     //
     // Return:
-    //  The length of original data. Doesn't include the terminator '\0'.    
+    //  The length of original data (includes the terminator '\0').    
     uint32_t base64Decode(char *bufout, const char * bufcoded);
 
     // getBase64EncodeLen
@@ -51,7 +51,7 @@ namespace parrot
     // * len     The length of original buffer.
     //
     // Return:
-    //  The length of encoded string. Doesn't include the ternimator '\0'.
+    //  The length of encoded string (includes the terminator '\0').
     uint32_t base64Encode(char *bufout, const char *in, uint32_t len);
 }
 

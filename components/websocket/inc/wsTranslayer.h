@@ -23,17 +23,16 @@ namespace parrot
             RECV_BUFF_LEN = 65536
         };
 
-        enum TranslayerState
+        enum eTranslayerState
         {
             RecvHttpHandshake,
-            RecvHttpBody,
             SendHttpHandshake,
             RecvDataFrame,
             SendDataFrame
         };
 
       public:
-        WsTranslayer(IoEvent *io);
+        WsTranslayer(IoEvent &io);
         ~WsTranslayer();
         WsTranslayer(const WsTranslayer &) = delete;
         WsTranslayer& operator=(const WsTranslayer &) = delete;
@@ -45,21 +44,18 @@ namespace parrot
         void sendPacket(std::list<std::unique_ptr<Packet>> &&pktList);
         
       private:
-        TranslayerState                          _state;
-        HeaderDic                                _headerDic;
+        eTranslayerState                         _state;
         WebSocket &                              _io;
         std::list<std::unique_ptr<Packet>>       _pktList;
 
+        std::unique_ptr<WsHttpResponse>          _httpRsp;
         WsParseState                             _parseState;
         std::vector<char>                        _sendVec;
         uint32_t                                 _sentLen;
 
         std::vector<char>                        _recvVec;
 
-        uint32_t                                 _lastParsePos;
-        uint32_t                                 _httpBodyLen;
-        Codes                                    _httpResult;
-        const WsConfig *                         _wsConfig;
+        const WsConfig &                         _wsConfig;
     };
 }
 

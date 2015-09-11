@@ -1,3 +1,5 @@
+#include <algorithm>    // std::copy
+
 #include "wsHttpResponse.h"
 #include "logger.h"
 #include "stringHelper.h"
@@ -8,6 +10,7 @@ namespace parrot
     WsHttpResponse::WsHttpResponse(WsTranslayer &trans):
         _state(eParseState::Receving),
         _trans(trans),
+        _headerDic(),
         _lastHeader(),
         _lastParsePos(0),
         _httpBodyLen(0),
@@ -44,9 +47,10 @@ namespace parrot
 
         if (_trans._recvVec.size() >= WsTranslayer::HTTP_HANDSHAKE_LEN)
         {
-            LOG_WARN("WsHttpResponse::parse: Header too long. Remote is " <<
+            LOG_WARN("WsHttpResponse::parse: Data too long. Remote is " <<
                      _trans.io.getRemoteAddr() << ".");
-            return Codes::ERR_HttpHeader;
+            _httpResult = Codes::HTTP_PayloadTooLarge;
+            return Codes::ST_Ok;
         }
 
         auto start = &(_trans._recvVec)[0] + _lastParsePos;
@@ -87,7 +91,7 @@ namespace parrot
                      "header: " << &(_trans._recvVec)[0] << ". Remote is " <<
                      _io->getRemoteAddr());
             _httpResult = Codes::HTTP_BadRequest;
-            return Codes::ST_Complete;
+            return Codes::ST_Ok;
         }
 
         auto it = _headerDic["content-length"];
@@ -108,7 +112,8 @@ namespace parrot
             LOG_WARN("WsHttpResponse::parse: Body too long. "
                      "header: " << &(_trans._recvVec)[0] << ". Remote is " <<
                      _io->getRemoteAddr());
-            return Codes::ERR_HttpHeader;
+            _httpResult = Codes::HTTP_PayloadTooLarge;
+            return Codes::ST_Ok;
         }
 
         _state = eParseState::RecevingBody;
@@ -126,7 +131,8 @@ namespace parrot
         {
             LOG_WARN("WsHttpResponse::recevingBody: Bad client. Remote is " 
                      << _io->getRemoteAddr());
-            return Codes::ERR_Fail;
+            _httpResult = Codes::HTTP_BadRequest;
+            return Codes::ST_Ok;
         }
 
         // Received http body.
@@ -136,120 +142,123 @@ namespace parrot
         return Codes::ST_Ok;
     }
 
-    Codes WsHttpResponse::verifyHeader()
+    void WsHttpResponse::verifyHeader()
     {
         _httpResult = Codes::HTTP_BadRequest;
         // Check host.
         auto it = _headerDic.find("host");
         if (it == _headerDic.end())
         {
-            return false;
+            return;
         }
 
-        if (it->second != _wsConfig->host)
+        if (it->second != _trans._wsConfig.host)
         {
-            return false;
+            return;
         }
 
         // Check upgrade.
         it = _headerDic.find("upgrade");
         if (it == _headerDic.end())
         {
-            return false;
+            return;
         }
 
         if (iStringFind("websocket") == std::string::npos)
         {
-            return false;
+            return;
         }
 
         // Check connection.
         it = _headerDic.find("connection");
         if (it == _headerDic.end())
         {
-            return false;
+            return;
         }
 
         if (iStringFind(it->second, "upgrade") == std::string::npos)
         {
-            return false;
+            return;
         }
         
         // Check sec-websocket-key
         it = _headerDic.find("sec-websocket-key");
         if (it == _headerDic.end())
         {
-            return false;
+            return;
         }
 
         // Client should first generate 16 bytes long buffer, then encode it to 
         // base64 string.
         if (getBase64DecodeLen(it->second.c_str()) - 1 != 16)
         {
-            return false;
+            return;
         }
 
         // Check sec-websocket-version
         it = _headerDic.find("sec-websocket-version");
-
         if (it == _headerDic.end())
         {
-            return false;
+            return;
         }
 
         // RFC6455 says this value must be 13.
         if (it->second.c_str() != "13")
         {
             _httpResult = Codes::HTTP_UpgradeRequired;
-            return false;
+            return;
         }
 
-        return true;
+        _httpResult = Codes::HTTP_SwitchingProtocols;
+        return;
     }
 
     std::string WsTranslayer::createHandshakeSHA1Key()
     {
         using uchar = unsigned char;
 
-        std::string catKey = _headerDic["sec-websocket-key"] + 
+        std::string swKey = _headerDic["sec-websocket-key"] + 
             "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-        uchar sha1Buf[20];
+        const uint32_t sha1BufLen = 20;
+        uchar sha1Buf[sha1BufLen];
 
-        Codes code = sha1Message((uchar *)catKey.c_str(), catKey.size(), 
+        Codes code = sha1Message((uchar *)swKey.c_str(), swKey.size(), 
                                  &sha1Buf[0]);
         if (code != Codes::ST_Ok)
         {
-            return "";
+            PARROT_ASSERT(false);
         }
 
-        char sha1Res[41];
-        binToHexLowCase(&sha1Buf[0], sizeof(sha1Buf), &sha1Res[0]);
-        return &sha1Res[0];
+        // 2 times length is enough to hold base64 buffer.
+        char sha1Base64[sha1BufLen << 1];
+        base64Encode(sha1Base64, (const char*)&sha1Buf[0], sizeof(sha1Buf));
+        return &sha1Base64[0];
     }
 
     void WsTranslayer::createHttpHandshakeRsp()
     {
         std::ostringstream ostr;
-        ostr << "HTTP/1.1 101 Switching Protocols\r\n"
-             << "Upgrade: websocket\r\n"
-             << "Connection: Upgrade\r\n"
-             << "Sec-WebSocket-Accept: " << createHandshakeSHA1Key() << "\r\n";
+        std::system_error e(static_cast<int>(_httpResult), ParrotCategory());
 
-        // Check connection.
-        auto it = _headerDic.find("sec-websocket-protocol");
-        if (it != _headerDic.end())
+        ostr << "HTTP/1.1 " << e.code().value() << " " 
+             << e.code().messgae() << "\r\n";
+
+        if (_httpResult != Codes::HTTP_SwitchingProtocols)
         {
-            // We speak parrot language.
-            if (iStringFind(it->second, "parrot") != std::string::npos)
-            {
-                ostr << "Sec-WebSocket-Protocol: parrot\r\n";
-            }
+            ostr << "Connection: Closed\r\n\r\n";
+        }
+        else
+        {
+            ostr << "Upgrade: websocket\r\n"
+                "Connection: Upgrade\r\n"
+                "Sec-WebSocket-Accept: " 
+                 << createHandshakeSHA1Key() 
+                 << "\r\n\r\n";
         }
 
-
         std::string headerStr = std::move(ostr.ostr());
-        std::strcpy(&_sendVec[0], headerStr.c_str(), headerStr.size());
-        _sendVec.resize(headerStr.size());
+        std::copy_n(headerStr.begin(), headerStr.size(), 
+                    std::back_inserter(_trans._sendVec));
     }
 
     Codes WsHttpResponse::work()
@@ -265,7 +274,7 @@ namespace parrot
                     return code;
                 }
 
-                _state = eParseState::VerifyHeader;
+                _state = eParseState::CreateRsp;
                 return work();
             }
             break;
@@ -279,20 +288,16 @@ namespace parrot
                     return code;
                 }
 
-                _state = eParseState::VerifyHeader;
+                _state = eParseState::CreateRsp;
                 return work();
             }
             break;
 
-            case eParseState::VerifyHeader:
+            case eParseState::CreateRsp:
             {
-                return verifyHeader();
-            }
-            break;
-
-            case eParseState::createPsp:
-            {
-
+                verifyHeader();
+                createHttpHandshakeRsp();
+                return ST_Complete;
             }
             break;
 

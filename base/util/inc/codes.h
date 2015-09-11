@@ -14,6 +14,7 @@ namespace parrot
         HTTP_Processing                  = 102,
         HTTP_Ok                          = 200,
         HTTP_BadRequest                  = 400,
+        HTTP_PayloadTooLarge             = 413,
         HTTP_UpgradeRequired             = 426,
 
         // According to RFC6455, websocket defines status codes between 1000

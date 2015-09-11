@@ -17,22 +17,25 @@ namespace parrot
             /// Http
             ////////////////
             case Codes::HTTP_Continue:
-                ret = "HTTP_Continue";
+                ret = "Continue";
                 break;
             case Codes::HTTP_SwitchingProtocols:
-                ret = "HTTP_SwitchingProtocols";
+                ret = "Switching Protocols";
                 break;
             case Codes::HTTP_Processing:
-                ret = "HTTP_Processing";
+                ret = "Processing";
                 break;
             case Codes::HTTP_Ok:
-                ret = "HTTP_Ok";
+                ret = "OK";
                 break;
             case Codes::HTTP_BadRequest:
-                ret = "HTTP_BadRequest";
+                ret = "Bad Request";
+                break;
+            case Codes::HTTP_PayloadTooLarge:
+                ret = "Payload Too Large";
                 break;
             case Codes::HTTP_UpgradeRequired:
-                ret = "HTTP_UpgradeRequired";
+                ret = "Upgrade Required";
                 break;
 
                 /////////////////////////////////////////////////

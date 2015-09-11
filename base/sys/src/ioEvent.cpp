@@ -238,6 +238,11 @@ namespace parrot
 
             if (errno == EAGAIN)
             {
+                break;
+            }
+
+            if (errno == EINTR)
+            {
                 continue;
             }
 
@@ -266,6 +271,11 @@ namespace parrot
             }
 
             if (errno == EAGAIN)
+            {
+                break;
+            }
+
+            if (errno == EINTR)
             {
                 continue;
             }

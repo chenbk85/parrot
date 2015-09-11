@@ -33,9 +33,21 @@ namespace parrot
     Codes WsTranslayer::recvData()
     {
         uint32_t rcvdLen = 0;
-        Codes code = _io->recv(&_recvVec[_rcvdLen], 
-                               _recvVec.capacity() - _recvVec.size(), 
-                               rcvdLen);
+        Codes code = Codes::ST_Ok;
+
+        try
+        {
+            _io.recv(&_recvVec[_rcvdLen], 
+                              _recvVec.capacity() - _recvVec.size(), 
+                              rcvdLen);
+        }
+        catch (std::system_error &e)
+        {
+            code = Codes::ERR_Fail;
+            LOG_WARN("WsTranslayer::sendData: Failed. Code is " << e.code()
+                     << ". Msg is " << e.code().message() 
+                     << ". Remote is " << _io.getRemoteAddr() << ".";
+        }
 
         if (code == Codes::ST_Ok)
         {
@@ -49,9 +61,21 @@ namespace parrot
     Codes WsTranslayer::sendData()
     {
         uint32_t sentLen = 0;
-        Codes code = _io->send(&_sendVec[_sentLen], 
+        Codes code = Codes::ST_Ok;
+
+        try
+        {
+            _io.send(&_sendVec[_sentLen], 
                                _sendVec.size() - _sentLen, 
                                sentLen);
+        }
+        catch (std::system_error &e)
+        {
+            code = Codes::ERR_Fail;
+            LOG_WARN("WsTranslayer::sendData: Failed. Code is " << e.code()
+                     << ". Msg is " << e.code().message() 
+                     << ". Remote is " << _io.getRemoteAddr() << ".";
+        }
 
         if (code == Codes::ST_Ok)
         {
@@ -102,60 +126,38 @@ namespace parrot
         switch (_state)
         {
             case RecvHttpHandshake:
-                recvData();
-                if (_recvVec.size() < 4) // \r\n\r\n is 4 bytes long
+            {
+                if (!_httpRsp)
+                {
+                    _httpRsp.reset(new WsHttpResponse(*this));
+                }
+
+                code = _httpRsp->work();
+                if (code == Codes::ST_NeedRecv)
                 {
                     return eIoAction::Read;
                 }
-
-                auto start = &_recvVec[0] + _lastParsePos;
-                auto end = start + _recvVec.size();
-                auto ret = std::find(start, end, "\r\n\r\n");
-
-                if (ret == end) // Not found.
-                {
-                    _lastParsePos = recvVec.size() - 4;
-                    return eIoAction::Read;
-                }
-
-                // If here, received http header.
-
-                _lastParsePos = ret + 4; // Point to the end of the http header.
-                code = parseHttpHandshake();
-
-                if (code == Codes::ST_Received)
-                {
-                    _state = SendHttpHandshake;
-                    return work();
-                }
-                else if (code == Codes::ST_NeedRecv)
-                {
-                    _state = RecvHttpBody;
-                    return eIoAction::Read;
-                }
-                else
-                {
-                    return eIoAction::Remove;
-                }
-                break;
-
-            case RecvHttpBody:
-                recvData();
-                code = parseHttpBody();
-                if (code == Codes::ST_Received)
+                else (code == Codes::ST_Complete)
                 {
                     _state = SendHttpHandshake;
                     return work();
                 }
                 else
                 {
-                    return eIoAction::Read;
+                    PARROT_ASSERT(false);
                 }
-                break;
+            }
+            break;
 
             case SendHttpHandshake:
-                act = sendData();
-                break;
+            {
+                sendData();
+                if (code == Codes::ST_Ok)
+                {
+
+                }
+            }
+            break;
 
             case RecvDataFrame:
                 recvData();
