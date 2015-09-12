@@ -27,7 +27,7 @@ namespace parrot
         //  * ST_NeedRecv       When we just received just part of 
         //                      handshake message.
         //  * ST_Complete       When created response.
-        Codes work();
+        eCodes work();
 
         // getResult
         //
@@ -38,7 +38,7 @@ namespace parrot
         //  * HTTP_BadRequest
         //  * HTTP_UpgradeRequired
         //  * HTTP_SwitchingProtocols
-        Codes getResult() const;
+        eCodes getResult() const;
 
       private:
         // onUrl
@@ -67,7 +67,7 @@ namespace parrot
         //  * ST_Ok             When parsing http message completed.
         //  * ST_NeedRecv       When only received just part of 
         //                      handshake message.
-        Codes parse();
+        eCodes parse();
 
         // recevingBody
         //
@@ -79,7 +79,7 @@ namespace parrot
         //  * ST_Ok             When received completed http message.
         //  * ST_NeedRecv       When only received just part of 
         //                      handshake message.
-        Codes recevingBody();
+        eCodes recevingBody();
 
         // verifyHeader
         //
@@ -111,7 +111,7 @@ namespace parrot
         std::string                              _lastHeader;
         uint32_t                                 _lastParsePos;
         uint32_t                                 _httpBodyLen;
-        Codes                                    _httpResult;
+        eCodes                                   _httpResult;
     };
 }
 

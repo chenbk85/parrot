@@ -5,16 +5,18 @@ namespace parrot
 {
     class WsPacket
     {
+        class Json;
+
       public:
-        enum ePacketItem
+        enum class ePacketItem
         {
-            Route               = 0,
-            Json                = 1,
-            Binary              = 2
+            Route               = 0,            // Packet route.
+            Json                = 1,            // Json data.
+            Binary              = 2,            // Binary data.
+            Version             = 3             // Payload format version.
         };
 
-      protected:
-        enum eOpCode
+        enum class eOpCode
         {
             Continue   = 0x0,
             Text       = 0x1,
@@ -30,10 +32,23 @@ namespace parrot
         WsPacket();
         virtual ~WsPacket();
 
-        
+      public:
+        void setJson(std::unique_ptr<Json> &&json);
+        void setBinary(const char *bin, uint32_t len);
+        void setRoute(int route);
+
+        int getRoute() const;
+        std::vector<char> & getBinary();
+        std::unique_ptr<Json> & getJson();
+
+      public:
+        void parse();
 
       protected:
         uint32_t                        _lastParsePos;
+        std::unique_ptr<Json>           _jsonData;
+        std::vector<char>               _binData;
+        uint32_t                        _route;
     };
 }
 

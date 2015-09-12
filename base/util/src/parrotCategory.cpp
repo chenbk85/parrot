@@ -11,141 +11,141 @@ namespace parrot
     std::string ParrotCategoryImpl::message(int ec) const noexcept
     {
         std::string ret;
-        switch (static_cast<Codes>(ec))
+        switch (static_cast<eCodes>(ec))
         {
             /////////////////////////////////////////////////
             /// Http
             ////////////////
-            case Codes::HTTP_Continue:
+            case eCodes::HTTP_Continue:
                 ret = "Continue";
                 break;
-            case Codes::HTTP_SwitchingProtocols:
+            case eCodes::HTTP_SwitchingProtocols:
                 ret = "Switching Protocols";
                 break;
-            case Codes::HTTP_Processing:
+            case eCodes::HTTP_Processing:
                 ret = "Processing";
                 break;
-            case Codes::HTTP_Ok:
+            case eCodes::HTTP_Ok:
                 ret = "OK";
                 break;
-            case Codes::HTTP_BadRequest:
+            case eCodes::HTTP_BadRequest:
                 ret = "Bad Request";
                 break;
-            case Codes::HTTP_PayloadTooLarge:
+            case eCodes::HTTP_PayloadTooLarge:
                 ret = "Payload Too Large";
                 break;
-            case Codes::HTTP_UpgradeRequired:
+            case eCodes::HTTP_UpgradeRequired:
                 ret = "Upgrade Required";
                 break;
 
                 /////////////////////////////////////////////////
                 /// Websockets
                 ////////////////
-            case Codes::WS_NormalClosure:
+            case eCodes::WS_NormalClosure:
                 ret = "WS_NormalClosure";
                 break;
-            case Codes::WS_GoingAway:
+            case eCodes::WS_GoingAway:
                 ret = "WS_GoingAway";
                 break;
-            case Codes::WS_ProtocolError:
+            case eCodes::WS_ProtocolError:
                 ret = "WS_ProtocolError";
                 break;
-            case Codes::WS_UnsupportedData:
+            case eCodes::WS_UnsupportedData:
                 ret = "WS_UnsupportedData";
                 break;
-            case Codes::WS_NoStatusRcvd:
+            case eCodes::WS_NoStatusRcvd:
                 ret = "WS_NoStatusRcvd";
                 break;
-            case Codes::WS_AbnormalClosure:
+            case eCodes::WS_AbnormalClosure:
                 ret = "WS_AbnormalClosure";
                 break;
-            case Codes::WS_InvalidFramePayloadData:
+            case eCodes::WS_InvalidFramePayloadData:
                 ret = "WS_InvalidFramePayloadData";
                 break;
-            case Codes::WS_PolicyViolation:
+            case eCodes::WS_PolicyViolation:
                 ret = "WS_PolicyViolation";
                 break;
-            case Codes::WS_MessageTooBig:
+            case eCodes::WS_MessageTooBig:
                 ret = "WS_MessageTooBig";
                 break;
-            case Codes::WS_MandatoryExt:
+            case eCodes::WS_MandatoryExt:
                 ret = "WS_MandatoryExt";
                 break;
-            case Codes::WS_InternalError:
+            case eCodes::WS_InternalError:
                 ret = "WS_InternalError";
                 break;
-            case Codes::WS_TlsHandshake:
+            case eCodes::WS_TlsHandshake:
                 ret = "WS_TlsHandshake";
                 break;
         
                 /////////////////////////////////////////////////
                 /// Status codes for our system.
                 ////////////////
-            case Codes::ST_Init:
+            case eCodes::ST_Init:
                 ret = "ST_Init";
                 break;
-            case Codes::ST_Connecting:
+            case eCodes::ST_Connecting:
                 ret = "ST_Connecting";
                 break;
-            case Codes::ST_Connected:
+            case eCodes::ST_Connected:
                 ret = "ST_Connected";
                 break;
-            case Codes::ST_Sending:
+            case eCodes::ST_Sending:
                 ret = "ST_Sending";
                 break;
-            case Codes::ST_Sent:
+            case eCodes::ST_Sent:
                 ret = "ST_Sent";
                 break;
-            case Codes::ST_NeedSend:
+            case eCodes::ST_NeedSend:
                 ret = "ST_NeedSend";
                 break;
-            case Codes::ST_Recving:
+            case eCodes::ST_Recving:
                 ret = "ST_Recving";
                 break;
-            case Codes::ST_Received:
+            case eCodes::ST_Received:
                 ret = "ST_Received";
                 break;
-            case Codes::ST_NeedRecv:
+            case eCodes::ST_NeedRecv:
                 ret = "ST_NeedRecv";
                 break;
-            case Codes::ST_RetryLater:
+            case eCodes::ST_RetryLater:
                 ret = "ST_RetryLater";
                 break;
-            case Codes::ST_RetryWhenReadable:
+            case eCodes::ST_RetryWhenReadable:
                 ret = "ST_RetryWhenReadable";
                 break;
-            case Codes::ST_RetryWhenWriteable:
+            case eCodes::ST_RetryWhenWriteable:
                 ret = "ST_RetryWhenWriteable";
                 break;
-            case Codes::ST_Complete:
+            case eCodes::ST_Complete:
                 ret = "ST_Complete";
                 break;
-            case Codes::ST_Ok:
+            case eCodes::ST_Ok:
                 ret = "ST_Ok";
                 break;
 
                 /////////////////////////////////////////////////
                 /// Error codes.
                 ////////////////
-            case Codes::ERR_Fail:
+            case eCodes::ERR_Fail:
                 ret = "ERR_Fail";
                 break;
-            case Codes::ERR_FileOpen:
+            case eCodes::ERR_FileOpen:
                 ret = "ERR_FileOpen";
                 break;
-            case Codes::ERR_FileWrite:
+            case eCodes::ERR_FileWrite:
                 ret = "ERR_FileWrite";
                 break;
-            case Codes::ERR_FileRead:
+            case eCodes::ERR_FileRead:
                 ret = "ERR_FileRead";
                 break;
-            case Codes::ERR_Send:
+            case eCodes::ERR_Send:
                 ret = "ERR_Send";
                 break;
-            case Codes::ERR_Recv:
+            case eCodes::ERR_Recv:
                 ret = "ERR_Recv";
                 break;
-            case Codes::ERR_HttpHeader:
+            case eCodes::ERR_HttpHeader:
                 ret = "ERR_HttpHeader";
                 break;
             default:

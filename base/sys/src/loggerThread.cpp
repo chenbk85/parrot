@@ -80,7 +80,7 @@ namespace parrot
         if (!_fileStream.is_open())
         {
             throw std::system_error(
-                static_cast<int>(Codes::ERR_FileOpen), ParrotCategory(), 
+                static_cast<int>(eCodes::ERR_FileOpen), ParrotCategory(), 
                 "LoggerThread::createLog");
         }
 
@@ -96,7 +96,7 @@ namespace parrot
             if (_fileStream.fail()) 
             {
                 throw std::system_error(
-                    static_cast<int>(Codes::ERR_FileWrite), ParrotCategory(), 
+                    static_cast<int>(eCodes::ERR_FileWrite), ParrotCategory(), 
                     "LoggerThread::createLog");
             }
             _currFileSize += j->getLogLen();

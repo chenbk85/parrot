@@ -41,7 +41,7 @@ namespace parrot
         //  ST_RetryWhenWriteable
         //  ST_Ok
         //  ERR_Fail
-        Codes doSslConnect();
+        eCodes doSslConnect();
 
         // doSslAccept
         //
@@ -53,7 +53,7 @@ namespace parrot
         //  ST_RetryWhenWriteable
         //  ST_Ok
         //  ERR_Fail
-        Codes doSslAccept();
+        eCodes doSslAccept();
 
         // send
         //
@@ -69,7 +69,7 @@ namespace parrot
         //  ST_RetryWhenWriteable
         //  ST_Ok
         //  ERR_Fail
-        Codes send(const char *buff, uint32_t len, 
+        eCodes send(const char *buff, uint32_t len, 
                       uint32_t &sentLen) override;
 
         // recv
@@ -86,7 +86,7 @@ namespace parrot
         //  ST_RetryWhenWriteable
         //  ST_Ok
         //  ERR_Fail
-        Codes recv(char *buff, uint32_t len, uint32_t &recvLen) override;
+        eCodes recv(char *buff, uint32_t len, uint32_t &recvLen) override;
 
         // closeSsl
         //
@@ -107,7 +107,7 @@ namespace parrot
         //  ST_RetryWhenWriteable
         //  ST_Ok
         //  ERR_Fail
-        Codes handleResult(int ret, const std::string &funcName);
+        eCodes handleResult(int ret, const std::string &funcName);
 
       protected:
         SSL * _ssl;

@@ -30,10 +30,10 @@ namespace parrot
     {
     }
 
-    Codes WsTranslayer::recvData()
+    eCodes WsTranslayer::recvData()
     {
         uint32_t rcvdLen = 0;
-        Codes code = Codes::ST_Ok;
+        eCodes code = eCodes::ST_Ok;
 
         try
         {
@@ -43,13 +43,13 @@ namespace parrot
         }
         catch (std::system_error &e)
         {
-            code = Codes::ERR_Fail;
+            code = eCodes::ERR_Fail;
             LOG_WARN("WsTranslayer::recvData: Failed. Code is " << e.code()
                      << ". Msg is " << e.code().message() 
-                     << ". Remote is " << _io.getRemoteAddr() << ".";
+                     << ". Remote is " << _io.getRemoteAddr() << ".");
         }
 
-        if (code == Codes::ST_Ok)
+        if (code == eCodes::ST_Ok)
         {
             _rcvdLen += rcvdLen;
         }
@@ -57,10 +57,10 @@ namespace parrot
         return code;
     }
 
-    Codes WsTranslayer::sendData()
+    eCodes WsTranslayer::sendData()
     {
         uint32_t sentLen = 0;
-        Codes code = Codes::ST_Ok;
+        eCodes code = eCodes::ST_Ok;
 
         try
         {
@@ -70,30 +70,30 @@ namespace parrot
         }
         catch (std::system_error &e)
         {
-            code = Codes::ERR_Fail;
+            code = eCodes::ERR_Fail;
             LOG_WARN("WsTranslayer::sendData: Failed. Code is " << e.code()
                      << ". Msg is " << e.code().message() 
                      << ". Remote is " << _io.getRemoteAddr() << ".";
         }
 
-        if (code == Codes::ST_Ok)
+        if (code == eCodes::ST_Ok)
         {
             _sentLen += sentLen;
             if (_sentLen == _sendVec.size())
             {
                 _sendVec.resize(0);
-                code == Codes::ST_Complete;
+                code == eCodes::ST_Complete;
             }
             else
             {
-                code = Codes::ST_NeedSend;
+                code = eCodes::ST_NeedSend;
             }
         }
         
         return code;
     }
 
-    Codes WsTranslayer::sendPacket(
+    eCodes WsTranslayer::sendPacket(
         std::list<std::shared_ptr<WsPacket>> &pktList)
     {
         for (auto it = pktList.begin(); it != pktList.end(); ++it)
@@ -110,7 +110,7 @@ namespace parrot
         }
     }
 
-    Codes WsTranslayer::sendPacket(const WsPacket &pkt)
+    eCodes WsTranslayer::sendPacket(const WsPacket &pkt)
     {
         std::copy_n(pkt.getBuffer(), pkt.length(), 
                     std::back_inserter(_sendVec));
@@ -126,7 +126,7 @@ namespace parrot
     eIoAction WsTranslayer::work()
     {
         eIoAction act = eIoAction::None;
-        Codes code = Codes::ST_Init;
+        eCodes code = eCodes::ST_Init;
         switch (_state)
         {
             case RecvHttpHandshake:
@@ -137,11 +137,11 @@ namespace parrot
                 }
 
                 code = _httpRsp->work();
-                if (code == Codes::ST_NeedRecv)
+                if (code == eCodes::ST_NeedRecv)
                 {
                     return eIoAction::Read;
                 }
-                else (code == Codes::ST_Complete)
+                else (code == eCodes::ST_Complete)
                 {
                     _state = SendHttpHandshake;
                     return work();
@@ -156,12 +156,12 @@ namespace parrot
             case SendHttpHandshake:
             {
                 code = sendData();
-                if (code == Codes::ST_Complete)
+                if (code == eCodes::ST_Complete)
                 {
                     _state = RecvDataFrame;
                     return work();
                 }
-                else if (code == Codes::ST_NeedSend)
+                else if (code == eCodes::ST_NeedSend)
                 {
                     return eIoAction::Write;
                 }

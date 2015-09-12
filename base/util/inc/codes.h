@@ -6,7 +6,7 @@
 
 namespace parrot 
 {
-    enum Codes
+    enum class eCodes
     {
         // 0 - 999 status codes are for HTTP standand codes.
         HTTP_Continue                    = 100,
@@ -61,15 +61,15 @@ namespace parrot
         ERR_HttpHeader                   = 5000006
     };
 
-    std::error_code make_error_code(Codes e) noexcept;
+    std::error_code make_error_code(eCodes e) noexcept;
 
-    std::error_condition make_error_condition(Codes e) noexcept;
+    std::error_condition make_error_condition(eCodes e) noexcept;
 }
 
 namespace std
 {
     template <>
-        struct is_error_code_enum<parrot::Codes> : public true_type {};
+        struct is_error_code_enum<parrot::eCodes> : public true_type {};
 }
 
 #endif

@@ -14,8 +14,8 @@ namespace parrot
     // * buff   [IN ] The binary buffer.
     // * binLen [IN ] The length of binary buffer.
     // * result [OUT] The sha1 binary data.
-    Codes sha1Message(unsigned char *buff, uint32_t buffLen, 
-                      unsigned char *out);
+    eCodes sha1Message(unsigned char *buff, uint32_t buffLen, 
+                       unsigned char *out);
 }
 
 #endif

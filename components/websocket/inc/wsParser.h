@@ -8,24 +8,8 @@
 
 namespace parrot
 {
-    class WsTranslayer;
-
     class WsParser
     {
-        using HeaderDic = std::unordered_map<std::string, std::string>;
-
-        enum
-        {
-            kWebSockerVer = 16
-        };
-
-        enum class WsParseState
-        {
-            HttpHandshake,
-            HttpBody,
-            DataFrame
-        };
-
       public:
         explicit WsParser(WsTranslayer *trans);
         ~WsParser();
@@ -33,15 +17,11 @@ namespace parrot
         WsParser& operator=(const WsParser &) = delete;
 
       public:
-        Codes parse();
+        void parse();
 
       private:
-        WsParseState                             _parseState;
-        WsTranslayer *                           _trans;
-        HeaderDic                                _headerDic;
-        string                                   _lastHeaderField;
+        WsTranslayer &                           _trans;
         uint32_t                                 _lastParsePos;
-        uint32_t                                 _httpBodyLen;
     };
 }
 #endif

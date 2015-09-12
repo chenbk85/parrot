@@ -14,7 +14,7 @@ namespace parrot
         _lastHeader(),
         _lastParsePos(0),
         _httpBodyLen(0),
-        _httpResult(Codes::HTTP_Ok)
+        _httpResult(eCodes::HTTP_Ok)
     {
     }
 
@@ -38,19 +38,19 @@ namespace parrot
         _lastHeader = "";
     }
 
-    Codes WsHttpResponse::parse()
+    eCodes WsHttpResponse::parse()
     {
         if (_trans._recvVec.size() < 4) // \r\n\r\n is 4 bytes long
         {
-            return Codes::ST_NeedRecv;
+            return eCodes::ST_NeedRecv;
         }
 
         if (_trans._recvVec.size() >= WsTranslayer::HTTP_HANDSHAKE_LEN)
         {
             LOG_WARN("WsHttpResponse::parse: Data too long. Remote is " <<
                      _trans.io.getRemoteAddr() << ".");
-            _httpResult = Codes::HTTP_PayloadTooLarge;
-            return Codes::ST_Ok;
+            _httpResult = eCodes::HTTP_PayloadTooLarge;
+            return eCodes::ST_Ok;
         }
 
         auto start = &(_trans._recvVec)[0] + _lastParsePos;
@@ -60,7 +60,7 @@ namespace parrot
         if (ret == end) // Not found.
         {
             _lastParsePos = _trans._recvVec.size() - 4;
-            return Codes::ST_NeedRecv;
+            return eCodes::ST_NeedRecv;
         }
 
         // If here, we received http header.
@@ -90,21 +90,21 @@ namespace parrot
             LOG_WARN("WsHttpResponse::parse: Failed to parse "
                      "header: " << &(_trans._recvVec)[0] << ". Remote is " <<
                      _io->getRemoteAddr());
-            _httpResult = Codes::HTTP_BadRequest;
-            return Codes::ST_Ok;
+            _httpResult = eCodes::HTTP_BadRequest;
+            return eCodes::ST_Ok;
         }
 
         auto it = _headerDic["content-length"];
         
         if (it == _headerDic.end())
         {
-            return Codes::ST_Ok;
+            return eCodes::ST_Ok;
         }
 
         _httpBodyLen = it->second.stoul();
         if (_httpBodyLen == 0)
         {
-            return Codes::ST_Ok;
+            return eCodes::ST_Ok;
         }
 
         if (_httpBodyLen >= WsTranslayer::HTTP_HANDSHAKE_LEN)
@@ -112,39 +112,39 @@ namespace parrot
             LOG_WARN("WsHttpResponse::parse: Body too long. "
                      "header: " << &(_trans._recvVec)[0] << ". Remote is " <<
                      _io->getRemoteAddr());
-            _httpResult = Codes::HTTP_PayloadTooLarge;
-            return Codes::ST_Ok;
+            _httpResult = eCodes::HTTP_PayloadTooLarge;
+            return eCodes::ST_Ok;
         }
 
         _state = eParseState::RecevingBody;
-        return Codes::ST_NeedRecv;
+        return eCodes::ST_NeedRecv;
     }
 
-    Codes WsHttpResponse::recevingBody()
+    eCodes WsHttpResponse::recevingBody()
     {
         uint32_t recvdLen = _trans._recvVec.size() - _lastParsePos;
         if (recvdLen < _httpBodyLen)
         {
-            return Codes::ST_NeedRecv;
+            return eCodes::ST_NeedRecv;
         } 
         else if (recvdLen > _httpBodyLen)
         {
             LOG_WARN("WsHttpResponse::recevingBody: Bad client. Remote is " 
                      << _io->getRemoteAddr());
-            _httpResult = Codes::HTTP_BadRequest;
-            return Codes::ST_Ok;
+            _httpResult = eCodes::HTTP_BadRequest;
+            return eCodes::ST_Ok;
         }
 
         // Received http body.
         LOG_WARN("WsHttpResponse::recevingBody: Remote sent http body when "
                  "handshaking. Remote is " << _io->getRemoteAddr());
 
-        return Codes::ST_Ok;
+        return eCodes::ST_Ok;
     }
 
     void WsHttpResponse::verifyHeader()
     {
-        _httpResult = Codes::HTTP_BadRequest;
+        _httpResult = eCodes::HTTP_BadRequest;
         // Check host.
         auto it = _headerDic.find("host");
         if (it == _headerDic.end())
@@ -205,11 +205,11 @@ namespace parrot
         // RFC6455 says this value must be 13.
         if (it->second.c_str() != "13")
         {
-            _httpResult = Codes::HTTP_UpgradeRequired;
+            _httpResult = eCodes::HTTP_UpgradeRequired;
             return;
         }
 
-        _httpResult = Codes::HTTP_SwitchingProtocols;
+        _httpResult = eCodes::HTTP_SwitchingProtocols;
         return;
     }
 
@@ -222,9 +222,9 @@ namespace parrot
         const uint32_t sha1BufLen = 20;
         uchar sha1Buf[sha1BufLen];
 
-        Codes code = sha1Message((uchar *)swKey.c_str(), swKey.size(), 
+        eCodes code = sha1Message((uchar *)swKey.c_str(), swKey.size(), 
                                  &sha1Buf[0]);
-        if (code != Codes::ST_Ok)
+        if (code != eCodes::ST_Ok)
         {
             PARROT_ASSERT(false);
         }
@@ -243,7 +243,7 @@ namespace parrot
         ostr << "HTTP/1.1 " << e.code().value() << " " 
              << e.code().messgae() << "\r\n";
 
-        if (_httpResult != Codes::HTTP_SwitchingProtocols)
+        if (_httpResult != eCodes::HTTP_SwitchingProtocols)
         {
             ostr << "Connection: Closed\r\n\r\n";
         }
@@ -261,15 +261,15 @@ namespace parrot
                     std::back_inserter(_trans._sendVec));
     }
 
-    Codes WsHttpResponse::work()
+    eCodes WsHttpResponse::work()
     {
-        Codes code = Codes::ST_Init;
+        eCodes code = eCodes::ST_Init;
         switch (_state)
         {
             case eParseState::Receving:
             {
                 code = parse();
-                if (code != Codes::ST_Ok)
+                if (code != eCodes::ST_Ok)
                 {
                     return code;
                 }
@@ -283,7 +283,7 @@ namespace parrot
             {
                 code = recevingBody();
 
-                if (code != Codes::ST_Ok)
+                if (code != eCodes::ST_Ok)
                 {
                     return code;
                 }
@@ -309,6 +309,6 @@ namespace parrot
         }
 
         PARROT_ASSERT(false);
-        return Codes::ERR_Fail;
+        return eCodes::ERR_Fail;
     }
 }

@@ -24,19 +24,19 @@ namespace parrot
         SSL_set_bio(_ssl, bio, bio);
     }
 
-    Codes SslIo::doSslConnect()
+    eCodes SslIo::doSslConnect()
     {
         int ret = SSL_connect(_ssl);
         return handleResult(ret, "doSslConnect");
     }
 
-    Codes SslIo::doSslAccept()
+    eCodes SslIo::doSslAccept()
     {
         int ret = SSL_accept(_ssl);
         return handleResult(ret, "doSslAccept");
     }
 
-    Codes SslIo::send(const char *buff, uint32_t len, uint32_t &sentLen)
+    eCodes SslIo::send(const char *buff, uint32_t len, uint32_t &sentLen)
     {
         int wLen = SSL_write(_ssl, buff, (int)len);
 
@@ -48,7 +48,7 @@ namespace parrot
         return handleResult(wLen, "sslSend");
     }
 
-    Codes SslIo::recv(char *buff, uint32_t len, uint32_t &recvLen)
+    eCodes SslIo::recv(char *buff, uint32_t len, uint32_t &recvLen)
     {
         int rLen = SSL_read(_ssl, buff, (int)len);
 
@@ -60,13 +60,13 @@ namespace parrot
         return handleResult(rLen, "sslRecv");
     }
 
-    Codes SslIo::handleResult(int ret, const std::string &funcName)
+    eCodes SslIo::handleResult(int ret, const std::string &funcName)
     {
-        Codes code = Codes::ERR_Fail;
+        eCodes code = eCodes::ERR_Fail;
 
         if (ret > 0) 
         {
-            code = Codes::ST_Ok;
+            code = eCodes::ST_Ok;
         }
         else if (ret == 0)
         {
@@ -83,11 +83,11 @@ namespace parrot
             switch (err)
             {
                 case SSL_ERROR_WANT_READ:
-                    code = Codes::ST_RetryWhenReadable;
+                    code = eCodes::ST_RetryWhenReadable;
                     break;
 
                 case SSL_ERROR_WANT_WRITE:
-                    code = Codes::ST_RetryWhenWriteable;
+                    code = eCodes::ST_RetryWhenWriteable;
                     break;
                 
                 default:

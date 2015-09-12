@@ -21,11 +21,11 @@ namespace parrot
         _trans = nullptr;
     }
 
-    Codes WsParser::parseHandshake()
+    eCodes WsParser::parseHandshake()
     {
     }
 
-    Codes WsParser::parse()
+    eCodes WsParser::parse()
     {
         switch (_wsParseStatus)
         {
@@ -39,7 +39,7 @@ namespace parrot
                     if (ret == std::string::npos) // Not found.
                     {
                         _lastParsePos = recvVec.size() - 4;
-                        return Codes::ST_NeedRecv;
+                        return eCodes::ST_NeedRecv;
                     }
                     else
                     {
@@ -60,7 +60,7 @@ namespace parrot
         }
     }
 
-    Codes WsParser::parseHttpHandshake()
+    eCodes WsParser::parseHttpHandshake()
     {
         // Init settings.
         http_parser_settings settings;
@@ -97,7 +97,7 @@ namespace parrot
                 if (_httpBodyLen > WsTranslayer::HTTP_HANDSHAKE_LEN)
                 {
                     // The client should not send very big handshake packet.
-                    return Codes::ERR_HttpHeader;
+                    return eCodes::ERR_HttpHeader;
                 }
 
                 uint32_t receivedBodyLen = 0;
@@ -121,11 +121,11 @@ namespace parrot
         }
         else
         {
-            return Codes::ERR_HttpHeader;
+            return eCodes::ERR_HttpHeader;
         }
     }
 
-    Codes WsParser::checkHttpBody()
+    eCodes WsParser::checkHttpBody()
     {
         // Handle WebSocket.
         auto it = _headerDic.find("content-length");
@@ -140,7 +140,7 @@ namespace parrot
             if (bodyLen > WsTranslayer::HTTP_HANDSHAKE_LEN)
             {
                 // The client should not send very big handshake packet.
-                return Codes::ERR_HttpHeader;
+                return eCodes::ERR_HttpHeader;
             }
 
             uint32_t receivedBodyLen = 0;

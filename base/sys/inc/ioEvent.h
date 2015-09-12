@@ -87,10 +87,10 @@ namespace parrot
 
       public:
 #if defined(__APPLE__) || defined(__linux__)
-        virtual Codes send(const char* buff, uint32_t buffLen, 
-                           uint32_t &sentLen);
-        virtual Codes recv(char* buff, uint32_t buffLen, 
-                           uint32_t &rcvdLen);
+        virtual eCodes send(const char* buff, uint32_t buffLen, 
+                            uint32_t &sentLen);
+        virtual eCodes recv(char* buff, uint32_t buffLen, 
+                            uint32_t &rcvdLen);
 #endif
       public:
         // static help functions.
