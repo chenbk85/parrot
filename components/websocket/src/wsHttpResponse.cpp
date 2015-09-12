@@ -297,7 +297,7 @@ namespace parrot
             {
                 verifyHeader();
                 createHttpHandshakeRsp();
-                return ST_Complete;
+                return eCodes::ST_Complete;
             }
             break;
 
