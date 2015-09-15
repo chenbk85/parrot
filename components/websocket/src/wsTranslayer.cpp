@@ -4,8 +4,8 @@
 #include <openssl/sha1.h>
 
 #include "ioEvent.h"
-#include "wsPacket.h"
 #include "wsParser.h"
+#include "wsHttpResponse.h"
 #include "wsTranslayer.h"
 #include "logger.h"
 #include "base64.h"

@@ -26,29 +26,42 @@ namespace parrot
         enum eParseState
         {
             Begin,
-            RecevingHeader,
-            RecevingBody
+            ParsingHeader,
+            ParsingBody
         };
 
       public:
-        explicit WsParser(WsTranslayer *trans);
-        ~WsParser();
+        WsParser(WsTranslayer &trans, bool needMask);
+        virtual ~WsParser() = default;
         WsParser(const WsParser &) = delete;
         WsParser& operator=(const WsParser &) = delete;
 
       public:
-        Codes parse();
+        bool isFin() const { return _fin; }
+        bool isMasked() const { return _masked; }
+        eCodes getParseResult() const { return _parseResult; }
+        eCodes parse();
+
+      protected:
+        virtual void parseBody();
 
       private:
+        eCodes doParse();
+        void parseHeader();
+
+      private:
+        WsTranslayer &                           _trans;
+        bool                                     _needMask;
         eParseState                              _state;
         bool                                     _fin;
         bool                                     _masked;
         eOpCode                                  _opCode;
-        uint32_t                                 _bodyLen;
-        uint32_t                                 _pktBeginPos;
-        uint32_t                                 _lastParsePos;
+        eOpCode                                  _fragmentDataType;
+        std::vector<char>::iterator              _lastParseIt;
+        std::vector<char>::iterator              _pktBeginIt;
         uint8_t                                  _headerLen;
         uint64_t                                 _payloadLen;
+        std::array<char, 4>                      _maskingKey;
         Codes                                    _parseResult;
         std::vector<char>                        _packetVec;
     };

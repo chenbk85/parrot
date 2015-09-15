@@ -14,13 +14,15 @@ namespace parrot
     class WsTranslayer
     {
         friend class WsHttpResponse;
+        friend class WsParser;
 
         using HeaderDic = std::unordered_map<std::string, std::string>;
         enum
         {
-            HTTP_HANDSHAKE_LEN = 8192,
-            SEND_BUFF_LEN = 65536,
-            RECV_BUFF_LEN = 65536
+            kHttpHandshakeLen = 8192,
+            kSendBuffLen = 65536,
+            kRecvBuffLen = 65536,
+            kRecvMaxLen = 1 << 20 // 1 MB
         };
 
         enum eTranslayerState
@@ -49,6 +51,7 @@ namespace parrot
         std::list<std::unique_ptr<Packet>>       _pktList;
 
         std::unique_ptr<WsHttpResponse>          _httpRsp;
+        std::unique_ptr<WsParser>                _wsParser;
         WsParseState                             _parseState;
         std::vector<char>                        _sendVec;
         uint32_t                                 _sentLen;
