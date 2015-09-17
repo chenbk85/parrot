@@ -3,41 +3,41 @@
 
 namespace parrot
 {
-    WebSocket::WebSocket(PktHandler &hdr):
-        IoEvent(),
-        _pktHandler(hdr),
-        _translayer(new WsTranslayer(this))
+    WebSocketSrv::WebSocketSrv():
+        TcpServer(),
+        TimeoutGuard(),
+        _translayer(new WsTranslayer<WebSocketSrv>(this, true))
     {
     }
 
-    WebSocket::~WebSocket()
-    {
-        delete _translayer;
-        _translayer = nullptr;
-    }
-
-    eIoAction WebSocket::heartbeat()
+    void WebSocketSrv::onOpen()
     {
 
     }
 
-    void WebSocket::onPacket(std::unique_ptr<WsPacket> &&pkt)
+    void WebSocketSrv::onPong()
     {
-        _pktHandler.onPacket(std::move(pkt));
+
     }
 
-    eIoAction WebSocket::sendPacket(std::unique_ptr<WsPacket> &&pkt)
+    void WebSocketSrv::onData(
+        const std::vector<char>::iterator &,
+        const std::vector<char>::iterator &)
+    {
+    }
+
+    eIoAction WebSocketSrv::sendPacket(std::unique_ptr<WsPacket> &&pkt)
     {
         return _translayer->sendPacket(std::move(pkt));
     }
 
-    eIoAction WebSocket::sendPacket(
+    eIoAction WebSocketSrv::sendPacket(
         std::list<std::unique_ptr<WsPacket>> &&pktList)
     {
         return _translayer->sendPacket(std::move(pktList));
     }
 
-    eIoAction WebSocket::handleIoEvent()
+    eIoAction WebSocketSrv::handleIoEvent()
     {
         if (isError())
         {
@@ -53,20 +53,20 @@ namespace parrot
 
         if (isReadAvail())
         {
-            return _translayer->recv();
+            return _translayer->work(IoEvent::Read);
         }
 
         if (isWriteAvail())
         {
-            return _translayer->send();
+            return _translayer->work(IoEvent::Write);
         }
 
         PARROT_ASSERT(false);
         return eIoAction::None;
     }
 
-    eIoAction WebSocket::closeWebSocket()
+    eIoAction WebSocketSrv::closeWebSocket(const std::string &)
     {
-        
+        return eIoAction::None;
     }
 }

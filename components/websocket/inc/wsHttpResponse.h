@@ -9,12 +9,15 @@ namespace parrot
         enum class eParseState
         {
             Receving,
-                RecevingBody,
-                CreateRsp
-                };
+            RecevingBody,
+            CreateRsp
+        };
 
       public:
-        explicit WsHttpResponse(WsTranslayer &trans);
+        WsHttpResponse(std::vector<char> &recvVec,
+                       std::vector<char> &sendVed,
+                       const std::string &remoteIp,
+                       const WsConfig &cfg);
 
       public:
 
@@ -106,15 +109,16 @@ namespace parrot
 
       private:
         eParseState                              _state;
-        WsTranslayer &                           _trans;
+        std::vector<char> &                      _recvVec;
+        std::vector<char> &                      _sendVec;
+        const std::string &                      _remoteIp;
         HeaderDic                                _headerDic;
         std::string                              _lastHeader;
         uint32_t                                 _lastParsePos;
         uint32_t                                 _httpBodyLen;
         eCodes                                   _httpResult;
+        const WsConfig &                         _config;
     };
 }
-
-
 
 #endif

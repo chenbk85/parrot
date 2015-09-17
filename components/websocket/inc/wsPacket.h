@@ -1,6 +1,11 @@
 #ifndef __COMPONENT_WEBSOCKET_INC_WSPACKET_H__
 #define __COMPONENT_WEBSOCKET_INC_WSPACKET_H__
 
+#include <memory>
+#include <vector>
+#include <cstdint>
+
+
 namespace parrot
 {
     class WsPacket
@@ -16,27 +21,29 @@ namespace parrot
             Version             = 3             // Payload format version.
         };
 
+
       public:
         WsPacket();
-        virtual ~WsPacket();
+        ~WsPacket() = default;
 
       public:
         void setJson(std::unique_ptr<Json> &&json);
-        void setBinary(const char *bin, uint32_t len);
-        void setRoute(int route);
+        void setBinary(std::unique_ptr<std::vector<char>> &&bin);
+        void setRoute(uint32_t route);
 
-        int getRoute() const;
+        uint32_t getRoute() const;
         std::vector<char> & getBinary();
         std::unique_ptr<Json> & getJson();
+
+        std::unique_ptr<std::vector<char>> getBuffer();
 
       public:
         void parse();
 
-      protected:
-        uint32_t                        _lastParsePos;
-        std::unique_ptr<Json>           _jsonData;
-        std::vector<char>               _binData;
-        uint32_t                        _route;
+      private:
+        std::unique_ptr<Json>                  _jsonData;
+        std::unique_ptr<std::vector<char>>     _binData;
+        uint32_t                               _route;
     };
 }
 

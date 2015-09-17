@@ -7,14 +7,20 @@
 
 namespace parrot
 {
-    WsHttpResponse::WsHttpResponse(WsTranslayer &trans):
+    WsHttpResponse::WsHttpResponse(std::vector<char> &recvVec,
+                                   std::vector<char> &sendVec,
+                                   const std::string &remoteIp,
+                                   const WsConfig &cfg)
         _state(eParseState::Receving),
-        _trans(trans),
+        _recvVec(recvVec),
+        _sendVec(sendVec),
+        _remoteIp(remoteIp),
         _headerDic(),
         _lastHeader(),
         _lastParsePos(0),
         _httpBodyLen(0),
-        _httpResult(eCodes::HTTP_Ok)
+        _httpResult(eCodes::HTTP_Ok),
+        _config(cfg)
     {
     }
 
@@ -40,26 +46,26 @@ namespace parrot
 
     eCodes WsHttpResponse::parse()
     {
-        if (_trans._recvVec.size() < 4) // \r\n\r\n is 4 bytes long
+        if (_recvVec.size() < 4) // \r\n\r\n is 4 bytes long
         {
             return eCodes::ST_NeedRecv;
         }
 
-        if (_trans._recvVec.size() >= WsTranslayer::HTTP_HANDSHAKE_LEN)
+        if (_recvVec.size() >= WsTranslayer::HTTP_HANDSHAKE_LEN)
         {
             LOG_WARN("WsHttpResponse::parse: Data too long. Remote is " <<
-                     _trans.io.getRemoteAddr() << ".");
+                     _remoteIp << ".");
             _httpResult = eCodes::HTTP_PayloadTooLarge;
             return eCodes::ST_Ok;
         }
 
-        auto start = &(_trans._recvVec)[0] + _lastParsePos;
-        auto end = start + &_trans._recvVec.size();
+        auto start = &_recvVec[0] + _lastParsePos;
+        auto end = start + _recvVec.size();
         auto ret = std::find(start, end, "\r\n\r\n");
 
         if (ret == end) // Not found.
         {
-            _lastParsePos = _trans._recvVec.size() - 4;
+            _lastParsePos = _recvVec.size() - 4;
             return eCodes::ST_NeedRecv;
         }
 
@@ -88,8 +94,8 @@ namespace parrot
             (_parser->http_major == 1 && _parser->http_minor != 1))
         {
             LOG_WARN("WsHttpResponse::parse: Failed to parse "
-                     "header: " << &(_trans._recvVec)[0] << ". Remote is " <<
-                     _io->getRemoteAddr());
+                     "header: " << &_recvVec[0] << ". Remote is " 
+                     << _remoteIp);
             _httpResult = eCodes::HTTP_BadRequest;
             return eCodes::ST_Ok;
         }
@@ -110,8 +116,8 @@ namespace parrot
         if (_httpBodyLen >= WsTranslayer::HTTP_HANDSHAKE_LEN)
         {
             LOG_WARN("WsHttpResponse::parse: Body too long. "
-                     "header: " << &(_trans._recvVec)[0] << ". Remote is " <<
-                     _io->getRemoteAddr());
+                     "header: " << &_recvVec[0] << ". Remote is " 
+                     << _remoteIp);
             _httpResult = eCodes::HTTP_PayloadTooLarge;
             return eCodes::ST_Ok;
         }
@@ -122,7 +128,7 @@ namespace parrot
 
     eCodes WsHttpResponse::recevingBody()
     {
-        uint32_t recvdLen = _trans._recvVec.size() - _lastParsePos;
+        uint32_t recvdLen = _recvVec.size() - _lastParsePos;
         if (recvdLen < _httpBodyLen)
         {
             return eCodes::ST_NeedRecv;
@@ -130,14 +136,14 @@ namespace parrot
         else if (recvdLen > _httpBodyLen)
         {
             LOG_WARN("WsHttpResponse::recevingBody: Bad client. Remote is " 
-                     << _io->getRemoteAddr());
+                     << _remoteIp);
             _httpResult = eCodes::HTTP_BadRequest;
             return eCodes::ST_Ok;
         }
 
         // Received http body.
         LOG_WARN("WsHttpResponse::recevingBody: Remote sent http body when "
-                 "handshaking. Remote is " << _io->getRemoteAddr());
+                 "handshaking. Remote is " << _remoteIp;
 
         return eCodes::ST_Ok;
     }
@@ -152,7 +158,7 @@ namespace parrot
             return;
         }
 
-        if (it->second != _trans._wsConfig.host)
+        if (it->second != _config.host)
         {
             return;
         }
@@ -258,7 +264,7 @@ namespace parrot
 
         std::string headerStr = std::move(ostr.ostr());
         std::copy_n(headerStr.begin(), headerStr.size(), 
-                    std::back_inserter(_trans._sendVec));
+                    std::back_inserter(_sendVec));
     }
 
     eCodes WsHttpResponse::work()
