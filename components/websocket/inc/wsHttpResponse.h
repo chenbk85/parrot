@@ -1,8 +1,17 @@
 #ifndef __COMPONENT_WEBSOCKET_INC_WSHTTPRESPONSE_H__
 #define __COMPONENT_WEBSOCKET_INC_WSHTTPRESPONSE_H__
 
+#include <unordered_map>
+#include <string>
+#include <vector>
+
+#include "codes.h"
+
 namespace parrot
 {
+    struct WsConfig;
+    struct http_parser;
+
     class WsHttpResponse
     {
         using HeaderDic = std::unordered_map<std::string, std::string>;
@@ -48,19 +57,28 @@ namespace parrot
         //
         // A callback function which will be called from http_parser when
         // the parser has parsed url.
-        void onUrl(http_parser*, const char *at, size_t len);
+        //
+        // return:
+        //  0 continue parsing. 1 error.
+        int onUrl(::http_parser*, const char *at, size_t len);
 
         // onHeaderField
         //
         // A callback function which will be called from http_parser when
         // the parser has parsed one header.
-        void onHeaderField(http_parser*, const char *at, size_t len);
+        //
+        // return:
+        //  0 continue parsing. 1 error.
+        int onHeaderField(::http_parser*, const char *at, size_t len);
 
         // onHeaderValue
         //
         // A callback function which will be called from http_parser when
         // the parser has parsed header value.
-        void onHeaderValue(http_parser*, const char *at, size_t len);
+        //
+        // return:
+        //  0 continue parsing. 1 error.
+        int onHeaderValue(::http_parser*, const char *at, size_t len);
 
         // parse
         //
@@ -114,7 +132,7 @@ namespace parrot
         const std::string &                      _remoteIp;
         HeaderDic                                _headerDic;
         std::string                              _lastHeader;
-        uint32_t                                 _lastParsePos;
+        std::vector<char>::iterator              _lastParseIt;
         uint32_t                                 _httpBodyLen;
         eCodes                                   _httpResult;
         const WsConfig &                         _config;

@@ -1,4 +1,5 @@
 #include "wsPacket.h"
+#include "json.h"
 
 namespace parrot
 {

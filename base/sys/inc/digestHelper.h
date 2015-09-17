@@ -1,7 +1,7 @@
 #ifndef __BASE_SYS_INC_DIGESTHELPER_H__
 #define __BASE_SYS_INC_DIGESTHELPER_H__
 
-#include <cstdint.h>
+#include <cstdint>
 #include "codes.h"
 
 namespace parrot

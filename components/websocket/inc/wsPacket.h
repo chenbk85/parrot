@@ -4,14 +4,12 @@
 #include <memory>
 #include <vector>
 #include <cstdint>
-
+#include "json.h"
 
 namespace parrot
 {
     class WsPacket
     {
-        class Json;
-
       public:
         enum class ePacketItem
         {
@@ -32,13 +30,12 @@ namespace parrot
         void setRoute(uint32_t route);
 
         uint32_t getRoute() const;
-        std::vector<char> & getBinary();
-        std::unique_ptr<Json> & getJson();
+        const std::vector<char> & getBinary();
+        const Json & getJson();
 
-        std::unique_ptr<std::vector<char>> getBuffer();
-
+        std::unique_ptr<std::vector<char>> toBuffer();
       public:
-        void parse();
+//        void parse();
 
       private:
         std::unique_ptr<Json>                  _jsonData;

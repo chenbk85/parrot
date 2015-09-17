@@ -3,14 +3,17 @@
 
 #include <vector>
 #include <string>
+#include <functional>
+#include <cstdint>
 #include "codes.h"
 
 namespace parrot
 {
+    class WsConfig;
+
     // WsParser is the websocket parser for both server side and 
     // client side. RPC packet parser will also use this class.
-    template<typename WsIo>
-        class WsParser
+    class WsParser
     {
       public:
         enum class eOpCode
@@ -32,34 +35,16 @@ namespace parrot
             ParsingBody
         };
 
+      private:
+        using VecCharIt = std::vector<char>::iterator;
+        using CallbackFunc = std::function<
+            void(enum eOpCode, VecCharIt begin, VecCharIt end)>;
+
       public:
-        WsParser(WsIo &io,
-                 std::vector<char> &recvVec, 
-                 const std::string &remoteIp,
-                 bool needMask)
-            _recvVec(recvVec),
-            _remoteIp(remoteIp),
-            _needMask(needMask),
-            _state(eParseState::Begin),
-            _fin(false),
-            _masked(false),
-            _opCode(eOpCode::Continue),
-            _fragmentDataType(eOpCode::Binary),
-            _lastParseIt(),
-            _pktBeginIt(),
-            _headerLen(0),
-            _payloadLen(0),
-            _maskingKey(),
-            _parseResult(eCodes::ST_Ok),
-            _packetVec()
-            {
-                _recvVec.clear();
-                _lastParsePos = _recvVec.begin();
-                _pktBeginIt = _lastParsePos;
-            }
-
+        WsParser(CallbackFunc cb, std::vector<char> &recvVec, 
+                 const std::string &remoteIp, bool needMask, 
+                 const WsConfig& cfg);
         ~WsParser() = default;
-
         WsParser(const WsParser &) = delete;
         WsParser& operator=(const WsParser &) = delete;
 
@@ -87,39 +72,8 @@ namespace parrot
         // return
         //  * ST_Complete     Parsing completed.
         //  * ST_NeedRecv     Need receive more data to parse.
-        eCodes parse()
-        {
-            eCodes code;
-            while (true)
-            {
-                _pktBeginIt = _pktBeginIt + _headerLen + _payloadLen;
-
-                code = doParse();
-
-                if (code == eCodes::ST_Ok)
-                {
-                    if (_parseResult != eST_Ok)
-                    {
-                        return ST_Complete;
-                    }
-                    else
-                    {
-                        continue;
-                    }
-                }
-                else if (code == eCodes::ST_NeedRecv)
-                {
-                    uint32_t rcvdLen = _recvVec.end() - _pktBeginIt;
-                    std::move(_pktBeginIt, _recvVec.end(), 
-                              _recvVec.begin());
-                    _recvVec.resize(rcvdLen);
-                }
-
-                return code;
-            }
-        }
-
-
+        eCodes parse();
+ 
       private:
         // isFin
         //
@@ -146,231 +100,22 @@ namespace parrot
         //  * ST_NeedRecv    // Hasn't receive the full packet, 
         //                        need recevie more.
         //  * ST_Ok          // Finished parsing.
-        eCodes doParse()
-        {
-            _parseResult = eCodes::ST_Ok;
-
-            switch (_state)
-            {
-                case eParseState::Begin:
-                {
-                    if (_recvVec.end() - _pktBeginIt < 2)
-                    {
-                        return eCodes::ST_NeedRecv;
-                    }
-                    break;
-
-                    uint8_t firstByte = (uint8_t)*_lastParseIt++;
-                    _fin = firstByte & ((uint8_t)1 << 8);
-                    if ((firstByte & ((uint8_t)1 << 7)) != 0 || 
-                        (firstByte & ((uint8_t)1 << 6)) != 0 ||
-                        (firstByte & ((uint8_t)1 << 5)) != 0)
-                    {
-                        // The 2nd, 3rd & 4th bits must be ZERO.
-                        _parseResult = eCodes::WS_ProtocolError;
-                        return eCodes::ST_Ok;
-                    }
-
-                    // Get opcode.
-                    _opCode = (eOpcode)firstByte & 0x0F;
-                    if ((_opCode >  eOpCode::Binary && 
-                         _opCode < eOpCode::Close) || 
-                        (_opCode >  eOpCode::Pone))
-                    {
-                        // Peer should not use reserved opcode.
-                        _parseResult = eCodes::WS_ProtocolError;
-                        return eCodes::ST_Ok;
-                    }
-
-                    if (_opCode == eOpCode::Text)
-                    {
-                        // We don't support text payload.
-                        _parseResult = eCodes::WS_UnsupportedData;
-                        return eCodes::ST_Ok;
-                    }
-
-                    // Fragmented data should save data type.
-                    if (!_fin && _opCode != eOpCode::Continue)
-                    {
-                        // First fragmented data frame.
-                        if (_opCode != eOpCode::Binary)
-                        {
-                            _parseResult = eCodes::WS_ProtocolError;
-                            return eCodes::ST_Ok;
-                        }
-                        _packetVec.reserve(
-                            WsTranslayer<WsIo>::kRecvBuffLen * 4);
-                        _fragmentDataType = _opCode;
-                    }
-
-                    uint8_t secondByte = (uint8_t)*_lastParseIt++;
-                    _masked = secondByte & ((uint8_t)1 << 8);
-                    _payloadLen = secondByte & (uint8_t)127;
-
-                    if (_payloadLen == 126)
-                    {
-                        _headerLen = _masked ? (2 + 2 + 4) : (2 + 2);
-                    }
-                    else if (_payloadLen == 127)
-                    {
-                        _headerLen = _masked ? (2 + 8 + 4) : (2 + 8);
-                    }
-                    else
-                    {
-                        _headerLen = _masked ? (2 + 4) : 2;
-                    }
-
-                    if (_payloadLen + _headerLen > _recvVec.capacity())
-                    {
-                        if (_payloadLen + _headerLen > 
-                            WsTranslayer<WsIo>::kRecvMaxLen)
-                        {
-                            _parseResult = eCodes::MessageTooBig;
-                            return eCodes::ST_Ok;
-                        }
-                    
-                        uint32_t times = (_payloadLen + _headerLen) / 
-                            WsTranslayer<WsIo>::kRecvBuffLen + 1;
-                        _recvVec.reserve(
-                            times * WsTranslayer<WsIo>::kRecvBuffLen);
-                    }
-                
-                    if (_recvVec.end() - _pktBeginIt < _headerLen)
-                    {
-                        _state = eParseState::RecevingHeader;
-                        return eCodes::ST_NeedRecv;
-                    }
-
-                    parseHeader();
-
-                    _state = eParseState::RecevingBody;
-                    return doParse();
-                }
-                break;
-
-                case eParseState::ParsingHeader:
-                {
-                    if (_recvVec.end() - _pktBeginIt < _headerLen)
-                    {
-                        return eCodes::ST_NeedRecv;
-                    }
-
-                    parseHeader();
-                    _state = eParseState::ParsingBody;
-                    return doParse();                
-                }
-                break;
-
-                case eParseState::ParsingBody:
-                {
-                    if (_recvVec.end() - _lastParseIt < _payloadLen)
-                    {
-                        return eCodes::ST_NeedRecv;
-                    }
-
-                    parseBody();
-                    _state = eParseState::Begin;
-                    return eCodes::ST_Ok;
-                }
-                break;
-            }
-
-            PARROT_ASSERT(false);
-            return eCodes::ERR_Fail;
-        }
-
-
+        eCodes doParse();
+ 
         // parseHeader
         //
         // Parses the websocket header. Get the length of payload
         // and mask key if exists.
-        void parseHeader()
-        {
-            if (_payloadLen == 126)
-            {            
-                _payloadLen = uniNtohs(
-                    *(uint16_t*)&(*_lastParseIt));
-                _lastParseIt += 2;
-            }
-            else if (_payloadLen == 127)
-            {
-                _payloadLen = uniNtohll(
-                    *(uint64_t*)&(*_lastParseIt));
-                _lastParseIt += 8;
-            }
-
-            if (_masked)
-            {
-                std::copy_n(_lastParseIt, 4, std::back_inserter(_maskingKey));
-                _lastParseIt += 4;
-            }
-        }
-
+        void parseHeader();
 
         // parseBody
         //
         // Unmasking the payload. If the packet is fragmented, and
         // hasn't receive all, saves it. If received all or not
         // fragmented, invoke the callback to notify uplayer.
-        void parseBody()
-        {
-            auto pktEnd = _lastParseIt + _payloadLen;
-            if (_masked)
-            {
-                // Unmasking data.
-                auto i = 0u;
-                for (auto it = _lastParseIt; it != end; ++it)
-                {
-                    *it = *it ^ _maskingKey[i++ % 4];
-                }
-            }
-
-            if (_fin && _packetVec.size() == 0)
-            {
-                // Not fragmented.
-                _io.onPayload(_opCode, _lastParseIt, pktEnd);
-            }
-            else if (_fin)
-            {
-                // Fragmented frame, save to _packetVec.
-                if (_opCode == eOpCode::Continue)
-                {
-                    // save.
-                    std::copy_n(_lastParsePos, _payloadLen, 
-                                std::back_inserter(_packetVec));
-
-                    _io.onPayload(_opCode, _packetVec.begin(), 
-                                  _packetVec.end());
-
-                    // Reset packet vec.
-                    _packetVec.clear();
-                    _packetVec.shrink_to_fit();
-                }
-                else if (_opCode == eOpCode::Binary)
-                {
-                    // _packetVec has data. opcode must not be binary.
-                    _parseResult = eCodes::WS_ProtocolError;
-                    return;
-                }
-                else
-                {
-                    // Control frame.
-                    _io.onPayload(_opCode, _lastParseIt, pktEnd);
-                }
-            }
-            else
-            {
-                // save.
-                std::copy_n(_lastParsePos, _payloadLen, 
-                            std::back_inserter(_packetVec));
-            }
-
-            _lastParseIt += _payloadLen;
-        }
-
+        void parseBody();
 
       private:
-        WsIo &                                   _io;
         std::vector<char>&                       _recvVec;
         const std::string &                      _remoteIp;
         bool                                     _needMask;
@@ -379,13 +124,15 @@ namespace parrot
         bool                                     _masked;
         eOpCode                                  _opCode;
         eOpCode                                  _fragmentDataType;
-        std::vector<char>::iterator              _lastParseIt;
-        std::vector<char>::iterator              _pktBeginIt;
+        VecCharIt                                _lastParseIt;
+        VecCharIt                                _pktBeginIt;
+        CallbackFunc                             _callbackFunc;
         uint8_t                                  _headerLen;
         uint64_t                                 _payloadLen;
         std::array<char, 4>                      _maskingKey;
-        Codes                                    _parseResult;
+        eCodes                                   _parseResult;
         std::vector<char>                        _packetVec;
+        const WsConfig &                         _config;
     };
 }
 #endif

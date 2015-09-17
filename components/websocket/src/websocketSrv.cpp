@@ -1,12 +1,17 @@
-#include "websocket.h"
+#include "json.h"
+#include "wsTranslayer.h"
+#include "wsPacket.h"
+#include "websocketSrv.h"
 #include "macroFuncs.h"
+#include "wsConfig.h"
+
 
 namespace parrot
 {
-    WebSocketSrv::WebSocketSrv():
+    WebSocketSrv::WebSocketSrv(const WsConfig &cfg):
         TcpServer(),
         TimeoutGuard(),
-        _translayer(new WsTranslayer<WebSocketSrv>(this, true))
+        _translayer(new WsTranslayer<WebSocketSrv>(*this, true, cfg))
     {
     }
 
@@ -20,53 +25,50 @@ namespace parrot
 
     }
 
-    void WebSocketSrv::onData(
-        const std::vector<char>::iterator &,
-        const std::vector<char>::iterator &)
+    void WebSocketSrv::onData(WsParser::eOpCode,
+        std::vector<char>::iterator,
+        std::vector<char>::iterator)
     {
     }
 
-    eIoAction WebSocketSrv::sendPacket(std::unique_ptr<WsPacket> &&pkt)
+    void WebSocketSrv::sendPacket(std::unique_ptr<WsPacket> &pkt)
     {
-        return _translayer->sendPacket(std::move(pkt));
+        _translayer->sendPacket(pkt);
     }
 
-    eIoAction WebSocketSrv::sendPacket(
-        std::list<std::unique_ptr<WsPacket>> &&pktList)
+    void WebSocketSrv::sendPacket(
+        std::list<std::unique_ptr<WsPacket>> &pktList)
     {
-        return _translayer->sendPacket(std::move(pktList));
+        _translayer->sendPacket(pktList);
     }
 
     eIoAction WebSocketSrv::handleIoEvent()
     {
         if (isError())
         {
-            _pktHandler.onError();
             return eIoAction::Remove;
         }
 
         if (isEof())
         {
-            _pktHandler.onRemoteDisconnect();
             return eIoAction::Remove;
         }
 
         if (isReadAvail())
         {
-            return _translayer->work(IoEvent::Read);
+            return _translayer->work(eIoAction::Read);
         }
 
         if (isWriteAvail())
         {
-            return _translayer->work(IoEvent::Write);
+            return _translayer->work(eIoAction::Write);
         }
 
         PARROT_ASSERT(false);
         return eIoAction::None;
     }
 
-    eIoAction WebSocketSrv::closeWebSocket(const std::string &)
+    void WebSocketSrv::closeWebSocket(const std::string &)
     {
-        return eIoAction::None;
     }
 }

@@ -1,47 +1,61 @@
 #include <algorithm>    // std::copy
+#include <functional>
+#include <system_error>
 
+#include "httpParser.h"
 #include "wsHttpResponse.h"
 #include "logger.h"
 #include "stringHelper.h"
 #include "macroFuncs.h"
+#include "wsConfig.h"
+#include "digestHelper.h"
+#include "stringHelper.h"
+#include "base64.h"
+
 
 namespace parrot
 {
     WsHttpResponse::WsHttpResponse(std::vector<char> &recvVec,
                                    std::vector<char> &sendVec,
                                    const std::string &remoteIp,
-                                   const WsConfig &cfg)
+                                   const WsConfig &cfg):
         _state(eParseState::Receving),
         _recvVec(recvVec),
         _sendVec(sendVec),
         _remoteIp(remoteIp),
         _headerDic(),
         _lastHeader(),
-        _lastParsePos(0),
+        _lastParseIt(_recvVec.begin()),
         _httpBodyLen(0),
         _httpResult(eCodes::HTTP_Ok),
         _config(cfg)
     {
     }
 
-    void WsHttpResponse::onUrl(http_parser*, const char *at, size_t len)
+    int WsHttpResponse::onUrl(::http_parser*, const char *at, size_t len)
     {
         _headerDic["url"] = std::string(at, len);
+        return 0;
     }
 
-    void WsHttpResponse::onHeaderField(http_parser*, const char *at, 
+    int WsHttpResponse::onHeaderField(::http_parser*, const char *at, 
                                        size_t len)
     {
-        PARROT_ASSERT(_lastHeader.empty());
+        if (!_lastHeader.empty())
+        {
+            return 1;
+        }
         _lastHeader = std::string(at, len);
         strToLower(_lastHeader);
+        return 0;
     }
 
-    void WsHttpResponse::onHeaderValue(http_parser*, const char *at, 
+    int WsHttpResponse::onHeaderValue(::http_parser*, const char *at, 
                                        size_t len)
     {
         _headerDic[_lastHeader] = std::string(at, len);
         _lastHeader = "";
+        return 0;
     }
 
     eCodes WsHttpResponse::parse()
@@ -51,7 +65,7 @@ namespace parrot
             return eCodes::ST_NeedRecv;
         }
 
-        if (_recvVec.size() >= WsTranslayer::HTTP_HANDSHAKE_LEN)
+        if (_recvVec.size() >= _config._maxHttpHandshake)
         {
             LOG_WARN("WsHttpResponse::parse: Data too long. Remote is " <<
                      _remoteIp << ".");
@@ -59,28 +73,33 @@ namespace parrot
             return eCodes::ST_Ok;
         }
 
-        auto start = &_recvVec[0] + _lastParsePos;
+        auto start = _lastParseIt;
         auto end = start + _recvVec.size();
-        auto ret = std::find(start, end, "\r\n\r\n");
+        std::string rnrn = "\r\n\r\n";
+        auto ret = std::search(_lastParseIt, end, 
+                               rnrn.begin(), rnrn.end());
 
         if (ret == end) // Not found.
         {
-            _lastParsePos = _recvVec.size() - 4;
+            _lastParseIt = _recvVec.end() - 4;
             return eCodes::ST_NeedRecv;
         }
 
         // If here, we received http header.
-
-        _lastParsePos = ret + 4; // Point to the end of the header.
+        _lastParseIt = ret + 4; // Point to the end of the header.
 
         // Init settings.
         http_parser_settings settings;
-        settings.on_url = onUrl;
-        settings.on_header_field = onHeaderField;
-        settings.on_header_value = onHeaderValue;
+        using namespace std::placeholders;
+        settings.on_url = std::bind(&WsHttpResponse::onUrl, this, _1, _2, _3); 
+        settings.on_header_field = std::bind(
+            &WsHttpResponse::onHeaderField, this, _1, _2, _3);
+        settings.on_header_value = std::bind(
+            &WsHttpResponse::onHeaderValue, this, _1, _2, _3);
+
 
         // Init parser.
-        std::unique_ptr<http_parser> parser(new http_parser());
+        std::unique_ptr<::http_parser> parser(new ::http_parser());
         http_parser_init(parser.get(), HTTP_REQUEST);
         http_parser_execute(parser.get(), &settings, &_recvVec[0],
                             _recvVec.size());
@@ -89,9 +108,9 @@ namespace parrot
         // Client can send upgrade with a body (RFC6455 allows). But if 
         // client sends upgrade with chunk data, it won't work.
         // Client must use HTTP/1.1 or above.
-        if (!_parser->upgrade || 
-            (_parser->http_major != 1 && _parser->http_major != 2) ||
-            (_parser->http_major == 1 && _parser->http_minor != 1))
+        if (!parser->upgrade || 
+            (parser->http_major != 1 && parser->http_major != 2) ||
+            (parser->http_major == 1 && parser->http_minor != 1))
         {
             LOG_WARN("WsHttpResponse::parse: Failed to parse "
                      "header: " << &_recvVec[0] << ". Remote is " 
@@ -100,20 +119,19 @@ namespace parrot
             return eCodes::ST_Ok;
         }
 
-        auto it = _headerDic["content-length"];
-        
+        auto it = _headerDic.find("content-length");
         if (it == _headerDic.end())
         {
             return eCodes::ST_Ok;
         }
 
-        _httpBodyLen = it->second.stoul();
+        _httpBodyLen = std::stoul(it->second);
         if (_httpBodyLen == 0)
         {
             return eCodes::ST_Ok;
         }
 
-        if (_httpBodyLen >= WsTranslayer::HTTP_HANDSHAKE_LEN)
+        if (_httpBodyLen >= _config._maxHttpHandshake)
         {
             LOG_WARN("WsHttpResponse::parse: Body too long. "
                      "header: " << &_recvVec[0] << ". Remote is " 
@@ -128,7 +146,7 @@ namespace parrot
 
     eCodes WsHttpResponse::recevingBody()
     {
-        uint32_t recvdLen = _recvVec.size() - _lastParsePos;
+        uint32_t recvdLen = _recvVec.end() - _lastParseIt;
         if (recvdLen < _httpBodyLen)
         {
             return eCodes::ST_NeedRecv;
@@ -143,7 +161,7 @@ namespace parrot
 
         // Received http body.
         LOG_WARN("WsHttpResponse::recevingBody: Remote sent http body when "
-                 "handshaking. Remote is " << _remoteIp;
+                 "handshaking. Remote is " << _remoteIp);
 
         return eCodes::ST_Ok;
     }
@@ -158,7 +176,7 @@ namespace parrot
             return;
         }
 
-        if (it->second != _config.host)
+        if (it->second != _config._host)
         {
             return;
         }
@@ -170,7 +188,7 @@ namespace parrot
             return;
         }
 
-        if (iStringFind("websocket") == std::string::npos)
+        if (iStringFind(it->second, "websocket") == std::string::npos)
         {
             return;
         }
@@ -209,7 +227,7 @@ namespace parrot
         }
 
         // RFC6455 says this value must be 13.
-        if (it->second.c_str() != "13")
+        if (it->second != "13")
         {
             _httpResult = eCodes::HTTP_UpgradeRequired;
             return;
@@ -219,7 +237,7 @@ namespace parrot
         return;
     }
 
-    std::string WsTranslayer::createHandshakeSHA1Key()
+    std::string WsHttpResponse::createHandshakeSHA1Key()
     {
         using uchar = unsigned char;
 
@@ -241,13 +259,13 @@ namespace parrot
         return &sha1Base64[0];
     }
 
-    void WsTranslayer::createHttpHandshakeRsp()
+    void WsHttpResponse::createHttpHandshakeRsp()
     {
         std::ostringstream ostr;
         std::system_error e(static_cast<int>(_httpResult), ParrotCategory());
 
         ostr << "HTTP/1.1 " << e.code().value() << " " 
-             << e.code().messgae() << "\r\n";
+             << e.code().message() << "\r\n";
 
         if (_httpResult != eCodes::HTTP_SwitchingProtocols)
         {
@@ -262,7 +280,7 @@ namespace parrot
                  << "\r\n\r\n";
         }
 
-        std::string headerStr = std::move(ostr.ostr());
+        std::string headerStr = std::move(ostr.str());
         std::copy_n(headerStr.begin(), headerStr.size(), 
                     std::back_inserter(_sendVec));
     }

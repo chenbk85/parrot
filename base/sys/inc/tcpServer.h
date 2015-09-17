@@ -4,9 +4,10 @@
 #include <string>
 #include <cstdint>
 
+#include "ioEvent.h"
+
 namespace parrot
 {
-    class IoEvent;
     class TcpServer : public IoEvent
     {
       public:

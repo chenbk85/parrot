@@ -3,12 +3,18 @@
 
 #include <list>
 #include <memory>
-
+#include <algorithm>    // std::copy
 #include <vector>
 #include <cstdint>
+#include <functional>
 
 #include "logger.h"
 #include "codes.h"
+#include "wsPacket.h"
+#include "ioEvent.h"
+#include "wsHttpResponse.h"
+#include "wsParser.h"
+#include "macroFuncs.h"
 
 namespace parrot
 {
@@ -19,8 +25,7 @@ namespace parrot
         {
             kHttpHandshakeLen = 8192,
             kSendBuffLen = 65536,
-            kRecvBuffLen = 65536,
-            kRecvMaxLen = 1 << 20 // 1 MB
+            kRecvBuffLen = 65536
         };
 
       private:
@@ -33,7 +38,7 @@ namespace parrot
         };
 
       public:
-        WsTranslayer(WsIo &io, bool needRecvMasked) :
+        WsTranslayer(WsIo &io, bool needRecvMasked, const WsConfig &cfg) :
             _state(RecvHttpHandshake),
             _wsIo(io),
             _needRecvMasked(needRecvMasked),
@@ -42,31 +47,35 @@ namespace parrot
             _wsParser(),
             _sendVec(),
             _sentLen(0),
-            _recvVec()
-        {
-            _sendVec.reserve(kSendBuffLen);
-            _recvVec.reserve(kRecvBuffLen);
-        }
+            _recvVec(),
+            _config(cfg)
+            {
+                _sendVec.reserve(kSendBuffLen);
+                _recvVec.reserve(kRecvBuffLen);
+            }
 
         ~WsTranslayer() = default;
         WsTranslayer(const WsTranslayer &) = delete;
         WsTranslayer& operator=(const WsTranslayer &) = delete;
 
       public:
-        eCodes sendPacket(std::list<std::unique_ptr<WsPacket>> &pktList);
-        eCodes sendPacket(const WsPacket &pkt);
-        eIoAction work(IoEvent evt);
+        void sendPacket(std::list<std::unique_ptr<WsPacket>> &pktList);
+        void sendPacket(std::unique_ptr<WsPacket> &pkt);
+        eIoAction work(eIoAction evt);
         void close();
 
       private:
         eCodes recvData();
         eCodes sendData();
+        void onData(WsParser::eOpCode,
+                    std::vector<char>::iterator,
+                    std::vector<char>::iterator);
         
       private:
         eTranslayerState                         _state;
         WsIo &                                   _wsIo;
         bool                                     _needRecvMasked;
-        std::list<std::unique_ptr<Packet>>       _pktList;
+        std::list<std::unique_ptr<WsPacket>>     _pktList;
 
         std::unique_ptr<WsHttpResponse>          _httpRsp;
         std::unique_ptr<WsParser>                _wsParser;
@@ -75,10 +84,11 @@ namespace parrot
         uint32_t                                 _sentLen;
 
         std::vector<char>                        _recvVec;
+        const WsConfig &                         _config;
     };
 
     template<typename WsIo>
-    eCodes WsTranslayer::recvData()
+        eCodes WsTranslayer<WsIo>::recvData()
     {
         uint32_t rcvdLen = 0;
         eCodes code = eCodes::ST_Ok;
@@ -86,7 +96,7 @@ namespace parrot
         // TODO: Need receive more.
         try
         {
-            _io.recv(&_recvVec[_rcvdLen], 
+            _wsIo.recv(&_recvVec[_recvVec.size()], 
                      _recvVec.capacity() - _recvVec.size(), 
                      rcvdLen);
         }
@@ -95,26 +105,21 @@ namespace parrot
             code = eCodes::ERR_Fail;
             LOG_WARN("WsTranslayer::recvData: Failed. Code is " << e.code()
                      << ". Msg is " << e.code().message() 
-                     << ". Remote is " << _io.getRemoteAddr() << ".");
-        }
-
-        if (code == eCodes::ST_Ok)
-        {
-            _rcvdLen += rcvdLen;
+                     << ". Remote is " << _wsIo.getRemoteAddr() << ".");
         }
 
         return code;
     }
 
     template<typename WsIo>
-    eCodes WsTranslayer::sendData()
+        eCodes WsTranslayer<WsIo>::sendData()
     {
         uint32_t sentLen = 0;
         eCodes code = eCodes::ST_Ok;
 
         try
         {
-            _io.send(&_sendVec[_sentLen], 
+            _wsIo.send(&_sendVec[_sentLen], 
                      _sendVec.size() - _sentLen, 
                      sentLen);
         }
@@ -123,7 +128,7 @@ namespace parrot
             code = eCodes::ERR_Fail;
             LOG_WARN("WsTranslayer::sendData: Failed. Code is " << e.code()
                      << ". Msg is " << e.code().message() 
-                     << ". Remote is " << _io.getRemoteAddr() << ".");
+                     << ". Remote is " << _wsIo.getRemoteAddr() << ".");
 
             if (code == eCodes::ST_Ok)
             {
@@ -131,32 +136,31 @@ namespace parrot
                 if (_sentLen == _sendVec.size())
                 {
                     _sendVec.resize(0);
-                    code == eCodes::ST_Complete;
+                    code = eCodes::ST_Complete;
                 }
                 else
                 {
                     code = eCodes::ST_NeedSend;
                 }
             }
-        
-            return code;
         }
+        return code;
     }
 
     template<typename WsIo>
-    eCodes WsTranslayer::sendPacket(
-        std::list<std::unique_ptr<WsPacket>> &pktList)
+        void WsTranslayer<WsIo>::sendPacket(
+            std::list<std::unique_ptr<WsPacket>> &pktList)
     {
         // TODO: fragment packet.
         std::unique_ptr<std::vector<char>> buf;
         for (auto it = pktList.begin(); it != pktList.end(); ++it)
         {
             buf = std::move((*it)->toBuffer());
-            std::copy_n(&(*buf.get())[0], (buf.get())->length, 
+            std::copy_n(&(*buf.get())[0], (buf.get())->size(), 
                         std::back_inserter(_sendVec));
         }
 
-        if (_sendVec.size() > SEND_BUFF_LEN)
+        if (_sendVec.size() > kSendBuffLen)
         {
             LOG_WARN("WsTranslayer::sendPacket: _sendVec reallocated. "
                      "Try to change the SEND_BUFF_LEN to a bigger value. "
@@ -165,13 +169,13 @@ namespace parrot
     }
 
     template<typename WsIo>
-    eCodes WsTranslayer::sendPacket(std::unique_ptr<WsPacket> &&pkt)
+        void WsTranslayer<WsIo>::sendPacket(std::unique_ptr<WsPacket> &pkt)
     {
-        auto buf = std::move((*it)->toBuffer());
-        std::copy_n(&(*buf.get())[0], (buf.get())->length, 
+        auto buf = std::move(pkt->toBuffer());
+        std::copy_n(&(*buf.get())[0], (buf.get())->size(), 
                     std::back_inserter(_sendVec));
 
-        if (_sendVec.size() > SEND_BUFF_LEN)
+        if (_sendVec.size() > kSendBuffLen)
         {
             LOG_WARN("WsTranslayer::sendPacket: _sendVec reallocated. "
                      "Try to change the SEND_BUFF_LEN to a bigger value. "
@@ -180,7 +184,7 @@ namespace parrot
     }
 
     template<typename WsIo>
-    eIoAction WsTranslayer::work(IoEvent evt)
+        eIoAction WsTranslayer<WsIo>::work(eIoAction evt)
     {
         eIoAction act = eIoAction::None;
         eCodes code = eCodes::ST_Init;
@@ -188,7 +192,7 @@ namespace parrot
         {
             case eTranslayerState::RecvHttpHandshake:
             {
-                if (evt != IoEvent::Read)
+                if (evt != eIoAction::Read)
                 {
                     PARROT_ASSERT(false);
                 }
@@ -202,7 +206,8 @@ namespace parrot
                 if (!_httpRsp)
                 {
                     _httpRsp.reset(new WsHttpResponse(_recvVec, _sendVec,
-                                                      _remoteIp, _config));
+                                                      _wsIo.getRemoteAddr(), 
+                                                      _config));
                 }
 
                 code = _httpRsp->work();
@@ -213,7 +218,7 @@ namespace parrot
                 else if (code == eCodes::ST_Complete)
                 {
                     _state = SendHttpHandshake;
-                    return work(IoEvent::Write);
+                    return work(eIoAction::Write);
                 }
                 else
                 {
@@ -224,7 +229,7 @@ namespace parrot
 
             case eTranslayerState::SendHttpHandshake:
             {
-                if (evt != IoEvent::Write)
+                if (evt != eIoAction::Write)
                 {
                     PARROT_ASSERT(false);
                 }
@@ -239,10 +244,12 @@ namespace parrot
                     }
 
                     _httpRsp.reset(nullptr);
-                    _io.onOpen();
                     _state = WsConnected;
-                    _wsParser.reset(new WsParser(_io, _recvVec, _remoteIp, 
-                                                 _needRecvMasked));
+                    using namespace std::placeholders;
+                    auto cb = std::bind(&WsIo::onData, &_wsIo, _1, _2, _3);
+                    _wsParser.reset(new WsParser(
+                                        cb, _recvVec, _wsIo.getRemoteAddr(),
+                                        _needRecvMasked, _config));
                     return work(eIoAction::Read);
                 }
                 else if (code == eCodes::ST_NeedSend)
@@ -257,7 +264,7 @@ namespace parrot
             break;
 
             case eTranslayerState::WsConnected:
-                if (evt == IoEvent::Read)
+                if (evt == eIoAction::Read)
                 {
                     code = recvData();
                     if (code != eCodes::ST_Ok)
@@ -272,7 +279,7 @@ namespace parrot
                         if (_wsParser->getResult() != eCodes::ST_Ok)
                         {
                             _state = eTranslayerState::Closing;
-                            return work();
+                            // TODO:
                         }
                     }
                     else
@@ -295,6 +302,15 @@ namespace parrot
 
         return act;
     }
+
+    template<typename WsIo>
+        void WsTranslayer<WsIo>::onData(WsParser::eOpCode code,
+                    std::vector<char>::iterator begin,
+                    std::vector<char>::iterator end)
+    {
+        _wsIo.onData(code, begin, end);
+    }
+
 }
 
 #endif
