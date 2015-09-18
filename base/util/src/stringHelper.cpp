@@ -1,6 +1,7 @@
-#include "stringHelper.h"
 #include <algorithm>
 #include <locale>
+
+#include "stringHelper.h"
 
 namespace parrot
 {
@@ -25,12 +26,12 @@ namespace parrot
 
     void strToLower(std::string &str)
     {
-        std::transform(str.begin(), str.end(), str.begin(), std::tolower);
+        std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     }
 
     void strToUpper(std::string &str)
     {
-        std::transform(str.begin(), str.end(), str.begin(), std::toupper);
+        std::transform(str.begin(), str.end(), str.begin(), ::toupper);
     }
 
     size_t iStringFind(const std::string &src, const std::string &target)
@@ -53,8 +54,8 @@ namespace parrot
         result[binLen << 1] = 0;
         for (uint32_t i = 0; i < binLen; ++i)
         {
-            result[i << 1 + 0] = hexStr[(bin[i] >> 4) & 0x0F];
-            result[i << 1 + 1] = hexStr[(bin[i]     ) & 0x0F];
+            result[(i << 1) + 0] = hexStr[(bin[i] >> 4) & 0x0F];
+            result[(i << 1) + 1] = hexStr[(bin[i]     ) & 0x0F];
         }  
     }
 
@@ -65,8 +66,8 @@ namespace parrot
         result[binLen << 1] = 0;
         for (uint32_t i = 0; i < binLen; ++i)
         {
-            result[i << 1 + 0] = hexStr[(bin[i] >> 4) & 0x0F];
-            result[i << 1 + 1] = hexStr[(bin[i]     ) & 0x0F];
+            result[(i << 1) + 0] = hexStr[(bin[i] >> 4) & 0x0F];
+            result[(i << 1) + 1] = hexStr[(bin[i]     ) & 0x0F];
         }
     }
 }

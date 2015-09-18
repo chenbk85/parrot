@@ -7,10 +7,11 @@
 
 #include "codes.h"
 
+struct http_parser;
+
 namespace parrot
 {
     struct WsConfig;
-    struct http_parser;
 
     class WsHttpResponse
     {

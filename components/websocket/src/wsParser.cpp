@@ -1,13 +1,16 @@
+#include <algorithm>
 #include <string>
 
 #include "wsConfig.h"
 #include "wsParser.h"
 #include "macroFuncs.h"
+#include "sysHelper.h"
 
 namespace parrot
 {
     WsParser::WsParser(CallbackFunc cb, std::vector<char> &recvVec, 
-                       const std::string &remoteIp, const WsConfig &cfg):
+                       const std::string &remoteIp, bool needMask,
+                       const WsConfig &cfg):
         _recvVec(recvVec),
         _remoteIp(remoteIp),
         _needMask(needMask),
@@ -48,7 +51,7 @@ namespace parrot
 
         if (_masked)
         {
-            std::copy_n(_lastParseIt, 4, std::back_inserter(_maskingKey));
+            std::copy_n(_lastParseIt, 4, _maskingKey.begin());
             _lastParseIt += 4;
         }
     }
@@ -60,7 +63,7 @@ namespace parrot
         {
             // Unmasking data.
             auto i = 0u;
-            for (auto it = _lastParseIt; it != end; ++it)
+            for (auto it = _lastParseIt; it != pktEnd; ++it)
             {
                 *it = *it ^ _maskingKey[i++ % 4];
             }
@@ -77,7 +80,7 @@ namespace parrot
             if (_opCode == eOpCode::Continue)
             {
                 // save.
-                std::copy_n(_lastParsePos, _payloadLen, 
+                std::copy_n(_lastParseIt, _payloadLen, 
                             std::back_inserter(_packetVec));
 
                 _callbackFunc(_opCode, _packetVec.begin(), _packetVec.end());
@@ -101,7 +104,7 @@ namespace parrot
         else
         {
             // save.
-            std::copy_n(_lastParsePos, _payloadLen, 
+            std::copy_n(_lastParseIt, _payloadLen, 
                         std::back_inserter(_packetVec));
         }
 
@@ -134,9 +137,9 @@ namespace parrot
                 }
 
                 // Get opcode.
-                _opCode = (eOpcode)firstByte & 0x0F;
+                _opCode = (eOpCode)(firstByte & 0x0F);
                 if ((_opCode >  eOpCode::Binary && _opCode < eOpCode::Close) ||
-                    (_opCode >  eOpCode::Pone))
+                    (_opCode >  eOpCode::Pong))
                 {
                     // Peer should not use reserved opcode.
                     _parseResult = eCodes::WS_ProtocolError;
@@ -184,7 +187,7 @@ namespace parrot
                 {
                     if (_payloadLen + _headerLen > _config._maxPacketLen)
                     {
-                        _parseResult = eCodes::MessageTooBig;
+                        _parseResult = eCodes::WS_MessageTooBig;
                         return eCodes::ST_Ok;
                     }
                     
@@ -195,13 +198,13 @@ namespace parrot
                 
                 if (_recvVec.end() - _pktBeginIt < _headerLen)
                 {
-                    _state = eParseState::RecevingHeader;
+                    _state = eParseState::ParsingHeader;
                     return eCodes::ST_NeedRecv;
                 }
 
                 parseHeader();
 
-                _state = eParseState::RecevingBody;
+                _state = eParseState::ParsingBody;
                 return doParse();
             }
             break;
@@ -221,7 +224,7 @@ namespace parrot
 
             case eParseState::ParsingBody:
             {
-                if (_recvVec.end() - _lastParseIt < _payloadLen)
+                if ((uint32_t)(_recvVec.end() - _lastParseIt) < _payloadLen)
                 {
                     return eCodes::ST_NeedRecv;
                 }
@@ -248,9 +251,9 @@ namespace parrot
 
             if (code == eCodes::ST_Ok)
             {
-                if (_parseResult != eST_Ok)
+                if (_parseResult != eCodes::ST_Ok)
                 {
-                    return ST_Complete;
+                    return eCodes::ST_Complete;
                 }
                 else
                 {
