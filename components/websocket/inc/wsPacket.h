@@ -40,6 +40,7 @@ namespace parrot
       private:
         std::unique_ptr<Json>                  _jsonData;
         std::unique_ptr<std::vector<char>>     _binData;
+        std::unique_ptr<std::vector<char>>     _originData;
         uint32_t                               _route;
     };
 }

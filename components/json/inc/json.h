@@ -7,7 +7,7 @@
 #include <string>
 
 // Client should only include this file if they want to use json.
-// The reason why not use template to implement getValue and SetValue
+// The reason why not use template to implement getValue and setValue
 // is that I don't want expose the jsonImpl.h file which includes
 // the rapidjson header files.
 namespace parrot
@@ -97,7 +97,7 @@ namespace parrot
         // setValue("/d/e", "f")
         // setValue("/d/g", vetor<int>{1, 2})
         // 
-        // After the calls, the json will be:
+        // After above calls, the json will be:
         // {"a":1,"b":"abc","c":["x","y"],"d":{"e":"f","g":[1,2]}}
         //
         //

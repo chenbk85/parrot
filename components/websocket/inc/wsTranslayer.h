@@ -67,10 +67,7 @@ namespace parrot
       private:
         eCodes recvData();
         eCodes sendData();
-        void onData(WsParser::eOpCode,
-                    std::vector<char>::iterator,
-                    std::vector<char>::iterator);
-        
+
       private:
         eTranslayerState                         _state;
         WsIo &                                   _wsIo;
@@ -302,15 +299,6 @@ namespace parrot
 
         return act;
     }
-
-    template<typename WsIo>
-        void WsTranslayer<WsIo>::onData(WsParser::eOpCode code,
-                    std::vector<char>::iterator begin,
-                    std::vector<char>::iterator end)
-    {
-        _wsIo.onData(code, begin, end);
-    }
-
 }
 
 #endif
