@@ -14,20 +14,13 @@
 #include "ioEvent.h"
 #include "wsHttpResponse.h"
 #include "wsParser.h"
+#include "wsConfig.h"
 #include "macroFuncs.h"
 
 namespace parrot
 {
     template<typename WsIo> class WsTranslayer
     {
-      public:
-        enum
-        {
-            kHttpHandshakeLen = 8192,
-            kSendBuffLen = 65536,
-            kRecvBuffLen = 65536
-        };
-
       private:
         enum eTranslayerState
         {
@@ -50,8 +43,8 @@ namespace parrot
             _recvVec(),
             _config(cfg)
             {
-                _sendVec.reserve(kSendBuffLen);
-                _recvVec.reserve(kRecvBuffLen);
+                _sendVec.reserve(_config._sendBuffLen);
+                _recvVec.reserve(_config._recvBuffLen);
             }
 
         ~WsTranslayer() = default;
@@ -157,7 +150,7 @@ namespace parrot
                         std::back_inserter(_sendVec));
         }
 
-        if (_sendVec.size() > kSendBuffLen)
+        if (_sendVec.size() > _config._sendBuffLen)
         {
             LOG_WARN("WsTranslayer::sendPacket: _sendVec reallocated. "
                      "Try to change the SEND_BUFF_LEN to a bigger value. "
@@ -172,7 +165,7 @@ namespace parrot
         std::copy_n(&(*buf.get())[0], (buf.get())->size(), 
                     std::back_inserter(_sendVec));
 
-        if (_sendVec.size() > kSendBuffLen)
+        if (_sendVec.size() > _config._recvBuffLen)
         {
             LOG_WARN("WsTranslayer::sendPacket: _sendVec reallocated. "
                      "Try to change the SEND_BUFF_LEN to a bigger value. "

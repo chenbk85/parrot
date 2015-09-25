@@ -4,43 +4,37 @@
 #include <memory>
 #include <vector>
 #include <cstdint>
-#include "json.h"
 
 namespace parrot
 {
+    class Json;
     class WsPacket
     {
       public:
-        enum class ePacketItem
-        {
-            Route               = 0,            // Packet route.
-            Json                = 1,            // Json data.
-            Binary              = 2,            // Binary data.
-            Version             = 3             // Payload format version.
-        };
-
-
-      public:
         WsPacket();
         ~WsPacket() = default;
+        WsPacket(const WsPacket &pkt)  = delete;
+        WsPacket& operator=(const WsPacket &pkt) = delete;
+        WsPacket(WsPacket &&pkt) = default;
+        WsPacket& operator=(WsPacket &&pkt) = default;
 
       public:
-        void setJson(std::unique_ptr<Json> &&json);
-        void setBinary(std::unique_ptr<std::vector<char>> &&bin);
+        bool isPacketUndecoded() const;
+
         void setRoute(uint32_t route);
+        void setJson(Json &&json);
+        void setBinary(std::vector<char> &&bin);
+        void setRawData(std::vector<char>> &&orig);
 
         uint32_t getRoute() const;
-        const std::vector<char> & getBinary();
-        const Json & getJson();
-
-        std::unique_ptr<std::vector<char>> toBuffer();
-      public:
-//        void parse();
+        const std::vector<char> & getBinary() const;
+        const Json & getJson() const;
+        const std::vector<char> & getRawData() const;
 
       private:
-        std::unique_ptr<Json>                  _jsonData;
-        std::unique_ptr<std::vector<char>>     _binData;
-        std::unique_ptr<std::vector<char>>     _originData;
+        std::unique_ptr<Json>                  _json;
+        std::std::vector<char>                 _bin;
+        std::std::vector<char>                 _raw;
         uint32_t                               _route;
     };
 }

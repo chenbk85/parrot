@@ -10,6 +10,8 @@
 // The reason why not use template to implement getValue and setValue
 // is that I don't want expose the jsonImpl.h file which includes
 // the rapidjson header files.
+//
+// Json class can only be moved, 'copy' is not supported.
 namespace parrot
 {
     class JsonImpl;
@@ -19,11 +21,16 @@ namespace parrot
         
       public:
         Json();
-        // Internal api.
-        explicit Json(JsonImpl *impl);
+        explicit Json(JsonImpl *impl); // Internal api.
         ~Json();
+
         Json(const Json &) = delete;
         Json & operator=(const Json &) = delete;
+
+        // If we have self defined destructor, there will be no 
+        // default move constructor nor move operator=.
+        Json(Json &&json) = default; 
+        Json& operator=(Json &&) = default;
 
       public:
         // createRootObject
