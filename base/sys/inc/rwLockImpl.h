@@ -3,24 +3,22 @@
 
 #include <pthread.h>
 
-namespace parrot
-{
-    class RwLockImpl
-    {
-      public:
-        RwLockImpl();
-        ~RwLockImpl();
-        RwLockImpl(const RwLockImpl&) = delete;
-        RwLockImpl(RwLockImpl &&) = delete;
+namespace parrot {
+class RwLockImpl {
+  public:
+    RwLockImpl();
+    ~RwLockImpl();
+    RwLockImpl(const RwLockImpl &) = delete;
+    RwLockImpl(RwLockImpl &&) = delete;
 
-      public:
-        void lockRead();
-        void lockWrite();
-        void unlock();
+  public:
+    void lockRead();
+    void lockWrite();
+    void unlock();
 
-      private:
-        pthread_rwlock_t _rwLock;
-    };
+  private:
+    pthread_rwlock_t _rwLock;
+};
 }
 
 #endif

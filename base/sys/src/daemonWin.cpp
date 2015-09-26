@@ -1,13 +1,9 @@
 #include "daemonWin.h"
 
-namespace parrot
-{
-    DaemonWin::DaemonWin()
-    {
-    }
-
-    DaemonWin::~DaemonWin()
-    {
-    }
+namespace parrot {
+DaemonWin::DaemonWin() {
 }
 
+DaemonWin::~DaemonWin() {
+}
+}

@@ -6,34 +6,32 @@
 #include <cstdint>
 #include <windef.h>
 
-namespace parrot
-{
-    class WinIoEvent;
-    class WinIocpImpl;
+namespace parrot {
+class WinIoEvent;
+class WinIocpImpl;
 
-    class WinIocp : public EventNotifier
-    {
-      public:
-        WinIocp(HANDLE iocp, uint32_t dequeueCount);
-        ~WinIocp();
-        WinIocp(const WinIocp&) = delete;
-        WinIocp& operator=(const WinIocp&) = delete;
+class WinIocp : public EventNotifier {
+  public:
+    WinIocp(HANDLE iocp, uint32_t dequeueCount);
+    ~WinIocp();
+    WinIocp(const WinIocp &) = delete;
+    WinIocp &operator=(const WinIocp &) = delete;
 
-      public:
-        static HANDLE createIocp(uint32_t threadNum);
+  public:
+    static HANDLE createIocp(uint32_t threadNum);
 
-      public:
-        uint32_t waitIoEvents(int32_t ms) override;
+  public:
+    uint32_t waitIoEvents(int32_t ms) override;
 
-        void addEvent(WinIoEvent *ev) override;
-        
-        WinIoEvent* getIoEvent(uint32_t idx) const override;
+    void addEvent(WinIoEvent *ev) override;
 
-        void stopWaiting() override;
+    WinIoEvent *getIoEvent(uint32_t idx) const override;
 
-      private:
-        WinIocpImpl *_impl;
-    };
+    void stopWaiting() override;
+
+  private:
+    WinIocpImpl *_impl;
+};
 }
 
 #endif // _WIN32

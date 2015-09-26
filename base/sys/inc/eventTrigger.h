@@ -3,30 +3,28 @@
 
 #include <memory>
 
-namespace parrot
-{
-    enum class eIoAction : uint16_t;
+namespace parrot {
+enum class eIoAction : uint16_t;
 
-    class EventTrigger : public IoEvent
-    {
-      public:
-        EventTrigger();
-        virtual ~EventTrigger();
-        EventTrigger(const EventTrigger&) = delete;
-        EventTrigger& operator=(const EventTrigger&) = delete;
+class EventTrigger : public IoEvent {
+  public:
+    EventTrigger();
+    virtual ~EventTrigger();
+    EventTrigger(const EventTrigger &) = delete;
+    EventTrigger &operator=(const EventTrigger &) = delete;
 
-      public:
-        void create();
-        void trigger();
-        void acknowledge();
+  public:
+    void create();
+    void trigger();
+    void acknowledge();
 
-      public:
-        virtual eIoAction handleIoEvent() override;
+  public:
+    virtual eIoAction handleIoEvent() override;
 
-      private:
-        int                              _pipeFds[2];
-        std::unique_ptr<unsigned char[]> _buffer;
-    };
+  private:
+    int _pipeFds[2];
+    std::unique_ptr<unsigned char[]> _buffer;
+};
 }
 
 #endif

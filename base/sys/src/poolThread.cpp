@@ -1,9 +1,7 @@
 #include "poolThread.h"
 
-namespace parrot
-{
-    void PoolThread::beforeRun()
-    {
-        sleep(-1);
-    }
+namespace parrot {
+void PoolThread::beforeRun() {
+    sleep(-1);
+}
 }

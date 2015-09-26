@@ -6,23 +6,20 @@
 
 #include "ioEvent.h"
 
-namespace parrot
-{
-    class TcpServer : public IoEvent
-    {
-      public:
-        TcpServer();
-        TcpServer(const TcpServer&) = delete;
-        TcpServer& operator=(const TcpServer&) = delete;
+namespace parrot {
+class TcpServer : public IoEvent {
+  public:
+    TcpServer();
+    TcpServer(const TcpServer &) = delete;
+    TcpServer &operator=(const TcpServer &) = delete;
 
-      public:
-        void setRemoteAddr(const std::string &ip, uint16_t port);
+  public:
+    void setRemoteAddr(const std::string &ip, uint16_t port);
 
-      protected:
-        std::string      _remoteIP;
-        uint16_t         _remotePort;
-    };
+  protected:
+    std::string _remoteIP;
+    uint16_t _remotePort;
+};
 }
-
 
 #endif

@@ -7,78 +7,76 @@
 #include <memory>
 #include <sys/epoll.h>
 
-namespace parrot
-{
-    class IoEvent;
-    class EventTrigger;
+namespace parrot {
+class IoEvent;
+class EventTrigger;
 
-    class EpollImpl final
-    {
-      public:
-        explicit EpollImpl(uint32_t size) noexcept;
-        ~EpollImpl();
-        EpollImpl(const EpollImpl &kq) = delete;
-        EpollImpl& operator=(const EpollImpl &kq) = delete;
+class EpollImpl final {
+  public:
+    explicit EpollImpl(uint32_t size) noexcept;
+    ~EpollImpl();
+    EpollImpl(const EpollImpl &kq) = delete;
+    EpollImpl &operator=(const EpollImpl &kq) = delete;
 
-      public:
-        // Create the epoll.
-        void create();
+  public:
+    // Create the epoll.
+    void create();
 
-        // Wait io events for N milliseconds. If interrupt, it will continue
-        // waiting.
-        //
-        // Params:
-        // * ms: milliseconds.
-        //
-        // Return
-        // The number of events.
-        uint32_t waitIoEvents(int32_t ms);
+    // Wait io events for N milliseconds. If interrupt, it will continue
+    // waiting.
+    //
+    // Params:
+    // * ms: milliseconds.
+    //
+    // Return
+    // The number of events.
+    uint32_t waitIoEvents(int32_t ms);
 
-        // Add io event to epoll.
-        //
-        // Params:
-        // * ev: The io event.
-        void addEvent(IoEvent *ev);
+    // Add io event to epoll.
+    //
+    // Params:
+    // * ev: The io event.
+    void addEvent(IoEvent *ev);
 
-        // Notify read event.
-        //
-        // Params:
-        // * ev: The io event.
-        void monitorRead(IoEvent *ev);
- 
-        // Notify write event.
-        //
-        // Params:
-        // * ev: The io event.
-        void monitorWrite(IoEvent *ev);
+    // Notify read event.
+    //
+    // Params:
+    // * ev: The io event.
+    void monitorRead(IoEvent *ev);
 
-        // Delete io event from epoll.
-        //
-        // Params:
-        // * ev: The io event.
-        void delEvent(IoEvent *ev);
+    // Notify write event.
+    //
+    // Params:
+    // * ev: The io event.
+    void monitorWrite(IoEvent *ev);
 
-        // Retrieve the need-to-handle event notified by epoll.
-        //
-        // Params:
-        // * idx: The event index.
-        //
-        // Return:
-        //  The IoEvent pointer.
-        IoEvent *getIoEvent(uint32_t idx) const noexcept;
+    // Delete io event from epoll.
+    //
+    // Params:
+    // * ev: The io event.
+    void delEvent(IoEvent *ev);
 
-        // Make epoll_wait return by writing to a fd.
-        void stopWaiting();
+    // Retrieve the need-to-handle event notified by epoll.
+    //
+    // Params:
+    // * idx: The event index.
+    //
+    // Return:
+    //  The IoEvent pointer.
+    IoEvent *getIoEvent(uint32_t idx) const noexcept;
 
-        // Close epoll.
-        void close();
+    // Make epoll_wait return by writing to a fd.
+    void stopWaiting();
 
-      private:
-        int32_t                                  _epollFd;
-        uint32_t                                 _epollSize;
-        std::unique_ptr<EventTrigger>            _trigger;
-        std::unique_ptr<struct epoll_event[]>    _events;
-    };
+    // Close epoll.
+    void close();
+
+  private:
+    int32_t _epollFd;
+    uint32_t _epollSize;
+    std::unique_ptr<EventTrigger> _trigger;
+    std::unique_ptr<struct epoll_event[]> _events;
+};
 }
 
 #endif // #if defined(__linux__)

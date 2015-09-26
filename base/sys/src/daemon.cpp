@@ -1,18 +1,12 @@
 #include "daemon.h"
 
-namespace parrot
-{
-    Daemon::Daemon()
-    {
-    }
+namespace parrot {
+Daemon::Daemon() {
+}
 
-    Daemon::~Daemon()
-    {
+Daemon::~Daemon() {
+}
 
-    }
-
-    void Daemon::daemonize()
-    {
-
-    }
+void Daemon::daemonize() {
+}
 }
