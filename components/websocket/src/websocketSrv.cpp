@@ -22,7 +22,8 @@ void WebSocketSrv::onPong()
 {
 }
 
-void WebSocketSrv::onData(WsParser::eOpCode, std::vector<char>::iterator,
+void WebSocketSrv::onData(WsParser::eOpCode,
+                          std::vector<char>::iterator,
                           std::vector<char>::iterator)
 {
 }

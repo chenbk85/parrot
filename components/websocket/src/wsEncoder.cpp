@@ -3,7 +3,8 @@
 namespace parrot
 {
 WsEncoder::WsEncoder(std::vector<char>& sendVec,
-                     std::vector<char>& fragmentedSendVec, const WsConfig& cfg,
+                     std::vector<char>& fragmentedSendVec,
+                     const WsConfig& cfg,
                      bool needMask)
     : _sendVec(sendVec),
       _fragmentedSendVec(fragmentedVed),
@@ -58,8 +59,7 @@ void WsEncoder::toWsDataFrame(const WsPacket& pkt)
 
 void WsEncoder::writeToBuffer(std::vector<char>& buffVec, uint32_t pktLen)
 {
-
-    for (uint32_t i = 0; i < pktLen; i)
+    for (uint32_t i = 0; i < pktLen; i += )
     {
     }
 }

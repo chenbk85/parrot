@@ -8,8 +8,10 @@
 
 namespace parrot
 {
-WsParser::WsParser(CallbackFunc cb, std::vector<char>& recvVec,
-                   const std::string& remoteIp, bool needMask,
+WsParser::WsParser(CallbackFunc cb,
+                   std::vector<char>& recvVec,
+                   const std::string& remoteIp,
+                   bool needMask,
                    const WsConfig& cfg)
     : _recvVec(recvVec),
       _remoteIp(remoteIp),

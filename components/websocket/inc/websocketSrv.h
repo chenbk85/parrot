@@ -31,7 +31,8 @@ class WebSocketSrv : public TcpServer, public TimeoutGuard
     void onOpen();
     void onPong();
     void onClose(eCodes code);
-    void onData(WsParser::eOpCode code, std::vector<char>::iterator begin,
+    void onData(WsParser::eOpCode code,
+                std::vector<char>::iterator begin,
                 std::vector<char>::iterator end);
     void sendPacket(std::unique_ptr<WsPacket>& pkt);
     void sendPacket(std::list<std::unique_ptr<WsPacket>>& pkt);

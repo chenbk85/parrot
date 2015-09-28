@@ -18,8 +18,8 @@
 //////////////
 static std::vector<std::mutex*> gLockVec;
 
-static void lockingFunctionCallback(int mode, int n, const char* /*file*/,
-                                    int /*line*/)
+static void
+lockingFunctionCallback(int mode, int n, const char* /*file*/, int /*line*/)
 {
     if (mode & CRYPTO_LOCK)
     {
@@ -51,8 +51,10 @@ dynCreateFunctionCallback(const char* /*file*/, int /*line*/)
     return new CRYPTO_dynlock_value();
 }
 
-static void dynLockFunctionCallback(int mode, struct CRYPTO_dynlock_value* l,
-                                    const char* /*file*/, int /*line*/)
+static void dynLockFunctionCallback(int mode,
+                                    struct CRYPTO_dynlock_value* l,
+                                    const char* /*file*/,
+                                    int /*line*/)
 {
     if (mode & CRYPTO_LOCK)
     {
@@ -65,7 +67,8 @@ static void dynLockFunctionCallback(int mode, struct CRYPTO_dynlock_value* l,
 }
 
 static void dynDestroyFunctionCallback(struct CRYPTO_dynlock_value* l,
-                                       const char* /*file*/, int /*line*/)
+                                       const char* /*file*/,
+                                       int /*line*/)
 {
     delete l;
 }
@@ -223,7 +226,8 @@ void SslHelper::freeThreadErrQueue(const std::thread::id& id)
 }
 
 SSL_CTX* SslHelper::genSslCtx(const std::string& keyPath,
-                              const std::string& certPath, bool verifyPeer,
+                              const std::string& certPath,
+                              bool verifyPeer,
                               int depth)
 {
     const SSL_METHOD* m = TLSv1_method();

@@ -41,8 +41,11 @@ class WsParser
         std::function<void(enum eOpCode, VecCharIt begin, VecCharIt end)>;
 
   public:
-    WsParser(CallbackFunc cb, std::vector<char>& recvVec,
-             const std::string& remoteIp, bool needMask, const WsConfig& cfg);
+    WsParser(CallbackFunc cb,
+             std::vector<char>& recvVec,
+             const std::string& remoteIp,
+             bool needMask,
+             const WsConfig& cfg);
     ~WsParser() = default;
     WsParser(const WsParser&) = delete;
     WsParser& operator=(const WsParser&) = delete;

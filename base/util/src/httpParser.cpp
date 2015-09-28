@@ -666,7 +666,8 @@ static enum state parse_url_char(enum state s, const char ch)
 
 size_t http_parser_execute(http_parser* parser,
                            const http_parser_settings* settings,
-                           const char* data, size_t len)
+                           const char* data,
+                           size_t len)
 {
     char c, ch;
     int8_t unhex_val;
@@ -2585,8 +2586,8 @@ static enum http_host_state http_parse_host_char(enum http_host_state s,
     return s_http_host_dead;
 }
 
-static int http_parse_host(const char* buf, struct http_parser_url* u,
-                           int found_at)
+static int
+http_parse_host(const char* buf, struct http_parser_url* u, int found_at)
 {
     assert(u->field_set & (1 << UF_HOST));
     enum http_host_state s;
@@ -2675,7 +2676,9 @@ static int http_parse_host(const char* buf, struct http_parser_url* u,
     return 0;
 }
 
-int http_parser_parse_url(const char* buf, size_t buflen, int is_connect,
+int http_parser_parse_url(const char* buf,
+                          size_t buflen,
+                          int is_connect,
                           struct http_parser_url* u)
 {
     enum state s;

@@ -24,7 +24,8 @@ LoggerJob::~LoggerJob()
     _logBuff.reset(nullptr);
 }
 
-void LoggerJob::doLog(eLoggerLevel level, int lineNo,
+void LoggerJob::doLog(eLoggerLevel level,
+                      int lineNo,
                       const std::string& msg) noexcept
 {
     using namespace std;

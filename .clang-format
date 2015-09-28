@@ -9,6 +9,7 @@ Language: Cpp
 BreakBeforeBraces: Allman
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 PointerAlignment: Left
+BinPackParameters: false
 ---
 Language: JavaScript
 # Use 100 columns for JS.

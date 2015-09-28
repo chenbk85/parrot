@@ -16,7 +16,8 @@ namespace parrot
 {
 WsHttpResponse::WsHttpResponse(std::vector<char>& recvVec,
                                std::vector<char>& sendVec,
-                               const std::string& remoteIp, const WsConfig& cfg)
+                               const std::string& remoteIp,
+                               const WsConfig& cfg)
     : _state(eParseState::Receving),
       _recvVec(recvVec),
       _sendVec(sendVec),

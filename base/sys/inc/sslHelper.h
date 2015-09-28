@@ -45,7 +45,8 @@ class SslHelper
     //  A SSL_CTX pointer.
     static SSL_CTX* genSslCtx(const std::string& keyPath,
                               const std::string& certPath,
-                              bool verifyPeer = false, int depth = 1);
+                              bool verifyPeer = false,
+                              int depth = 1);
 
     // genSsl
     //

@@ -24,8 +24,10 @@ class WsHttpResponse
     };
 
   public:
-    WsHttpResponse(std::vector<char>& recvVec, std::vector<char>& sendVed,
-                   const std::string& remoteIp, const WsConfig& cfg);
+    WsHttpResponse(std::vector<char>& recvVec,
+                   std::vector<char>& sendVed,
+                   const std::string& remoteIp,
+                   const WsConfig& cfg);
 
   public:
     // work
