@@ -3,38 +3,48 @@
 #include "logger.h"
 #include "loggerJob.h"
 
-namespace parrot {
-Logger::Logger() : _logThread(nullptr), _config(nullptr) {
+namespace parrot
+{
+Logger::Logger() : _logThread(nullptr), _config(nullptr)
+{
 }
 
-Logger::~Logger() {
+Logger::~Logger()
+{
     stop();
 }
 
-Logger *Logger::instance() noexcept {
+Logger* Logger::instance() noexcept
+{
     static Logger logger;
     return &logger;
 }
 
-void Logger::setConfig(Config *cfg) noexcept {
+void Logger::setConfig(Config* cfg) noexcept
+{
     _config = cfg;
 }
 
-bool Logger::canLog(eLoggerLevel level) const noexcept {
-    if ((uint8_t)level < _config->_logLevel) {
+bool Logger::canLog(eLoggerLevel level) const noexcept
+{
+    if ((uint8_t)level < _config->_logLevel)
+    {
         return false;
     }
 
     return true;
 }
 
-void Logger::start() {
+void Logger::start()
+{
     _logThread = new LoggerThread(_config);
     _logThread->start();
 }
 
-void Logger::stop() {
-    if (_logThread == nullptr) {
+void Logger::stop()
+{
+    if (_logThread == nullptr)
+    {
         return;
     }
 
@@ -43,7 +53,8 @@ void Logger::stop() {
     _logThread = nullptr;
 }
 
-void Logger::log(eLoggerLevel level, int lineNo, const std::string &msg) {
+void Logger::log(eLoggerLevel level, int lineNo, const std::string& msg)
+{
     std::unique_ptr<LoggerJob> job(new LoggerJob);
     job->doLog(level, lineNo, msg);
     _logThread->addJob(std::move(job));

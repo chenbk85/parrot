@@ -3,7 +3,8 @@
 
 #include <string>
 
-namespace parrot {
+namespace parrot
+{
 // iStringCmp
 //
 // Compare string case insensitively. E.g., Compare "Apple" and "aPPle"
@@ -15,7 +16,7 @@ namespace parrot {
 //
 // Return:
 //  True if case insensitively equal.
-bool iStringCmp(const std::string &s1, const std::string &s2);
+bool iStringCmp(const std::string& s1, const std::string& s2);
 
 // strToLower
 //
@@ -23,7 +24,7 @@ bool iStringCmp(const std::string &s1, const std::string &s2);
 //
 // Param:
 // * str   The string that will be converted.
-void strToLower(std::string &str);
+void strToLower(std::string& str);
 
 // strToLower
 //
@@ -31,7 +32,7 @@ void strToLower(std::string &str);
 //
 // Param:
 // * str   The string that will be converted.
-void strToUpper(std::string &str);
+void strToUpper(std::string& str);
 
 // iStringFind
 //
@@ -44,7 +45,7 @@ void strToUpper(std::string &str);
 // Return:
 //  If found, returnt the index of target of src,
 //  else return std::string::npos
-size_t iStringFind(const std::string &src, const std::string &target);
+size_t iStringFind(const std::string& src, const std::string& target);
 
 // binToHexLowCase
 //
@@ -54,7 +55,7 @@ size_t iStringFind(const std::string &src, const std::string &target);
 // * bin    [IN ] The binary buffer.
 // * binLen [IN ] The length of binary buffer.
 // * result [OUT] The hex string result.
-void binToHexLowCase(unsigned char *bin, uint32_t binLen, char *result);
+void binToHexLowCase(unsigned char* bin, uint32_t binLen, char* result);
 
 // binToHexUpCase
 //
@@ -64,7 +65,7 @@ void binToHexLowCase(unsigned char *bin, uint32_t binLen, char *result);
 // * bin    [IN ] The binary buffer.
 // * binLen [IN ] The length of binary buffer.
 // * result [OUT] The hex string result.
-void binToHexUpCase(unsigned char *bin, uint32_t binLen, char *result);
+void binToHexUpCase(unsigned char* bin, uint32_t binLen, char* result);
 }
 
 #endif

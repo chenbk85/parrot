@@ -8,56 +8,71 @@
 #include "timeoutGuard.h"
 #include "timeoutHandler.h"
 
-namespace parrot {
-template <typename T> class TimeoutManager {
+namespace parrot
+{
+template <typename T> class TimeoutManager
+{
   public:
-    TimeoutManager(TimeoutHandler<T> *handler, uint32_t timeoutSec)
+    TimeoutManager(TimeoutHandler<T>* handler, uint32_t timeoutSec)
         : _timeoutHandler(handler),
           _timeoutSeconds(static_cast<std::time_t>(timeoutSec)),
-          _timeoutList() {
+          _timeoutList()
+    {
     }
 
-    ~TimeoutManager() {
+    ~TimeoutManager()
+    {
     }
 
-    TimeoutManager(const TimeoutManager &) = delete;
-    TimeoutManager &operator=(const TimeoutManager &) = delete;
+    TimeoutManager(const TimeoutManager&) = delete;
+    TimeoutManager& operator=(const TimeoutManager&) = delete;
 
   public:
-    void add(TimeoutGuard *tg, std::time_t now) noexcept {
+    void add(TimeoutGuard* tg, std::time_t now) noexcept
+    {
         tg->setTime(now);
         _timeoutList.add(tg);
     }
-    void remove(TimeoutGuard *tg) noexcept {
+    void remove(TimeoutGuard* tg) noexcept
+    {
         tg->setTime(static_cast<std::time_t>(0));
         _timeoutList.remove(tg);
     }
 
-    void update(TimeoutGuard *tg, std::time_t now) noexcept {
+    void update(TimeoutGuard* tg, std::time_t now) noexcept
+    {
         remove(tg);
         add(tg, now);
     }
 
-    void checkTimeout(std::time_t now) noexcept {
-        TimeoutGuard *guard = nullptr;
-        while (true) {
+    void checkTimeout(std::time_t now) noexcept
+    {
+        TimeoutGuard* guard = nullptr;
+        while (true)
+        {
             guard = timeoutList.front();
-            if (guard == nullptr) {
+            if (guard == nullptr)
+            {
                 break;
             }
 
-            if (isTimeout(guard, now)) {
+            if (isTimeout(guard, now))
+            {
                 remove(guard);
                 _timeoutHandler.onTimeout(guard);
-            } else {
+            }
+            else
+            {
                 break;
             }
         }
     }
 
   private:
-    bool isTimeout(TimeoutGuard *tg, std::time_t now) noexcept {
-        if (tg->getTime() + _timeoutSeconds >= now) {
+    bool isTimeout(TimeoutGuard* tg, std::time_t now) noexcept
+    {
+        if (tg->getTime() + _timeoutSeconds >= now)
+        {
             return false;
         }
 
@@ -65,7 +80,7 @@ template <typename T> class TimeoutManager {
     }
 
   private:
-    TimeoutHandler<T> *_timeoutHandler;
+    TimeoutHandler<T>* _timeoutHandler;
     std::time_t _timeoutSeconds;
     DoubleLinkedList<TimeoutGuard> _timeoutList;
 };

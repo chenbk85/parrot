@@ -7,10 +7,18 @@
 #include "codes.h"
 #include "unifyPlatDef.h"
 
-namespace parrot {
-enum class eIoAction : uint16_t { None, Read, Write, Remove };
+namespace parrot
+{
+enum class eIoAction : uint16_t
+{
+    None,
+    Read,
+    Write,
+    Remove
+};
 
-class IoEvent {
+class IoEvent
+{
 #if defined(__linux__)
     friend class EpollImpl;
 #elif defined(__APPLE__)
@@ -20,8 +28,8 @@ class IoEvent {
   public:
     IoEvent();
     virtual ~IoEvent();
-    IoEvent(const IoEvent &) = delete;
-    IoEvent &operator=(const IoEvent &) = delete;
+    IoEvent(const IoEvent&) = delete;
+    IoEvent& operator=(const IoEvent&) = delete;
 
   public:
     // Associate IoEvent with the fd.
@@ -56,11 +64,11 @@ class IoEvent {
 
     virtual void close();
 
-    void setRemoteAddr(const std::string &ip);
+    void setRemoteAddr(const std::string& ip);
 
-    void setRemoteAddr(std::string &&ip);
+    void setRemoteAddr(std::string&& ip);
 
-    const std::string &getRemoteAddr() const;
+    const std::string& getRemoteAddr() const;
 
   protected:
     // Help function to mark the event to read.
@@ -79,8 +87,8 @@ class IoEvent {
 
   public:
 #if defined(__APPLE__) || defined(__linux__)
-    virtual eCodes send(const char *buff, uint32_t buffLen, uint32_t &sentLen);
-    virtual eCodes recv(char *buff, uint32_t buffLen, uint32_t &rcvdLen);
+    virtual eCodes send(const char* buff, uint32_t buffLen, uint32_t& sentLen);
+    virtual eCodes recv(char* buff, uint32_t buffLen, uint32_t& rcvdLen);
 #endif
   public:
     // static help functions.

@@ -7,15 +7,17 @@
 
 #include "codes.h"
 
-namespace parrot {
+namespace parrot
+{
 class IoEvent;
 
-class SslIo : public IoEvent {
+class SslIo : public IoEvent
+{
   public:
     SslIo();
     ~SslIo();
-    SslIo(const SslIo &) = delete;
-    SslIo &operator=(const SslIo &) = delete;
+    SslIo(const SslIo&) = delete;
+    SslIo& operator=(const SslIo&) = delete;
 
   public:
     // setSsl
@@ -27,7 +29,7 @@ class SslIo : public IoEvent {
     //
     // Param:
     // * ssl    The ssl pointer.
-    void setSsl(SSL *ssl);
+    void setSsl(SSL* ssl);
 
     // doSslConnect
     //
@@ -67,7 +69,7 @@ class SslIo : public IoEvent {
     //  ST_RetryWhenWriteable
     //  ST_Ok
     //  ERR_Fail
-    eCodes send(const char *buff, uint32_t len, uint32_t &sentLen) override;
+    eCodes send(const char* buff, uint32_t len, uint32_t& sentLen) override;
 
     // recv
     //
@@ -83,7 +85,7 @@ class SslIo : public IoEvent {
     //  ST_RetryWhenWriteable
     //  ST_Ok
     //  ERR_Fail
-    eCodes recv(char *buff, uint32_t len, uint32_t &recvLen) override;
+    eCodes recv(char* buff, uint32_t len, uint32_t& recvLen) override;
 
     // closeSsl
     //
@@ -104,10 +106,10 @@ class SslIo : public IoEvent {
     //  ST_RetryWhenWriteable
     //  ST_Ok
     //  ERR_Fail
-    eCodes handleResult(int ret, const std::string &funcName);
+    eCodes handleResult(int ret, const std::string& funcName);
 
   protected:
-    SSL *_ssl;
+    SSL* _ssl;
 };
 }
 

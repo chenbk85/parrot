@@ -7,16 +7,18 @@
 #include <memory>
 #include <sys/epoll.h>
 
-namespace parrot {
+namespace parrot
+{
 class IoEvent;
 class EventTrigger;
 
-class EpollImpl final {
+class EpollImpl final
+{
   public:
     explicit EpollImpl(uint32_t size) noexcept;
     ~EpollImpl();
-    EpollImpl(const EpollImpl &kq) = delete;
-    EpollImpl &operator=(const EpollImpl &kq) = delete;
+    EpollImpl(const EpollImpl& kq) = delete;
+    EpollImpl& operator=(const EpollImpl& kq) = delete;
 
   public:
     // Create the epoll.
@@ -36,25 +38,25 @@ class EpollImpl final {
     //
     // Params:
     // * ev: The io event.
-    void addEvent(IoEvent *ev);
+    void addEvent(IoEvent* ev);
 
     // Notify read event.
     //
     // Params:
     // * ev: The io event.
-    void monitorRead(IoEvent *ev);
+    void monitorRead(IoEvent* ev);
 
     // Notify write event.
     //
     // Params:
     // * ev: The io event.
-    void monitorWrite(IoEvent *ev);
+    void monitorWrite(IoEvent* ev);
 
     // Delete io event from epoll.
     //
     // Params:
     // * ev: The io event.
-    void delEvent(IoEvent *ev);
+    void delEvent(IoEvent* ev);
 
     // Retrieve the need-to-handle event notified by epoll.
     //
@@ -63,7 +65,7 @@ class EpollImpl final {
     //
     // Return:
     //  The IoEvent pointer.
-    IoEvent *getIoEvent(uint32_t idx) const noexcept;
+    IoEvent* getIoEvent(uint32_t idx) const noexcept;
 
     // Make epoll_wait return by writing to a fd.
     void stopWaiting();

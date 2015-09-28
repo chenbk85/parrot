@@ -25,28 +25,35 @@
 #include "macroFuncs.h"
 #include "ioEvent.h"
 
-namespace parrot {
+namespace parrot
+{
 IoEvent::IoEvent()
-    : _fd(-1), _filter(-1), _flags(-1), _action(eIoAction::None), _remoteIp() {
+    : _fd(-1), _filter(-1), _flags(-1), _action(eIoAction::None), _remoteIp()
+{
 }
 
-IoEvent::~IoEvent() {
+IoEvent::~IoEvent()
+{
     close();
 }
 
-void IoEvent::setFd(int fd) {
+void IoEvent::setFd(int fd)
+{
     _fd = fd;
 }
 
-int IoEvent::getFd() const {
+int IoEvent::getFd() const
+{
     return _fd;
 }
 
-void IoEvent::setAction(eIoAction act) {
+void IoEvent::setAction(eIoAction act)
+{
     _action = act;
 }
 
-void IoEvent::setIoRead() {
+void IoEvent::setIoRead()
+{
 #if defined(__linux__)
     _filter = EPOLLIN | EPOLLRDHUP | EPOLLET;
 #elif defined(__APPLE__)
@@ -55,7 +62,8 @@ void IoEvent::setIoRead() {
     _action = eIoAction::Read;
 }
 
-void IoEvent::setIoWrite() {
+void IoEvent::setIoWrite()
+{
 #if defined(__linux__)
     _filter = EPOLLOUT | EPOLLRDHUP | EPOLLET;
 #elif defined(__APPLE__)
@@ -64,47 +72,58 @@ void IoEvent::setIoWrite() {
     _action = eIoAction::Write;
 }
 
-eIoAction IoEvent::getAction() const {
+eIoAction IoEvent::getAction() const
+{
     return _action;
 }
 
-void IoEvent::setRemoteAddr(const std::string &ip) {
+void IoEvent::setRemoteAddr(const std::string& ip)
+{
     _remoteIp = ip;
 }
 
-void IoEvent::setRemoteAddr(std::string &&ip) {
+void IoEvent::setRemoteAddr(std::string&& ip)
+{
     _remoteIp = std::move(ip);
 }
 
-const std::string &IoEvent::getRemoteAddr() const {
+const std::string& IoEvent::getRemoteAddr() const
+{
     return _remoteIp;
 }
 
-int IoEvent::getFilter() const {
+int IoEvent::getFilter() const
+{
     return _filter;
 }
 
-void IoEvent::setFilter(int filter) {
+void IoEvent::setFilter(int filter)
+{
     _filter = filter;
 }
 
-void IoEvent::setFlags(int flags) {
+void IoEvent::setFlags(int flags)
+{
     _flags = flags;
 }
 
-int IoEvent::getFlags() const {
+int IoEvent::getFlags() const
+{
     return _flags;
 }
 
-bool IoEvent::isError() const {
+bool IoEvent::isError() const
+{
 #if defined(__linux__)
-    if (_filter & EPOLLERR || _filter & EPOLLHUP) {
+    if (_filter & EPOLLERR || _filter & EPOLLHUP)
+    {
         return true;
     }
 
     return false;
 #elif defined(__APPLE__)
-    if (_flags & EV_ERROR) {
+    if (_flags & EV_ERROR)
+    {
         return true;
     }
 
@@ -114,15 +133,18 @@ bool IoEvent::isError() const {
 #endif
 }
 
-bool IoEvent::isEof() const {
+bool IoEvent::isEof() const
+{
 #if defined(__linux__)
-    if (_filter & EPOLLRDHUP || _filter & EPOLLHUP) {
+    if (_filter & EPOLLRDHUP || _filter & EPOLLHUP)
+    {
         return true;
     }
 
     return false;
 #elif defined(__APPLE__)
-    if (_flags & EV_EOF) {
+    if (_flags & EV_EOF)
+    {
         return true;
     }
 
@@ -132,15 +154,18 @@ bool IoEvent::isEof() const {
 #endif
 }
 
-bool IoEvent::isReadAvail() const {
+bool IoEvent::isReadAvail() const
+{
 #if defined(__linux__)
-    if (_filter & EPOLLIN) {
+    if (_filter & EPOLLIN)
+    {
         return true;
     }
 
     return false;
 #elif defined(__APPLE__)
-    if (_filter == EVFILT_READ) {
+    if (_filter == EVFILT_READ)
+    {
         return true;
     }
 
@@ -150,15 +175,18 @@ bool IoEvent::isReadAvail() const {
 #endif
 }
 
-bool IoEvent::isWriteAvail() const {
+bool IoEvent::isWriteAvail() const
+{
 #if defined(__linux__)
-    if (_filter & EPOLLOUT) {
+    if (_filter & EPOLLOUT)
+    {
         return true;
     }
 
     return false;
 #elif defined(__APPLE__)
-    if (_filter == EVFILT_WRITE) {
+    if (_filter == EVFILT_WRITE)
+    {
         return true;
     }
 
@@ -168,8 +196,10 @@ bool IoEvent::isWriteAvail() const {
 #endif
 }
 
-void IoEvent::close() {
-    if (_fd >= 0) {
+void IoEvent::close()
+{
+    if (_fd >= 0)
+    {
         ::shutdown(_fd, SHUT_RDWR);
         ::close(_fd);
         _fd = -1;
@@ -183,25 +213,31 @@ void IoEvent::close() {
 /////////////////////////////////////////////////////////////////////////
 /// Send/Recv/Read/Write
 //////////////
-eCodes IoEvent::send(const char *buff, uint32_t buffLen, uint32_t &sentLen) {
-    if (!buff || buffLen == 0 || _fd < 0) {
+eCodes IoEvent::send(const char* buff, uint32_t buffLen, uint32_t& sentLen)
+{
+    if (!buff || buffLen == 0 || _fd < 0)
+    {
         PARROT_ASSERT(0);
     }
 
     ssize_t ret = 0;
-    while (true) {
+    while (true)
+    {
         ret = ::send(_fd, buff, buffLen, 0);
-        if (ret != -1) {
+        if (ret != -1)
+        {
             sentLen = ret;
             break;
         }
 
-        if (errno == EAGAIN) {
+        if (errno == EAGAIN)
+        {
             sentLen = 0;
             break;
         }
 
-        if (errno == EINTR) {
+        if (errno == EINTR)
+        {
             continue;
         }
 
@@ -211,25 +247,31 @@ eCodes IoEvent::send(const char *buff, uint32_t buffLen, uint32_t &sentLen) {
     return eCodes::ST_Ok;
 }
 
-eCodes IoEvent::recv(char *buff, uint32_t buffLen, uint32_t &rcvdLen) {
-    if (!buff || buffLen == 0 || _fd < 0) {
+eCodes IoEvent::recv(char* buff, uint32_t buffLen, uint32_t& rcvdLen)
+{
+    if (!buff || buffLen == 0 || _fd < 0)
+    {
         PARROT_ASSERT(0);
     }
 
     ssize_t ret = 0;
-    while (true) {
+    while (true)
+    {
         ret = ::recv(_fd, buff, buffLen, 0);
-        if (ret != -1) {
+        if (ret != -1)
+        {
             rcvdLen = ret;
             break;
         }
 
-        if (errno == EAGAIN) {
+        if (errno == EAGAIN)
+        {
             rcvdLen = 0;
             break;
         }
 
-        if (errno == EINTR) {
+        if (errno == EINTR)
+        {
             continue;
         }
 
@@ -244,69 +286,83 @@ eCodes IoEvent::recv(char *buff, uint32_t buffLen, uint32_t &rcvdLen) {
 /// Static functions.
 //////////////
 #if defined(_WIN32)
-void IoEvent::setExclusiveAddr(sockhdl fd) {
+void IoEvent::setExclusiveAddr(sockhdl fd)
+{
     BOOL optVal = TRUE;
     int optLen = sizeof(BOOL);
 
-    int ret = setsockopt(fd, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char *)&optVal,
-                         optLen);
-    if (ret != 0) {
+    int ret =
+        setsockopt(fd, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (char*)&optVal, optLen);
+    if (ret != 0)
+    {
         throw std::system_error(WSAGetLastError(), std::system_category(),
                                 "WinIoEvent::setExclusiveAddr");
     }
 }
 #else
-void IoEvent::setReuseAddr(sockhdl fd) {
+void IoEvent::setReuseAddr(sockhdl fd)
+{
     int optVal = 1;
     socklen_t optLen = sizeof(optVal);
 
-    int ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void *)&optVal, optLen);
-    if (ret != 0) {
+    int ret = setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (void*)&optVal, optLen);
+    if (ret != 0)
+    {
         throw std::system_error(errno, std::system_category(),
                                 "IoEvent::setNoDelay");
     }
 }
 #endif
 
-void IoEvent::setNonBlock(sockhdl fd, bool on) {
+void IoEvent::setNonBlock(sockhdl fd, bool on)
+{
 #if defined(__APPLE__) || defined(__linux__)
     int oldFlags = ::fcntl(fd, F_GETFL, 0);
-    if (oldFlags < 0) {
+    if (oldFlags < 0)
+    {
         throw std::system_error(errno, std::system_category(),
                                 "IoEvent::setNonBlock: Get");
     }
 
     int newFlags = 0;
-    if (on) {
+    if (on)
+    {
         newFlags = oldFlags | O_NONBLOCK;
-    } else {
+    }
+    else
+    {
         newFlags = oldFlags | ~O_NONBLOCK;
     }
 
-    if (::fcntl(fd, F_SETFL, newFlags) < 0) {
+    if (::fcntl(fd, F_SETFL, newFlags) < 0)
+    {
         throw std::system_error(errno, std::system_category(),
                                 "IoEvent::setNonBlock: Set");
     }
 #elif defined(_WIN32)
     u_long mode = 1;
-    if (!on) {
+    if (!on)
+    {
         mode = 0;
     }
 
-    if (ioctlsocket(fd, FIONBIO, &mode) != 0) {
+    if (ioctlsocket(fd, FIONBIO, &mode) != 0)
+    {
         throw std::system_error(WSAGetLastError(), std::system_category(),
                                 "IoEvent::setNonBlock");
     }
 #endif
 }
 
-void IoEvent::setNoDelay(sockhdl fd) {
+void IoEvent::setNoDelay(sockhdl fd)
+{
 #if defined(__APPLE__) || defined(__linux__)
     int optVal = 1;
     socklen_t optLen = sizeof(optVal);
 
-    int ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&optVal, optLen);
-    if (ret != 0) {
+    int ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void*)&optVal, optLen);
+    if (ret != 0)
+    {
         throw std::system_error(errno, std::system_category(),
                                 "IoEvent::setNoDelay");
     }
@@ -314,8 +370,9 @@ void IoEvent::setNoDelay(sockhdl fd) {
     BOOL optVal = TRUE;
     int optLen = sizeof(optVal);
 
-    int ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char *)&optVal, optLen);
-    if (ret != 0) {
+    int ret = setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (char*)&optVal, optLen);
+    if (ret != 0)
+    {
         throw std::system_error(WSAGetLastError(), std::system_category(),
                                 "IoEvent::setNoDelay");
     }

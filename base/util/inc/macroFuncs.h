@@ -11,8 +11,10 @@
  * Sleep 1 second to let logger thread finish logging before assert.
  */
 #define PARROT_ASSERT(x)                                                       \
-    do {                                                                       \
-        if (!(x)) {                                                            \
+    do                                                                         \
+    {                                                                          \
+        if (!(x))                                                              \
+        {                                                                      \
             std::this_thread::sleep_for(std::chrono::seconds(1));              \
             assert(0);                                                         \
         }                                                                      \

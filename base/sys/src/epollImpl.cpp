@@ -10,21 +10,26 @@
 #include "ioEvent.h"
 #include "eventTrigger.h"
 
-namespace parrot {
+namespace parrot
+{
 EpollImpl::EpollImpl(uint32_t size) noexcept
     : _epollFd(-1),
       _epollSize(size + 1), // We need add the trigger to epoll.
       _trigger(),
-      _events() {
+      _events()
+{
 }
 
-EpollImpl::~EpollImpl() {
+EpollImpl::~EpollImpl()
+{
     close();
 }
 
-void EpollImpl::create() {
+void EpollImpl::create()
+{
     _epollFd = ::epoll_create(_epollSize);
-    if (_epollFd < 0) {
+    if (_epollFd < 0)
+    {
         throw std::system_error(errno, std::system_category(),
                                 "EpollImpl::create");
     }
@@ -36,24 +41,30 @@ void EpollImpl::create() {
     addEvent(_trigger.get());
 }
 
-uint32_t EpollImpl::waitIoEvents(int32_t ms) {
+uint32_t EpollImpl::waitIoEvents(int32_t ms)
+{
     int32_t needWait = ms;
     std::chrono::time_point<std::chrono::system_clock> waitTo;
     int ret = 0;
 
-    if (ms >= 0) {
+    if (ms >= 0)
+    {
         waitTo =
             std::chrono::system_clock::now() + std::chrono::milliseconds(ms);
     }
 
-    while (true) {
+    while (true)
+    {
         ret = ::epoll_wait(_epollFd, _events.get(), _epollSize, needWait);
-        if (ret >= 0) {
+        if (ret >= 0)
+        {
             break;
         }
 
-        if (errno == EINTR) {
-            if (ms < 0) {
+        if (errno == EINTR)
+        {
+            if (ms < 0)
+            {
                 continue;
             }
 
@@ -62,10 +73,13 @@ uint32_t EpollImpl::waitIoEvents(int32_t ms) {
                            waitTo - curr)
                            .count();
 
-            if (needWait <= 0) {
+            if (needWait <= 0)
+            {
                 break;
             }
-        } else {
+        }
+        else
+        {
             throw std::system_error(errno, std::system_category(),
                                     "EpollImpl::waitIoEvents");
         }
@@ -74,9 +88,11 @@ uint32_t EpollImpl::waitIoEvents(int32_t ms) {
     return ret;
 }
 
-void EpollImpl::addEvent(IoEvent *ev) {
+void EpollImpl::addEvent(IoEvent* ev)
+{
     int fd = ev->getFd();
-    if (fd == -1) {
+    if (fd == -1)
+    {
 #if defined(DEBUG)
         PARROT_ASSERT(0);
 #endif
@@ -88,11 +104,16 @@ void EpollImpl::addEvent(IoEvent *ev) {
     event.data.ptr = ev;
 
     eIoAction act = ev->getAction();
-    if (act == eIoAction::Read) {
+    if (act == eIoAction::Read)
+    {
         ev->setIoRead();
-    } else if (act == eIoAction::Write) {
+    }
+    else if (act == eIoAction::Write)
+    {
         ev->setIoWrite();
-    } else {
+    }
+    else
+    {
 #if defined(DEBUG)
         PARROT_ASSERT(0);
 #endif
@@ -102,22 +123,26 @@ void EpollImpl::addEvent(IoEvent *ev) {
     event.events = ev->getFilter();
 
     int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_ADD, fd, &event);
-    if (ret < 0) {
+    if (ret < 0)
+    {
         throw std::system_error(errno, std::system_category(),
                                 "EpollImpl::addEvent");
     }
 }
 
-void EpollImpl::monitorRead(IoEvent *ev) {
+void EpollImpl::monitorRead(IoEvent* ev)
+{
     int fd = ev->getFd();
-    if (fd == -1) {
+    if (fd == -1)
+    {
 #if defined(DEBUG)
         PARROT_ASSERT(0);
 #endif
         return;
     }
 
-    if (ev->getAction() == eIoAction::Read) {
+    if (ev->getAction() == eIoAction::Read)
+    {
         return;
     }
 
@@ -130,22 +155,26 @@ void EpollImpl::monitorRead(IoEvent *ev) {
 
     int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_MOD, fd, &event);
 
-    if (ret < 0) {
+    if (ret < 0)
+    {
         throw std::system_error(errno, std::system_category(),
                                 "EpollImpl::modifyEvent");
     }
 }
 
-void EpollImpl::monitorWrite(IoEvent *ev) {
+void EpollImpl::monitorWrite(IoEvent* ev)
+{
     int fd = ev->getFd();
-    if (fd == -1) {
+    if (fd == -1)
+    {
 #if defined(DEBUG)
         PARROT_ASSERT(0);
 #endif
         return;
     }
 
-    if (ev->getAction() == eIoAction::Write) {
+    if (ev->getAction() == eIoAction::Write)
+    {
         return;
     }
 
@@ -158,15 +187,18 @@ void EpollImpl::monitorWrite(IoEvent *ev) {
 
     int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_MOD, fd, &event);
 
-    if (ret < 0) {
+    if (ret < 0)
+    {
         throw std::system_error(errno, std::system_category(),
                                 "EpollImpl::modifyEvent");
     }
 }
 
-void EpollImpl::delEvent(IoEvent *ev) {
+void EpollImpl::delEvent(IoEvent* ev)
+{
     int fd = ev->getFd();
-    if (fd == -1) {
+    if (fd == -1)
+    {
 #if defined(DEBUG)
         PARROT_ASSERT(0);
 #endif
@@ -174,7 +206,8 @@ void EpollImpl::delEvent(IoEvent *ev) {
     }
 
     int filter = ev->getFilter();
-    if (filter == -1) {
+    if (filter == -1)
+    {
 #if defined(DEBUG)
         PARROT_ASSERT(0);
 #endif
@@ -182,7 +215,8 @@ void EpollImpl::delEvent(IoEvent *ev) {
     }
 
     int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, nullptr);
-    if (ret < 0) {
+    if (ret < 0)
+    {
         throw std::system_error(errno, std::system_category(),
                                 "EpollImpl::delEvent");
     }
@@ -192,18 +226,22 @@ void EpollImpl::delEvent(IoEvent *ev) {
     ev->setFlags(-1);
 }
 
-IoEvent *EpollImpl::getIoEvent(uint32_t idx) const noexcept {
-    IoEvent *ev = (IoEvent *)_events[idx].data.ptr;
+IoEvent* EpollImpl::getIoEvent(uint32_t idx) const noexcept
+{
+    IoEvent* ev = (IoEvent*)_events[idx].data.ptr;
     ev->setFilter(_events[idx].events);
     return ev;
 }
 
-void EpollImpl::stopWaiting() {
+void EpollImpl::stopWaiting()
+{
     _trigger->trigger();
 }
 
-void EpollImpl::close() {
-    if (_epollFd >= 0) {
+void EpollImpl::close()
+{
+    if (_epollFd >= 0)
+    {
         ::close(_epollFd);
         _epollFd = -1;
     }

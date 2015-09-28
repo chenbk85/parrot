@@ -6,22 +6,27 @@
 
 #include <iostream>
 
-namespace parrot {
-LoggerJob::LoggerJob() noexcept : _logLen(0), _hasher(), _logBuff() {
+namespace parrot
+{
+LoggerJob::LoggerJob() noexcept : _logLen(0), _hasher(), _logBuff()
+{
 }
 
-LoggerJob::LoggerJob(LoggerJob &&job) noexcept
+LoggerJob::LoggerJob(LoggerJob&& job) noexcept
     : _logLen(job._logLen),
       _hasher(std::move(job._hasher)),
-      _logBuff(std::move(job._logBuff)) {
+      _logBuff(std::move(job._logBuff))
+{
 }
 
-LoggerJob::~LoggerJob() {
+LoggerJob::~LoggerJob()
+{
     _logBuff.reset(nullptr);
 }
 
 void LoggerJob::doLog(eLoggerLevel level, int lineNo,
-                      const std::string &msg) noexcept {
+                      const std::string& msg) noexcept
+{
     using namespace std;
 
     int buffLen = DEF_HEADER_LEN + msg.length() + 2; // 2 is for \n\0
@@ -38,18 +43,23 @@ void LoggerJob::doLog(eLoggerLevel level, int lineNo,
                  dateStr, getLevelStr(level),
                  _hasher(std::this_thread::get_id()), lineNo, msg.c_str());
 
-    if (_logBuff[len - 1] != '\n') {
+    if (_logBuff[len - 1] != '\n')
+    {
         _logBuff[len] = '\n';
         _logBuff[len + 1] = '\0';
         _logLen = len + 1;
-    } else {
+    }
+    else
+    {
         _logLen = len;
     }
 }
 
-const char *LoggerJob::getLevelStr(eLoggerLevel level) noexcept {
-    const char *str = nullptr;
-    switch (level) {
+const char* LoggerJob::getLevelStr(eLoggerLevel level) noexcept
+{
+    const char* str = nullptr;
+    switch (level)
+    {
     case eLoggerLevel::Info:
         str = "INFO";
         break;
@@ -77,11 +87,13 @@ const char *LoggerJob::getLevelStr(eLoggerLevel level) noexcept {
     return str;
 }
 
-const char *LoggerJob::getLogBuff() const noexcept {
+const char* LoggerJob::getLogBuff() const noexcept
+{
     return _logBuff.get();
 }
 
-uint32_t LoggerJob::getLogLen() const noexcept {
+uint32_t LoggerJob::getLogLen() const noexcept
+{
     return _logLen;
 }
 }

@@ -6,6 +6,9 @@ AllowShortFunctionsOnASingleLine: None
 ---
 Language: Cpp
 # Add custom config here.
+BreakBeforeBraces: Allman
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+PointerAlignment: Left
 ---
 Language: JavaScript
 # Use 100 columns for JS.

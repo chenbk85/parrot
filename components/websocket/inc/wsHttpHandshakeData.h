@@ -5,8 +5,10 @@
 #include <string>
 #include <unordered_map>
 
-namespace parrot {
-class WsHttpHandshakeData {
+namespace parrot
+{
+class WsHttpHandshakeData
+{
   public:
     using HeaderDic = std::unordered_map<std::string, std::string>;
     HeaderDic _header;

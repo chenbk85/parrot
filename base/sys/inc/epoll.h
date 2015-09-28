@@ -6,29 +6,31 @@
 
 #include "eventNotifier.h"
 
-namespace parrot {
+namespace parrot
+{
 class EpollImpl;
 class IoEvent;
 
-class Epoll final : public EventNotifier {
+class Epoll final : public EventNotifier
+{
   public:
     explicit Epoll(uint32_t size) noexcept;
     virtual ~Epoll();
-    Epoll(const Epoll &) = delete;
-    Epoll &operator=(const Epoll &) = delete;
+    Epoll(const Epoll&) = delete;
+    Epoll& operator=(const Epoll&) = delete;
 
   public:
     void create() override;
     uint32_t waitIoEvents(int32_t ms) override;
-    void addEvent(IoEvent *ev) override;
-    void monitorRead(IoEvent *ev) override;
-    void monitorWrite(IoEvent *ev) override;
-    void delEvent(IoEvent *ev) override;
-    IoEvent *getIoEvent(uint32_t idx) const noexcept override;
+    void addEvent(IoEvent* ev) override;
+    void monitorRead(IoEvent* ev) override;
+    void monitorWrite(IoEvent* ev) override;
+    void delEvent(IoEvent* ev) override;
+    IoEvent* getIoEvent(uint32_t idx) const noexcept override;
     void stopWaiting() override;
 
   private:
-    EpollImpl *_epollImpl;
+    EpollImpl* _epollImpl;
 };
 }
 

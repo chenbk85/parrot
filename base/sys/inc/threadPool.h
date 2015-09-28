@@ -7,45 +7,57 @@
 
 #include "macroFuncs.h"
 
-namespace parrot {
-template <typename ThreadClass> class ThreadPool {
+namespace parrot
+{
+template <typename ThreadClass> class ThreadPool
+{
   public:
-    ThreadPool(uint32_t count) : _count(count), _threadVec() {
+    ThreadPool(uint32_t count) : _count(count), _threadVec()
+    {
     }
 
-    ~ThreadPool() {
+    ~ThreadPool()
+    {
         destroy();
     }
 
-    ThreadPool(const ThreadPool &) = delete;
-    ThreadPool &operator=(const ThreadPool &) = delete;
+    ThreadPool(const ThreadPool&) = delete;
+    ThreadPool& operator=(const ThreadPool&) = delete;
 
   public:
-    void create() {
+    void create()
+    {
         PARROT_ASSERT(_count > 0);
-        for (auto i = 0u; i != _count; ++i) {
+        for (auto i = 0u; i != _count; ++i)
+        {
             _threadVec.embrace_back(
                 std::unique_ptr<ThreadClass>(new ThreadClass()));
             _threadVec[i].start();
         }
     }
 
-    ThreadClass *getThreadByIdx(uint32_t idx) {
+    ThreadClass* getThreadByIdx(uint32_t idx)
+    {
         return _threadVec[idx].get();
     }
 
-    std::vector<std::unique_ptr<ThreadClass>> &getThreadPoolVec() noexcept {
+    std::vector<std::unique_ptr<ThreadClass>>& getThreadPoolVec() noexcept
+    {
         return _threadVec;
     }
 
-    void start() {
-        for (auto &t : _threadVec) {
+    void start()
+    {
+        for (auto& t : _threadVec)
+        {
             t->wakeUp();
         }
     }
 
-    void destroy() {
-        for (auto &t : _threadVec) {
+    void destroy()
+    {
+        for (auto& t : _threadVec)
+        {
             t->stop();
         }
         _threadVec.clear();

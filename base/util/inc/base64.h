@@ -3,7 +3,8 @@
 
 #include <cstdint>
 
-namespace parrot {
+namespace parrot
+{
 // getBase64DecodeLen
 //
 // This function computes how long the buffer needed to store the decoded
@@ -14,7 +15,7 @@ namespace parrot {
 //
 // Return:
 //  The length of original data plus 1.
-uint32_t getBase64DecodeLen(const char *bufcoded);
+uint32_t getBase64DecodeLen(const char* bufcoded);
 
 // base64Decode
 //
@@ -26,7 +27,7 @@ uint32_t getBase64DecodeLen(const char *bufcoded);
 //
 // Return:
 //  The length of original data (includes the terminator '\0').
-uint32_t base64Decode(char *bufout, const char *bufcoded);
+uint32_t base64Decode(char* bufout, const char* bufcoded);
 
 // getBase64EncodeLen
 //
@@ -51,7 +52,7 @@ uint32_t getBase64EncodeLen(uint32_t len);
 //
 // Return:
 //  The length of encoded string (includes the terminator '\0').
-uint32_t base64Encode(char *bufout, const char *in, uint32_t len);
+uint32_t base64Encode(char* bufout, const char* in, uint32_t len);
 }
 
 #endif

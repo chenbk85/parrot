@@ -3,13 +3,15 @@
 
 #include "config.h"
 
-namespace parrot {
+namespace parrot
+{
 /**
  * Daemon impl for nix systems.
  */
-class DaemonNix {
+class DaemonNix
+{
   public:
-    DaemonNix(const Config *);
+    DaemonNix(const Config*);
 
   public:
     void daemonize();
@@ -21,7 +23,7 @@ class DaemonNix {
     void writePidFile();
 
   private:
-    const Config *_config;
+    const Config* _config;
 };
 }
 

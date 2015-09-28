@@ -3,13 +3,15 @@
 
 #include <pthread.h>
 
-namespace parrot {
-class RwLockImpl {
+namespace parrot
+{
+class RwLockImpl
+{
   public:
     RwLockImpl();
     ~RwLockImpl();
-    RwLockImpl(const RwLockImpl &) = delete;
-    RwLockImpl(RwLockImpl &&) = delete;
+    RwLockImpl(const RwLockImpl&) = delete;
+    RwLockImpl(RwLockImpl&&) = delete;
 
   public:
     void lockRead();

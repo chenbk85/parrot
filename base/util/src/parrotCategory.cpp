@@ -1,14 +1,18 @@
 #include "parrotCategory.h"
 #include "codes.h"
 
-namespace parrot {
-const char *ParrotCategoryImpl::name() const noexcept {
+namespace parrot
+{
+const char* ParrotCategoryImpl::name() const noexcept
+{
     return "parrot";
 }
 
-std::string ParrotCategoryImpl::message(int ec) const noexcept {
+std::string ParrotCategoryImpl::message(int ec) const noexcept
+{
     std::string ret;
-    switch (static_cast<eCodes>(ec)) {
+    switch (static_cast<eCodes>(ec))
+    {
     /////////////////////////////////////////////////
     /// Http
     ////////////////
@@ -150,7 +154,8 @@ std::string ParrotCategoryImpl::message(int ec) const noexcept {
     return ret;
 }
 
-const std::error_category &ParrotCategory() noexcept {
+const std::error_category& ParrotCategory() noexcept
+{
     // C++11 guarantees that this initialisation is thread-safe.
     static ParrotCategoryImpl obj;
     return obj;

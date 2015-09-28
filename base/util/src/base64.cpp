@@ -83,38 +83,42 @@ static const unsigned char pr2six[256] = {
 static const char basis_64[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-namespace parrot {
-uint32_t getDecodedLength(const char *bufcoded) {
+namespace parrot
+{
+uint32_t getDecodedLength(const char* bufcoded)
+{
     uint32_t nbytesdecoded;
-    const unsigned char *bufin;
+    const unsigned char* bufin;
     uint32_t nprbytes;
 
-    bufin = (const unsigned char *)bufcoded;
+    bufin = (const unsigned char*)bufcoded;
     while (pr2six[*(bufin++)] <= 63)
         ;
 
-    nprbytes = (bufin - (const unsigned char *)bufcoded) - 1;
+    nprbytes = (bufin - (const unsigned char*)bufcoded) - 1;
     nbytesdecoded = ((nprbytes + 3) / 4) * 3;
 
     return nbytesdecoded + 1;
 }
 
-uint32_t base64Decode(char *out, const char *bufcoded) {
+uint32_t base64Decode(char* out, const char* bufcoded)
+{
     uint32_t nbytesdecoded;
-    const unsigned char *bufin;
-    unsigned char *bufout;
+    const unsigned char* bufin;
+    unsigned char* bufout;
     uint32_t nprbytes;
 
-    bufin = (const unsigned char *)bufcoded;
+    bufin = (const unsigned char*)bufcoded;
     while (pr2six[*(bufin++)] <= 63)
         ;
-    nprbytes = (bufin - (const unsigned char *)bufcoded) - 1;
+    nprbytes = (bufin - (const unsigned char*)bufcoded) - 1;
     nbytesdecoded = ((nprbytes + 3) / 4) * 3;
 
-    bufout = (unsigned char *)out;
-    bufin = (const unsigned char *)bufcoded;
+    bufout = (unsigned char*)out;
+    bufin = (const unsigned char*)bufcoded;
 
-    while (nprbytes > 4) {
+    while (nprbytes > 4)
+    {
         *(bufout++) =
             (unsigned char)(pr2six[*bufin] << 2 | pr2six[bufin[1]] >> 4);
         *(bufout++) =
@@ -125,15 +129,18 @@ uint32_t base64Decode(char *out, const char *bufcoded) {
     }
 
     /* Note: (nprbytes == 1) would be an error, so just ingore that case */
-    if (nprbytes > 1) {
+    if (nprbytes > 1)
+    {
         *(bufout++) =
             (unsigned char)(pr2six[*bufin] << 2 | pr2six[bufin[1]] >> 4);
     }
-    if (nprbytes > 2) {
+    if (nprbytes > 2)
+    {
         *(bufout++) =
             (unsigned char)(pr2six[bufin[1]] << 4 | pr2six[bufin[2]] >> 2);
     }
-    if (nprbytes > 3) {
+    if (nprbytes > 3)
+    {
         *(bufout++) = (unsigned char)(pr2six[bufin[2]] << 6 | pr2six[bufin[3]]);
     }
 
@@ -143,17 +150,20 @@ uint32_t base64Decode(char *out, const char *bufcoded) {
     return nbytesdecoded;
 }
 
-uint32_t getBase64EncodeLen(uint32_t len) {
+uint32_t getBase64EncodeLen(uint32_t len)
+{
     return ((len + 2) / 3 * 4) + 1;
 }
 
-uint32_t base64Encode(char *bufout, const char *in, uint32_t len) {
+uint32_t base64Encode(char* bufout, const char* in, uint32_t len)
+{
     uint32_t i;
-    char *p;
-    const unsigned char *str = (const unsigned char *)in;
+    char* p;
+    const unsigned char* str = (const unsigned char*)in;
 
     p = bufout;
-    for (i = 0; i < len - 2; i += 3) {
+    for (i = 0; i < len - 2; i += 3)
+    {
         *p++ = basis_64[(str[i] >> 2) & 0x3F];
         *p++ =
             basis_64[((str[i] & 0x3) << 4) | ((int)(str[i + 1] & 0xF0) >> 4)];
@@ -161,12 +171,16 @@ uint32_t base64Encode(char *bufout, const char *in, uint32_t len) {
                         ((int)(str[i + 2] & 0xC0) >> 6)];
         *p++ = basis_64[str[i + 2] & 0x3F];
     }
-    if (i < len) {
+    if (i < len)
+    {
         *p++ = basis_64[(str[i] >> 2) & 0x3F];
-        if (i == (len - 1)) {
+        if (i == (len - 1))
+        {
             *p++ = basis_64[((str[i] & 0x3) << 4)];
             *p++ = '=';
-        } else {
+        }
+        else
+        {
             *p++ = basis_64[((str[i] & 0x3) << 4) |
                             ((int)(str[i + 1] & 0xF0) >> 4)];
             *p++ = basis_64[((str[i + 1] & 0xF) << 2)];

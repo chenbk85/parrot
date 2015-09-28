@@ -3,37 +3,46 @@
 
 #include <cstdint>
 
-namespace parrot {
+namespace parrot
+{
 class IoEvent;
 
-class EventNotifier {
+class EventNotifier
+{
   public:
-    EventNotifier() {
+    EventNotifier()
+    {
     }
-    virtual ~EventNotifier() {
+    virtual ~EventNotifier()
+    {
     }
-    EventNotifier(const EventNotifier &) = delete;
-    EventNotifier &operator=(const EventNotifier &) = delete;
+    EventNotifier(const EventNotifier&) = delete;
+    EventNotifier& operator=(const EventNotifier&) = delete;
 
   public:
-    virtual void create() {
+    virtual void create()
+    {
     }
 
     virtual uint32_t waitIoEvents(int32_t ms) = 0;
 
-    virtual void addEvent(IoEvent *) {
+    virtual void addEvent(IoEvent*)
+    {
     }
 
-    virtual void monitorRead(IoEvent *) {
+    virtual void monitorRead(IoEvent*)
+    {
     }
 
-    virtual void monitorWrite(IoEvent *) {
+    virtual void monitorWrite(IoEvent*)
+    {
     }
 
-    virtual void delEvent(IoEvent *) {
+    virtual void delEvent(IoEvent*)
+    {
     }
 
-    virtual IoEvent *getIoEvent(uint32_t idx) const = 0;
+    virtual IoEvent* getIoEvent(uint32_t idx) const = 0;
 
     virtual void stopWaiting() = 0;
 };

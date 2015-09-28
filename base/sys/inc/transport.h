@@ -3,17 +3,20 @@
 
 #include <cstdint>
 
-namespace parrot {
-class Transport {
+namespace parrot
+{
+class Transport
+{
   public:
-    virtual Transport() {
+    virtual Transport()
+    {
     }
-    Transport(const Transport &) = delete;
-    Transport &operator=(const Transport &) = delete;
+    Transport(const Transport&) = delete;
+    Transport& operator=(const Transport&) = delete;
 
   public:
-    virtual void getRecvBuff(char *&buff, uint32_t &len) = 0;
-    virtual void getSendBuff(char *&buff, uint32_t &len) = 0;
+    virtual void getRecvBuff(char*& buff, uint32_t& len) = 0;
+    virtual void getSendBuff(char*& buff, uint32_t& len) = 0;
     virtual void setRecvedLen(uint32_t len) = 0;
     virtual void setSentLen(uint32_t len) = 0;
 };

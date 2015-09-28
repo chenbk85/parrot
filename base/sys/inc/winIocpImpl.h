@@ -6,23 +6,25 @@
 #include <memory>
 #include <cstdint>
 
-namespace parrot {
+namespace parrot
+{
 class WinIoEvent;
 
-class WinIocpImpl {
+class WinIocpImpl
+{
   public:
     WinIocpImpl(HANDLE iocp, uint32_t dequeueCount);
     ~WinIocpImpl();
-    WinIocpImpl(const WinIocpImpl &) = delete;
-    WinIocpImpl &operator=(const WinIocpImpl &) = delete;
+    WinIocpImpl(const WinIocpImpl&) = delete;
+    WinIocpImpl& operator=(const WinIocpImpl&) = delete;
 
   public:
     static fileHdl createIocp(uint32_t threadNum);
 
   public:
     uint32_t waitIoEvents(int32_t ms);
-    void addEvent(WinIoEvent *ev);
-    WinIoEvent *getIoEvent(uint32_t idx) const noexcept;
+    void addEvent(WinIoEvent* ev);
+    WinIoEvent* getIoEvent(uint32_t idx) const noexcept;
     void stopWaiting();
 
   private:

@@ -4,8 +4,10 @@
 #include <system_error>
 #include "parrotCategory.h"
 
-namespace parrot {
-enum class eCodes {
+namespace parrot
+{
+enum class eCodes
+{
     // 0 - 999 status codes are for HTTP standand codes.
     HTTP_Continue = 100,
     HTTP_SwitchingProtocols = 101,
@@ -64,8 +66,11 @@ std::error_code make_error_code(eCodes e) noexcept;
 std::error_condition make_error_condition(eCodes e) noexcept;
 }
 
-namespace std {
-template <> struct is_error_code_enum<parrot::eCodes> : public true_type {};
+namespace std
+{
+template <> struct is_error_code_enum<parrot::eCodes> : public true_type
+{
+};
 }
 
 #endif

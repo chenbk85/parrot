@@ -10,30 +10,32 @@
 #include <sys/event.h>
 #include <sys/time.h>
 
-namespace parrot {
+namespace parrot
+{
 class IoEvent;
 class EventTrigger;
 
-class KqueueImpl {
+class KqueueImpl
+{
   public:
     KqueueImpl(uint32_t maxEvCount) noexcept;
     ~KqueueImpl();
-    KqueueImpl(const KqueueImpl &kq) = delete;
-    KqueueImpl &operator=(const KqueueImpl &kq) = delete;
+    KqueueImpl(const KqueueImpl& kq) = delete;
+    KqueueImpl& operator=(const KqueueImpl& kq) = delete;
 
   public:
     void create();
     uint32_t waitIoEvents(int32_t ms);
-    void addEvent(IoEvent *ev);
-    void monitorRead(IoEvent *ev);
-    void monitorWrite(IoEvent *ev);
-    void delEvent(IoEvent *ev);
-    IoEvent *getIoEvent(uint32_t idx) const noexcept;
+    void addEvent(IoEvent* ev);
+    void monitorRead(IoEvent* ev);
+    void monitorWrite(IoEvent* ev);
+    void delEvent(IoEvent* ev);
+    IoEvent* getIoEvent(uint32_t idx) const noexcept;
     void stopWaiting();
     void close();
 
   private:
-    void msToTimespec(struct timespec *ts, uint32_t ms);
+    void msToTimespec(struct timespec* ts, uint32_t ms);
 
   private:
     int32_t _kqueueFd;

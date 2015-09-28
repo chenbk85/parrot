@@ -4,8 +4,10 @@
 #include <string>
 #include <cstdint>
 
-namespace parrot {
-struct WsConfig {
+namespace parrot
+{
+struct WsConfig
+{
     std::string _host;
     uint32_t _maxPacketLen = 1 << 20;      // 1MB.
     uint32_t _maxHttpHandshake = 1 << 13;  // 8KB.

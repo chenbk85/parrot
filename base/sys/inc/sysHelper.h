@@ -3,7 +3,8 @@
 
 #include <cstdint>
 
-namespace parrot {
+namespace parrot
+{
 uint64_t uniHtonll(uint64_t hostll);
 
 uint32_t uniHtonl(uint32_t hostlong);

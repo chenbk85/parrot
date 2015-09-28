@@ -9,16 +9,23 @@
 
 struct http_parser;
 
-namespace parrot {
+namespace parrot
+{
 struct WsConfig;
 
-class WsHttpResponse {
+class WsHttpResponse
+{
     using HeaderDic = std::unordered_map<std::string, std::string>;
-    enum class eParseState { Receving, RecevingBody, CreateRsp };
+    enum class eParseState
+    {
+        Receving,
+        RecevingBody,
+        CreateRsp
+    };
 
   public:
-    WsHttpResponse(std::vector<char> &recvVec, std::vector<char> &sendVed,
-                   const std::string &remoteIp, const WsConfig &cfg);
+    WsHttpResponse(std::vector<char>& recvVec, std::vector<char>& sendVed,
+                   const std::string& remoteIp, const WsConfig& cfg);
 
   public:
     // work
@@ -51,7 +58,7 @@ class WsHttpResponse {
     //
     // return:
     //  0 continue parsing. 1 error.
-    int onUrl(::http_parser *, const char *at, size_t len);
+    int onUrl(::http_parser*, const char* at, size_t len);
 
     // onHeaderField
     //
@@ -60,7 +67,7 @@ class WsHttpResponse {
     //
     // return:
     //  0 continue parsing. 1 error.
-    int onHeaderField(::http_parser *, const char *at, size_t len);
+    int onHeaderField(::http_parser*, const char* at, size_t len);
 
     // onHeaderValue
     //
@@ -69,7 +76,7 @@ class WsHttpResponse {
     //
     // return:
     //  0 continue parsing. 1 error.
-    int onHeaderValue(::http_parser *, const char *at, size_t len);
+    int onHeaderValue(::http_parser*, const char* at, size_t len);
 
     // parse
     //
@@ -118,15 +125,15 @@ class WsHttpResponse {
 
   private:
     eParseState _state;
-    std::vector<char> &_recvVec;
-    std::vector<char> &_sendVec;
-    const std::string &_remoteIp;
+    std::vector<char>& _recvVec;
+    std::vector<char>& _sendVec;
+    const std::string& _remoteIp;
     HeaderDic _headerDic;
     std::string _lastHeader;
     std::vector<char>::iterator _lastParseIt;
     uint32_t _httpBodyLen;
     eCodes _httpResult;
-    const WsConfig &_config;
+    const WsConfig& _config;
 };
 }
 

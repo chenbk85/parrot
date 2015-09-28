@@ -3,8 +3,10 @@
 
 #include "threadBase.h"
 
-namespace parrot {
-class PoolThread : public ThreadBase {
+namespace parrot
+{
+class PoolThread : public ThreadBase
+{
   public:
     void beforeRun() override;
 };

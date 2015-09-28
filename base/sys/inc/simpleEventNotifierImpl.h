@@ -5,14 +5,15 @@
 #include <mutex>
 #include <condition_variable>
 
-namespace parrot {
-class SimpleEventNotifierImpl {
+namespace parrot
+{
+class SimpleEventNotifierImpl
+{
   public:
     SimpleEventNotifierImpl();
     ~SimpleEventNotifierImpl();
-    SimpleEventNotifierImpl(const SimpleEventNotifierImpl &) = delete;
-    SimpleEventNotifierImpl &
-    operator=(const SimpleEventNotifierImpl &) = delete;
+    SimpleEventNotifierImpl(const SimpleEventNotifierImpl&) = delete;
+    SimpleEventNotifierImpl& operator=(const SimpleEventNotifierImpl&) = delete;
 
   public:
     uint32_t waitIoEvents(int32_t ms);

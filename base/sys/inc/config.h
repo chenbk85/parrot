@@ -4,8 +4,10 @@
 #include <string>
 #include <cstdint>
 
-namespace parrot {
-struct Config {
+namespace parrot
+{
+struct Config
+{
     virtual ~Config() = default;
 
     std::string _group = "";

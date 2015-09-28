@@ -8,16 +8,18 @@
 #include <atomic>
 #include <condition_variable>
 
-namespace parrot {
+namespace parrot
+{
 // Base thread class. You must derive this class and implement the
 // run() function. Simple usage:
 //     class RpcThread : public ThreadBase {} ...
-class ThreadBase {
+class ThreadBase
+{
   public:
     ThreadBase();
     virtual ~ThreadBase();
-    ThreadBase(const ThreadBase &) = delete;
-    ThreadBase &operator=(const ThreadBase &) = delete;
+    ThreadBase(const ThreadBase&) = delete;
+    ThreadBase& operator=(const ThreadBase&) = delete;
 
   public:
     // Start this thread.
@@ -43,18 +45,21 @@ class ThreadBase {
     void sleep(int64_t ms);
 
     // This function will be called before starting this thread.
-    virtual void beforeStart() {
+    virtual void beforeStart()
+    {
     }
 
     // This function will be called before calling the run() function.
-    virtual void beforeRun() {
+    virtual void beforeRun()
+    {
     }
 
     // The thread entry function.
     virtual void run() = 0;
 
     // This function will be called before stopping this thread.
-    virtual void beforeStop() {
+    virtual void beforeStop()
+    {
     }
 
   private:

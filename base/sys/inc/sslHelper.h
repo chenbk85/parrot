@@ -6,13 +6,15 @@
 
 #include "openssl/ssl.h"
 
-namespace parrot {
-class SslHelper {
+namespace parrot
+{
+class SslHelper
+{
   public:
     SslHelper();
     ~SslHelper();
-    SslHelper(const SslHelper &s) = delete;
-    SslHelper &operator=(const SslHelper &s) = delete;
+    SslHelper(const SslHelper& s) = delete;
+    SslHelper& operator=(const SslHelper& s) = delete;
 
   public:
     // init
@@ -27,7 +29,7 @@ class SslHelper {
     //
     // Param:
     // * id     The id of the target thread.
-    static void freeThreadErrQueue(const std::thread::id &id);
+    static void freeThreadErrQueue(const std::thread::id& id);
 
     // genSslCtx
     //
@@ -41,8 +43,8 @@ class SslHelper {
     //
     // Return:
     //  A SSL_CTX pointer.
-    static SSL_CTX *genSslCtx(const std::string &keyPath,
-                              const std::string &certPath,
+    static SSL_CTX* genSslCtx(const std::string& keyPath,
+                              const std::string& certPath,
                               bool verifyPeer = false, int depth = 1);
 
     // genSsl
@@ -54,7 +56,7 @@ class SslHelper {
     //
     // Return:
     //  A SSL_CTX pointer.
-    static SSL *genSsl(SSL_CTX *ctx);
+    static SSL* genSsl(SSL_CTX* ctx);
 
     // checkCertHostname
     //
@@ -68,7 +70,7 @@ class SslHelper {
     //
     // Return:
     //   True if successful.
-    static bool checkCertHostname(SSL *ssl, const std::string &host);
+    static bool checkCertHostname(SSL* ssl, const std::string& host);
 
     // deinit
     //

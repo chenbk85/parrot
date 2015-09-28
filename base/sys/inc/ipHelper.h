@@ -6,15 +6,17 @@
 
 #include <netinet/ip.h>
 
-namespace parrot {
-class IPHelper {
+namespace parrot
+{
+class IPHelper
+{
   public:
     IPHelper();
 
   public:
-    void setIP(const std::string &ip);
-    void setIP(const struct in6_addr &addr);
-    void setIP(const struct in_addr &addr);
+    void setIP(const std::string& ip);
+    void setIP(const struct in6_addr& addr);
+    void setIP(const struct in_addr& addr);
 
     bool isIPv4() const noexcept;
     bool isIPv6() const noexcept;
@@ -24,9 +26,9 @@ class IPHelper {
     std::string getIPStr() const noexcept;
 
   public:
-    static void getIPAddress(const std::string &domainName,
-                             std::list<std::string> &ipv4List,
-                             std::list<std::string> &ipv6List);
+    static void getIPAddress(const std::string& domainName,
+                             std::list<std::string>& ipv4List,
+                             std::list<std::string>& ipv6List);
 
   private:
     int _version; // 4 IPv4, 6 IPv6.

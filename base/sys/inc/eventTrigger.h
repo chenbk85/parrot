@@ -3,15 +3,17 @@
 
 #include <memory>
 
-namespace parrot {
+namespace parrot
+{
 enum class eIoAction : uint16_t;
 
-class EventTrigger : public IoEvent {
+class EventTrigger : public IoEvent
+{
   public:
     EventTrigger();
     virtual ~EventTrigger();
-    EventTrigger(const EventTrigger &) = delete;
-    EventTrigger &operator=(const EventTrigger &) = delete;
+    EventTrigger(const EventTrigger&) = delete;
+    EventTrigger& operator=(const EventTrigger&) = delete;
 
   public:
     void create();

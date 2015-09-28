@@ -7,14 +7,17 @@
 #include <cstdint>
 #include "codes.h"
 
-namespace parrot {
+namespace parrot
+{
 class WsConfig;
 
 // WsParser is the websocket parser for both server side and
 // client side. RPC packet parser will also use this class.
-class WsParser {
+class WsParser
+{
   public:
-    enum class eOpCode {
+    enum class eOpCode
+    {
         Continue = 0x0,
         Text = 0x1,
         Binary = 0x2,
@@ -25,7 +28,12 @@ class WsParser {
         // 0xB-F are reserved.
     };
 
-    enum eParseState { Begin, ParsingHeader, ParsingBody };
+    enum eParseState
+    {
+        Begin,
+        ParsingHeader,
+        ParsingBody
+    };
 
   private:
     using VecCharIt = std::vector<char>::iterator;
@@ -33,11 +41,11 @@ class WsParser {
         std::function<void(enum eOpCode, VecCharIt begin, VecCharIt end)>;
 
   public:
-    WsParser(CallbackFunc cb, std::vector<char> &recvVec,
-             const std::string &remoteIp, bool needMask, const WsConfig &cfg);
+    WsParser(CallbackFunc cb, std::vector<char>& recvVec,
+             const std::string& remoteIp, bool needMask, const WsConfig& cfg);
     ~WsParser() = default;
-    WsParser(const WsParser &) = delete;
-    WsParser &operator=(const WsParser &) = delete;
+    WsParser(const WsParser&) = delete;
+    WsParser& operator=(const WsParser&) = delete;
 
   public:
     // getResult
@@ -49,7 +57,8 @@ class WsParser {
     //  * WS_ProtocolError
     //  * WS_MessageTooBig
     //  * ST_Ok
-    eCodes getResult() const {
+    eCodes getResult() const
+    {
         return _parseResult;
     }
 
@@ -80,7 +89,8 @@ class WsParser {
     //
     // return:
     //  If fin flag is 1, returns true.
-    bool isFin() const {
+    bool isFin() const
+    {
         return _fin;
     }
 
@@ -111,8 +121,8 @@ class WsParser {
     void parseBody();
 
   private:
-    std::vector<char> &_recvVec;
-    const std::string &_remoteIp;
+    std::vector<char>& _recvVec;
+    const std::string& _remoteIp;
     bool _needMask;
     eParseState _state;
     bool _fin;
@@ -127,7 +137,7 @@ class WsParser {
     std::array<char, 4> _maskingKey;
     eCodes _parseResult;
     std::vector<char> _packetVec;
-    const WsConfig &_config;
+    const WsConfig& _config;
 };
 }
 #endif

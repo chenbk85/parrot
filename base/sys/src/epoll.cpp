@@ -4,45 +4,56 @@
 #include "epollImpl.h"
 #include "epoll.h"
 
-namespace parrot {
+namespace parrot
+{
 Epoll::Epoll(uint32_t size) noexcept : EventNotifier(),
-                                       _epollImpl(new EpollImpl(size)) {
+                                       _epollImpl(new EpollImpl(size))
+{
 }
 
-Epoll::~Epoll() {
+Epoll::~Epoll()
+{
     delete _epollImpl;
     _epollImpl = nullptr;
 }
 
-void Epoll::create() {
+void Epoll::create()
+{
     _epollImpl->create();
 }
 
-uint32_t Epoll::waitIoEvents(int32_t ms) {
+uint32_t Epoll::waitIoEvents(int32_t ms)
+{
     return _epollImpl->waitIoEvents(ms);
 }
 
-void Epoll::addEvent(IoEvent *ev) {
+void Epoll::addEvent(IoEvent* ev)
+{
     _epollImpl->addEvent(ev);
 }
 
-void Epoll::monitorRead(IoEvent *ev) {
+void Epoll::monitorRead(IoEvent* ev)
+{
     _epollImpl->monitorRead(ev);
 }
 
-void Epoll::monitorWrite(IoEvent *ev) {
+void Epoll::monitorWrite(IoEvent* ev)
+{
     _epollImpl->monitorWrite(ev);
 }
 
-void Epoll::delEvent(IoEvent *ev) {
+void Epoll::delEvent(IoEvent* ev)
+{
     _epollImpl->delEvent(ev);
 }
 
-IoEvent *Epoll::getIoEvent(uint32_t idx) const noexcept {
+IoEvent* Epoll::getIoEvent(uint32_t idx) const noexcept
+{
     return _epollImpl->getIoEvent(idx);
 }
 
-void Epoll::stopWaiting() {
+void Epoll::stopWaiting()
+{
     _epollImpl->stopWaiting();
 }
 }

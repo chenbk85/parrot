@@ -7,29 +7,31 @@
 
 #include "eventNotifier.h"
 
-namespace parrot {
+namespace parrot
+{
 class KqueueImpl;
 class IoEvent;
 
-class Kqueue final : public EventNotifier {
+class Kqueue final : public EventNotifier
+{
   public:
     explicit Kqueue(uint32_t size) noexcept;
     virtual ~Kqueue();
-    Kqueue(const Kqueue &) = delete;
-    Kqueue &operator=(const Kqueue &) = delete;
+    Kqueue(const Kqueue&) = delete;
+    Kqueue& operator=(const Kqueue&) = delete;
 
   public:
     void create() override;
     uint32_t waitIoEvents(int32_t ms) override;
-    void addEvent(IoEvent *ev) override;
-    void monitorRead(IoEvent *ev) override;
-    void monitorWrite(IoEvent *ev) override;
-    void delEvent(IoEvent *ev) override;
-    IoEvent *getIoEvent(uint32_t idx) const noexcept override;
+    void addEvent(IoEvent* ev) override;
+    void monitorRead(IoEvent* ev) override;
+    void monitorWrite(IoEvent* ev) override;
+    void delEvent(IoEvent* ev) override;
+    IoEvent* getIoEvent(uint32_t idx) const noexcept override;
     void stopWaiting() override;
 
   private:
-    KqueueImpl *_impl;
+    KqueueImpl* _impl;
 };
 }
 

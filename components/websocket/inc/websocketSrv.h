@@ -12,18 +12,20 @@
 #include "tcpServer.h"
 #include "timeoutGuard.h"
 
-namespace parrot {
+namespace parrot
+{
 class WsPacket;
 class WsConfig;
 
 template <typename T> class WsTranslayer;
 
-class WebSocketSrv : public TcpServer, public TimeoutGuard {
+class WebSocketSrv : public TcpServer, public TimeoutGuard
+{
   public:
-    explicit WebSocketSrv(const WsConfig &cfg);
+    explicit WebSocketSrv(const WsConfig& cfg);
     virtual ~WebSocketSrv() = default;
-    WebSocketSrv(const WebSocketSrv &) = delete;
-    WebSocketSrv &operator=(const WebSocketSrv &) = delete;
+    WebSocketSrv(const WebSocketSrv&) = delete;
+    WebSocketSrv& operator=(const WebSocketSrv&) = delete;
 
   public:
     void onOpen();
@@ -31,10 +33,10 @@ class WebSocketSrv : public TcpServer, public TimeoutGuard {
     void onClose(eCodes code);
     void onData(WsParser::eOpCode code, std::vector<char>::iterator begin,
                 std::vector<char>::iterator end);
-    void sendPacket(std::unique_ptr<WsPacket> &pkt);
-    void sendPacket(std::list<std::unique_ptr<WsPacket>> &pkt);
+    void sendPacket(std::unique_ptr<WsPacket>& pkt);
+    void sendPacket(std::list<std::unique_ptr<WsPacket>>& pkt);
     eIoAction handleIoEvent() override;
-    void closeWebSocket(const std::string &reason);
+    void closeWebSocket(const std::string& reason);
 
   private:
     std::unique_ptr<WsTranslayer<WebSocketSrv>> _translayer;
