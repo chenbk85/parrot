@@ -25,6 +25,8 @@ class WsEncoder
     void encodeDataPacket(const WsPacket& pkt);
     uint8_t getRouteLen();
     uint64_t getDataLen(uint64_t len);
+    void maskPacket(std::vector<char>::iterator begin,
+                    std::vector<char>::iterator end);
 
     // Meta info is for the peer to decode what data is it. The format is
     //            | type field (alwasy 1 byte) | data length field |
