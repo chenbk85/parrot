@@ -3,7 +3,14 @@
 
 namespace parrot
 {
-WsPacket::WsPacket() : _json(), _bin(), _raw(), _route(0)
+WsPacket::WsPacket()
+    : _opCode(eOpCode::Binary),
+      _closeCode(eCodes::NormalClosure),
+      _reason(),
+      _json(),
+      _bin(),
+      _raw(),
+      _route(0)
 {
 }
 
@@ -12,7 +19,12 @@ bool WsPacket::isPacketUndecoded() const
     return _raw;
 }
 
-void WsPacket::setRoute(uint32_t route)
+bool WsPacket::isControl() const
+{
+    return _opCode == eOpCode::Binary;
+}
+
+void WsPacket::setRoute(uint64_t route)
 {
     _route = route;
 }
@@ -32,7 +44,33 @@ void WsPacket::setRawData(std::vector<char>> &&raw)
     _raw = std::move(raw);
 }
 
-uint32_t WsPacket::getRoute() const
+void WsPacket::setOpCode(eOpCode opCode)
+{
+    _opCode = opCode;
+}
+
+void WsPacket::setClose(eCodes code, std::string&& reason)
+{
+    _closeCode = code;
+    _reason = std::move(reason);
+}
+
+eOpCode WsPacket::getOpCode() const
+{
+    return _opCode;
+}
+
+eCodes WsPacket::getCloseCode() const
+{
+    return _closeCode;
+}
+
+const string& WsPacket::getCloseReason() const
+{
+    return _reason;
+}
+
+uint64_t WsPacket::getRoute() const
 {
     return _route;
 }

@@ -3,11 +3,6 @@
 
 namespace parrot
 {
-enum class ePayloadItem
-{
-    Json = 1,
-    Binary = 2
-};
 }
 
 #endif

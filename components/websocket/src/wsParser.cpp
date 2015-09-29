@@ -5,6 +5,7 @@
 #include "wsParser.h"
 #include "macroFuncs.h"
 #include "sysHelper.h"
+#include "wsDefinition.h"
 
 namespace parrot
 {
@@ -38,6 +39,7 @@ WsParser::WsParser(CallbackFunc cb,
 
 void WsParser::parseHeader()
 {
+
     if (_payloadLen == 126)
     {
         _payloadLen = uniNtohs(*(uint16_t*)&(*_lastParseIt));
