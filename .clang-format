@@ -3,6 +3,7 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
 AllowShortFunctionsOnASingleLine: None
+IndentCaseLabels: true
 ---
 Language: Cpp
 # Add custom config here.

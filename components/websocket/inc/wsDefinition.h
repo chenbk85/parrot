@@ -1,5 +1,5 @@
-#ifndef __COMPONENT_WEBSOCKET_INC_WSDEFINITION_H__
-#define __COMPONENT_WEBSOCKET_INC_WSDEFINITION_H__
+#ifndef __COMPONENTS_WEBSOCKET_INC_WSDEFINITION_H__
+#define __COMPONENTS_WEBSOCKET_INC_WSDEFINITION_H__
 
 namespace parrot
 {
@@ -21,3 +21,5 @@ enum class ePayloadItem
     Binary = 2
 };
 }
+
+#endif

@@ -1,15 +1,18 @@
-#ifndef __COMPONENT_WEBSOCKET_INC_WSPARSER_H__
-#define __COMPONENT_WEBSOCKET_INC_WSPARSER_H__
+#ifndef __COMPONENTS_WEBSOCKET_INC_WSPARSER_H__
+#define __COMPONENTS_WEBSOCKET_INC_WSPARSER_H__
 
 #include <vector>
 #include <string>
 #include <functional>
 #include <cstdint>
+#include <array>
 #include "codes.h"
+#include "wsDefinition.h"
 
 namespace parrot
 {
-class WsConfig;
+struct WsConfig;
+class WsPacket;
 
 // WsParser is the websocket parser for both server side and
 // client side. RPC packet parser will also use this class.
@@ -25,11 +28,10 @@ class WsParser
 
   private:
     using VecCharIt = std::vector<char>::iterator;
-    using CallbackFunc =
-        std::function<void(enum eOpCode, VecCharIt begin, VecCharIt end)>;
+    using CallbackFunc = std::function<void(std::unique_ptr<WsPacket>&&)>;
 
   public:
-    WsParser(CallbackFunc cb,
+    WsParser(CallbackFunc&& cb,
              std::vector<char>& recvVec,
              const std::string& remoteIp,
              bool needMask,
@@ -111,6 +113,10 @@ class WsParser
     // fragmented, invoke the callback to notify uplayer.
     void parseBody();
 
+    std::unique_ptr<WsPacket>
+    createWsPacket(const std::vector<char>::iterator& begin,
+                   const std::vector<char>::iterator& end);
+
   private:
     std::vector<char>& _recvVec;
     const std::string& _remoteIp;
@@ -128,6 +134,7 @@ class WsParser
     std::array<char, 4> _maskingKey;
     eCodes _parseResult;
     std::vector<char> _packetVec;
+    uint32_t _largePktCount;
     const WsConfig& _config;
 };
 }

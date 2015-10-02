@@ -220,7 +220,7 @@ bool Json::containsKey(const char* key)
     return _impl->containsKey(key);
 }
 
-std::string Json::toString()
+std::string Json::toString() const
 {
     return _impl->toString();
 }

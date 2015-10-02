@@ -1,11 +1,15 @@
-#ifndef __COMPONENT_WEBSOCKET_INC_WSENCODER_H__
-#define __COMPONENT_WEBSOCKET_INC_WSENCODER_H__
+#ifndef __COMPONENTS_WEBSOCKET_INC_WSENCODER_H__
+#define __COMPONENTS_WEBSOCKET_INC_WSENCODER_H__
 
 #include <vector>
+#include <array>
+#include <cstdint>
+
+#include "wsDefinition.h"
 
 namespace parrot
 {
-class WsConfig;
+struct WsConfig;
 class WsPacket;
 class MtRandom;
 
@@ -14,7 +18,9 @@ class WsEncoder
   public:
     WsEncoder(std::vector<char>& sendVec,
               std::vector<char>& fragmentedSendVec,
-              const WsConfig& cfg);
+              const WsConfig& cfg,
+              MtRandom& r,
+              bool needMask);
 
   public:
     void encode(const WsPacket& pkt);
@@ -23,7 +29,8 @@ class WsEncoder
     void encodeControlPacket(const WsPacket& pkt);
     void encodeClosePacket(const WsPacket& pkt);
     void encodeDataPacket(const WsPacket& pkt);
-    uint8_t getRouteLen();
+    uint8_t getHeaderLen(uint64_t payloadLen);
+    uint8_t getRouteLen(uint64_t route);
     uint64_t getDataLen(uint64_t len);
     void maskPacket(std::vector<char>::iterator begin,
                     std::vector<char>::iterator end);
@@ -48,7 +55,7 @@ class WsEncoder
     MtRandom& _random;
     std::array<char, 4> _maskingKey;
     std::vector<char> _jsonMeta;
-    std::vecotr<char> _binaryMeta;
+    std::vector<char> _binaryMeta;
 };
 }
 

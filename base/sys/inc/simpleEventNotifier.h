@@ -22,7 +22,7 @@ class SimpleEventNotifier : public EventNotifier
 
   public:
     uint32_t waitIoEvents(int32_t ms) override;
-    IoEvent* getIoEvent(uint32_t idx) const;
+    IoEvent* getIoEvent(uint32_t idx) const override;
     void stopWaiting() override;
 
   private:

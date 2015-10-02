@@ -151,7 +151,7 @@ class Json
     //
     // Return
     //  The json string.
-    std::string toString();
+    std::string toString() const;
 
   private:
     JsonImpl* _impl;

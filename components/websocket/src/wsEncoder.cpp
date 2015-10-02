@@ -1,18 +1,23 @@
+#include <string>
+
+#include "json.h"
+#include "logger.h"
 #include "wsPacket.h"
 #include "wsEncoder.h"
 #include "wsDefinition.h"
 #include "wsConfig.h"
 #include "sysHelper.h"
+#include "mtRandom.h"
 
 namespace parrot
 {
 WsEncoder::WsEncoder(std::vector<char>& sendVec,
-                     std::vector<char>& fragmentedSendVec,
+                     std::vector<char>& fragmentedVec,
                      const WsConfig& cfg,
                      MtRandom &r,
                      bool needMask)
     : _sendVec(sendVec),
-      _fragmentedSendVec(fragmentedVed),
+      _fragmentedSendVec(fragmentedVec),
       _config(cfg),
       _needMask(needMask),
       _random(r),
@@ -45,7 +50,7 @@ void WsEncoder::encodeControlPacket(const WsPacket& pkt)
 {
     auto opCode = pkt.getOpCode();
     auto it = _sendVec.begin();
-    *it++ = static_cast<char>(0x80 | opCode);
+    *it++ = static_cast<char>(0x80 | (uint8_t)opCode);
     if (_needMask)
     {
         *it++ = static_cast<char>(0x80);
@@ -64,20 +69,20 @@ void WsEncoder::encodeControlPacket(const WsPacket& pkt)
 
 void WsEncoder::encodeClosePacket(const WsPacket& pkt)
 {
-    auto& reason = pkt.getCloseReason();
+    const std::string & reason = pkt.getCloseReason();
     uint32_t payloadLen = 2 + reason.size();
     if (payloadLen > _config._fragmentThreshold)
     {
         LOG_WARN("WsEncoder::encodeClosePacket: Close pkt cannot be "
                  "fragemnted. Reason '"
-                 << reason << "' is dropped.");
-        reason.clear();
+                 << reason <<
+                 "' is dropped.");
         payloadLen = 2;
     }
 
     auto it = _sendVec.begin();
-    uint8_t maskingFlag = _needMask ? 0x80 | 0x00;
-    *it++ = static_cast<char>(0x80 | opCode);
+    uint8_t maskingFlag = _needMask ? 0x80 : 0x00;
+    *it++ = static_cast<char>(0x80 | (uint8_t)eOpCode::Close);
 
     if (payloadLen < 126)
     {
@@ -86,13 +91,13 @@ void WsEncoder::encodeClosePacket(const WsPacket& pkt)
     else if (payloadLen >= 126 && payloadLen < 65536)
     {
         *it++ = static_cast<char>(maskingFlag | 126);
-        *(static_cast<uint16_t*>(&(*it))) = uniHtons(payloadLen);
+        *(reinterpret_cast<uint16_t*>(&(*it))) = uniHtons(payloadLen);
         it += 2;
     }
     else
     {
         *it++ = static_cast<char>(maskingFlag | 127);
-        *(static_cast<uint64_t*>(&(*it))) = uniHtonll(payloadLen);
+        *(reinterpret_cast<uint64_t*>(&(*it))) = uniHtonll(payloadLen);
         it += 8;
     }
 
@@ -106,7 +111,7 @@ void WsEncoder::encodeClosePacket(const WsPacket& pkt)
     }
 
     auto rit = it;
-    *(static_cast<uint16_t*>(&(*it))) =
+    *(reinterpret_cast<uint16_t*>(&(*it))) =
         uniHtons(static_cast<uint16_t>(pkt.getCloseCode()));
     it += 2;
 
@@ -122,7 +127,7 @@ void WsEncoder::encodeDataPacket(const WsPacket& pkt)
 {
     if (pkt.isPacketUndecoded())
     {
-        auto& raw = pkt.getRawData();
+        auto& raw = pkt.getPayload();
         if (raw.size() > _sendVec.capacity())
         {
            _fragmentedSendVec.reserve(raw.size());
@@ -139,11 +144,11 @@ void WsEncoder::encodeDataPacket(const WsPacket& pkt)
     uint64_t route = pkt.getRoute();
     auto jsonStr = std::move(pkt.getJson().toString());
     auto binData = pkt.getBinary();
-    uint64_t payloadLen = getRouteLen() + getDataLen(jsonStr.size()) +
+    uint64_t payloadLen = getRouteLen(route) + getDataLen(jsonStr.size()) +
         getDataLen(binData.size());
     std::vector<char>* vecPtr = nullptr;
 
-    if (headerLen + payload > _sendVec.capacity())
+    if (getHeaderLen(payloadLen) + payloadLen > _sendVec.capacity())
     {
         vecPtr = &_fragmentedSendVec;
     }
@@ -179,11 +184,11 @@ void WsEncoder::encodeDataPacket(const WsPacket& pkt)
             // Finished.
             if (!firstDataFrame)
             {
-                *it++ = static_cast<char>(0x80 | eOpCode::Continue);
+                *it++ = static_cast<char>(0x80 | (uint8_t)eOpCode::Continue);
             }
             else
             {
-                *it++ = static_cast<char>(0x80 | eOpCode::Binary);
+                *it++ = static_cast<char>(0x80 | (uint8_t)eOpCode::Binary);
             }
 
             // Get the length of payload this data frame.
@@ -213,13 +218,13 @@ void WsEncoder::encodeDataPacket(const WsPacket& pkt)
         else if (payloadLen >= 126 && payloadLen < 65536)
         {
             *it++ = static_cast<char>(maskingFlag | (uint8_t)126);
-            *(static_cast<uint16_t*>(&(*it))) = uniHtons(dataFrameLen);
+            *(reinterpret_cast<uint16_t*>(&(*it))) = uniHtons(dataFrameLen);
             it += 2;
         }
         else
         {
             *it++ = static_cast<char>(maskingFlag | (uint8_t)127);
-            *(static_cast<uint64_t*>(&(*it))) = uniHtons(dataFrameLen);
+            *(reinterpret_cast<uint64_t*>(&(*it))) = uniHtons(dataFrameLen);
             it += 8;
         }
 
@@ -259,13 +264,14 @@ void WsEncoder::encodeDataPacket(const WsPacket& pkt)
         }
 
 #define COPY_DATA(srcBegin, srcEnd, dst)                                       \
-    copyLen = frameLeft > ((srcEnd) - (srcBegin)) ? ((srcEnd) - (srcBegin))    \
-                                                  : frameLeft;                 \
+    copyLen = frameLeft > (uint64_t)((srcEnd) - (srcBegin))                    \
+                  ? ((srcEnd) - (srcBegin))                                    \
+                  : frameLeft;                                                 \
     std::copy_n(srcBegin, copyLen, dst);                                       \
     srcBegin += copyLen;                                                       \
-    buffLeft -= copyLen;                                                       \
+    frameLeft -= copyLen;                                                      \
     dst += copyLen;                                                            \
-    if (buffLeft == 0)                                                         \
+    if (frameLeft == 0)                                                        \
     {                                                                          \
         if (_needMask)                                                         \
         {                                                                      \
@@ -282,15 +288,15 @@ void WsEncoder::encodeDataPacket(const WsPacket& pkt)
         }
         else
         {
-            _lastIt = _binaryMeta.begin();
+            lastIt = _binaryMeta.begin();
         }
 
         // 4th, write json.
-        if (!json.empty())
+        if (!jsonStr.empty())
         {
-            COPY_DATA(lastIt, _jsonMeta.end(), it)
-            json.clear();
-            _lastIt = _binaryMeta.begin();
+            COPY_DATA(jsonIt, _jsonMeta.end(), it)
+            jsonStr.clear();
+            lastIt = _binaryMeta.begin();
         }
 
         // 5th, write binary meta.
@@ -298,27 +304,27 @@ void WsEncoder::encodeDataPacket(const WsPacket& pkt)
         {
             COPY_DATA(lastIt, _binaryMeta.end(), it)
             _binaryMeta.clear();
-            _lastIt = binData.begin();
+            lastIt = binData.begin();
         }
 
         // 6th, write binary.
         if (!binData.empty())
         {
             COPY_DATA(lastIt, binData.end(), it)
-            _lastIt = binData.begin();
+            lastIt = binData.begin();
         }
     }
 
-    vecPtr->resize(it - vecPtr.begin());
+    vecPtr->resize(it - vecPtr->begin());
 }
 
 void WsEncoder::maskPacket(std::vector<char>::iterator begin,
                            std::vector<char>::iterator end)
 {
     uint8_t i = 0;
-    std::for_each(begin, end, [&i](char& c)
+    std::for_each(begin, end, [&i, this](char& c)
                   {
-                      c ^= _maskingKey[i++];
+                      c ^= this->_maskingKey[i++];
                       i %= 4;
                   });
 }
@@ -362,13 +368,37 @@ void WsEncoder::getMeta(ePayloadItem item,
     }
 }
 
-uint8_t WsEncoder::getRouteLen()
+uint8_t WsEncoder::getHeaderLen(uint64_t payloadLen)
 {
-    if (_route < 254)
+    uint8_t headerLen = 0;
+    if (payloadLen < 126)
+    {
+        headerLen = 2;
+    }
+    else if (payloadLen >= 126 && payloadLen < 65536)
+    {
+        headerLen = 2 + 2;
+    }
+    else
+    {
+        headerLen = 2 + 8;
+    }
+
+    if (_needMask)
+    {
+        headerLen += 4;
+    }
+
+    return headerLen;
+}
+
+uint8_t WsEncoder::getRouteLen(uint64_t route)
+{
+    if (route < 254)
     {
         return (uint8_t)1;
     }
-    else if (_route >= 254 && _route < 65536)
+    else if (route >= 254 && route < 65536)
     {
         return (uint8_t)3; // 1 + 2 bytes.
     }

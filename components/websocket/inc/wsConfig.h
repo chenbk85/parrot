@@ -1,5 +1,5 @@
-#ifndef __COMPONENT_WEBSOCKET_INC_WSCONFIG_H__
-#define __COMPONENT_WEBSOCKET_INC_WSCONFIG_H__
+#ifndef __COMPONENTS_WEBSOCKET_INC_WSCONFIG_H__
+#define __COMPONENTS_WEBSOCKET_INC_WSCONFIG_H__
 
 #include <string>
 #include <cstdint>
@@ -17,13 +17,13 @@ struct WsConfig
     }
 
     std::string _host;
-    uint32_t _maxPacketLen = (1 << 20);      // 1MB.
-    uint32_t _maxHttpHandshake = (1 << 13);  // 8KB.
-    uint32_t _fragmentThreshold = (1 << 14); // 16KB.
+    const static uint32_t _maxPacketLen = (1 << 20);      // 1MB.
+    const static uint32_t _maxHttpHandshake = (1 << 13);  // 8KB.
+    const static uint32_t _fragmentThreshold = (1 << 14); // 16KB.
 
     //According to RFC6455, the max header size is 14 bytes.
-    uint32_t _recvBuffLen = (1 << 14) + 14; // Payload len + max header len.
-    uint32_t _sendBuffLen = (1 << 14) + 14; // Payload len + max header len.
+    const static uint32_t _recvBuffLen = (1 << 14) + 14; // Payload len + max header len.
+    const static uint32_t _sendBuffLen = (1 << 14) + 14; // Payload len + max header len.
 };
 }
 

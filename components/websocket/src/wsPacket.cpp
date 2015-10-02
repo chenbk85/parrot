@@ -5,23 +5,24 @@ namespace parrot
 {
 WsPacket::WsPacket()
     : _opCode(eOpCode::Binary),
-      _closeCode(eCodes::NormalClosure),
+      _closeCode(eCodes::WS_NormalClosure),
       _reason(),
       _json(),
       _bin(),
-      _raw(),
-      _route(0)
+      _payload(),
+      _route(0),
+      _decoded(false)
 {
 }
 
 bool WsPacket::isPacketUndecoded() const
 {
-    return _raw;
+    return _decoded;
 }
 
 bool WsPacket::isControl() const
 {
-    return _opCode == eOpCode::Binary;
+    return _opCode != eOpCode::Binary;
 }
 
 void WsPacket::setRoute(uint64_t route)
@@ -29,19 +30,20 @@ void WsPacket::setRoute(uint64_t route)
     _route = route;
 }
 
-void WsPacket::setJson(Json&& json)
+void WsPacket::setJson(std::unique_ptr<Json>&& json)
 {
     _json = std::move(json);
 }
 
-void WsPacket::setBinary(std::vector<char>> &&bin)
+void WsPacket::setBinary(std::vector<char> &&bin)
 {
     _bin = std::move(bin);
 }
 
-void WsPacket::setRawData(std::vector<char>> &&raw)
+void WsPacket::setPacket(eOpCode opCode, std::vector<char> &&payload)
 {
-    _raw = std::move(raw);
+    _opCode = opCode;
+    _payload = std::move(payload);
 }
 
 void WsPacket::setOpCode(eOpCode opCode)
@@ -51,6 +53,7 @@ void WsPacket::setOpCode(eOpCode opCode)
 
 void WsPacket::setClose(eCodes code, std::string&& reason)
 {
+    _opCode = eOpCode::Close;
     _closeCode = code;
     _reason = std::move(reason);
 }
@@ -65,7 +68,7 @@ eCodes WsPacket::getCloseCode() const
     return _closeCode;
 }
 
-const string& WsPacket::getCloseReason() const
+const std::string& WsPacket::getCloseReason() const
 {
     return _reason;
 }
@@ -77,7 +80,7 @@ uint64_t WsPacket::getRoute() const
 
 const std::vector<char>& WsPacket::getBinary() const
 {
-    return *(_bin.get());
+    return _bin;
 }
 
 const Json& WsPacket::getJson() const
@@ -85,8 +88,8 @@ const Json& WsPacket::getJson() const
     return *(_json.get());
 }
 
-const std::vector<char>& WsPacket::getRawData() const
+const std::vector<char>& WsPacket::getPayload() const
 {
-    return *(_raw.get());
+    return _payload;
 }
 }
