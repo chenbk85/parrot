@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#include "sysHelper.h"
 #include "ipHelper.h"
 #include "ioEvent.h"
 #include "tcpClient.h"

@@ -12,6 +12,7 @@ class IPHelper
 {
   public:
     IPHelper();
+    explicit IPHelper(const std::string &ip);
 
   public:
     void setIP(const std::string& ip);

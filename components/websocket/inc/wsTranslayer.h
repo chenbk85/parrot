@@ -19,7 +19,7 @@ class IoEvent;
 class WsPacket;
 class WsParser;
 struct WsConfig;
-enum class eIoAction : uint16_t;
+enum class eIoAction : uint8_t;
 
 // WsTranslayer implements Websocket implement.
 class WsTranslayer

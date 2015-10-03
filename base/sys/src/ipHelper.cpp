@@ -17,6 +17,15 @@ IPHelper::IPHelper() : _version(-1), _ip(), _addr6(), _addr4()
     std::memset(&_addr4, 0, sizeof(struct in_addr));
 }
 
+IPHelper::IPHelper(const std::string& ip)
+    : _version(-1), _ip(), _addr6(), _addr4()
+{
+    std::memset(&_addr6, 0, sizeof(struct in6_addr));
+    std::memset(&_addr4, 0, sizeof(struct in_addr));
+
+    setIP(ip);
+}
+
 void IPHelper::setIP(const std::string& ip)
 {
     if (ip.find(".") != std::string::npos)

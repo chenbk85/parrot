@@ -9,7 +9,7 @@
 
 namespace parrot
 {
-enum class eIoAction : uint16_t
+enum class eIoAction : uint8_t
 {
     None,
     Read,
@@ -90,36 +90,6 @@ class IoEvent
     virtual eCodes send(const char* buff, uint32_t buffLen, uint32_t& sentLen);
     virtual eCodes recv(char* buff, uint32_t buffLen, uint32_t& rcvdLen);
 #endif
-  public:
-    // static help functions.
-
-    // Make the fd non-blocking.
-    //
-    // Params:
-    // * fd: The target file descriptor.
-    // * on: If true, make the fd nonblock. or make it block.
-    static void setNonBlock(sockhdl fd, bool on = true);
-
-    // Turn off nagle algorithm.
-    //
-    // Params:
-    // * fd: The target file descriptor.
-    static void setNoDelay(sockhdl fd);
-
-#if defined(_WIN32)
-    // Set the socket exclusive.
-    //
-    // Params:
-    // * fd: The target file descriptor.
-    static void setExclusiveAddr(sockhdl fd);
-#elif defined(__linux__) || defined(__APPLE__)
-    // Do not use reuse addr in Windows.
-    //
-    // Params:
-    // * fd: The target file descriptor.
-    static void setReuseAddr(sockhdl fd);
-#endif
-
   protected:
     int _fd;
     int _filter;

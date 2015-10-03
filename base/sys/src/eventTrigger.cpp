@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <system_error>
+#include "sysHelper.h"
 #include "ioEvent.h"
 #include "eventTrigger.h"
 
