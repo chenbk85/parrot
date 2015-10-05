@@ -74,23 +74,13 @@ DaemonNix& DaemonNix::getInstance()
     return daemon;
 }
 
-void DaemonNix::setConfig(const Config* cfg)
-{
-    _config = cfg;
-}
-
-void DaemonNix::registerShutdownCb(std::function<void()> cb)
-{
-    _shutdownCb = std::move(cb);
-}
-
-void DaemonNix::beforeThreadsStart()
+void DaemonNix::beforeCreateThreads()
 {
     blockAllSignals();
     handleSignal();
 }
 
-void DaemonNix::afterThreadsStart()
+void DaemonNix::afterCreateThreads()
 {
     unblockAllSignals();
 }
@@ -286,7 +276,7 @@ void DaemonNix::daemonize()
     write(_lockFd, buff, strlen(buff)); /* Record pid to lockfile */
 }
 
-void DaemonNix::shutdown()
+void DaemonNix::beforeTerminate()
 {
     // Unlock and remove lock file.
     ::lockf(_lockFd, F_ULOCK, 0);

@@ -4,6 +4,6 @@ namespace parrot
 {
 void PoolThread::beforeRun()
 {
-    sleep(-1);
+    ThreadBase::sleep(-1);
 }
 }

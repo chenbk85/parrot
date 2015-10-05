@@ -3,6 +3,8 @@
 
 #include <functional>
 
+#include "daemonBase.h"
+
 namespace parrot
 {
 struct Config;
@@ -10,7 +12,7 @@ struct Config;
 /**
  * Daemon impl for nix systems.
  */
-class DaemonNix
+class DaemonNix : public DaemonBase
 {
   public:
     DaemonNix();
@@ -19,44 +21,37 @@ class DaemonNix
     static DaemonNix& getInstance();
 
   public:
-    void setConfig(const Config* cfg);
-
-    // registerShutdownCb
-    //
-    // Register a callback function which will be called when your
-    // daemon is shutting down.
-    void registerShutdownCb(std::function<void()> cb);
 
     // daemonize
     //
     // Make the program as a daemon.
-    void daemonize();
+    void daemonize() override;
 
-    // beforeThreadsStart
+    // beforeCreateThreads
     //
     // This function blocks all signals and register signal handler.
     // Create threads after calling this function, the created threads
     // will inherit the main thread's signal mask, a.k.a, blocks all
     // signals.
-    void beforeThreadsStart();
+    void beforeCreateThreads() override;
 
-    // afterThreadsStart
+    // afterCreateThreads
     //
     // This function unblocks all signals. Since the sub threads already
     // inherit the main thread's signal mask, we can unblock all signal.
     // By doing so, all signals will be delivered to main thread.
-    void afterThreadsStart();
+    void afterCreateThreads() override;
 
     // isShutdown
     //
     // Check if received shutdown request.
-    bool isShutdown() const;
+    bool isShutdown() const override;
 
-    // shutdown
+    // beforeTerminate
     //
     // This function will remove the lock file created in daemonize
     // function.
-    void shutdown();
+    void beforeTerminate() override;
 
     // shutdownDaemon
     //
@@ -72,8 +67,6 @@ class DaemonNix
   private:
     int _lockFd;
     volatile bool _isShutdown;
-    std::function<void()> _shutdownCb;
-    const Config* _config;
 };
 }
 
