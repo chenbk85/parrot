@@ -14,11 +14,25 @@ class MainThread
     explicit MainThread(const Config& cfg);
 
   public:
-    virtual void beforeStart();
+    // onStop
+    //
+    // onStop is the callback which will be called when the
+    // process received the shutdown signal.
+    void onStop();
+    
+  public:
     virtual void start();
-    void frontListen(const string& ip, uint16_t port);
-    void run();
-    void stop();
+
+  protected:
+    virtual void beforeStart();
+    virtual void createUserThreads() {}
+    virtual void run();
+    virutal void beforeTerminate();
+
+  protected:
+    void createSysThreads();
+    void createThreads();
+    void daemonize();
 
   protected:
     const Config& _config;

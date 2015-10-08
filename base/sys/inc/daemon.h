@@ -14,6 +14,7 @@ class Daemon
     static void afterCreateThreads();
     static bool isShutdown();
     static void beforeTerminate();
+    static void registerShutdownCb(std::function<void()> &&cb);
 
   private:
     static Daemon* _daemon;

@@ -13,7 +13,7 @@ void DaemonBase::setConfig(const Config* cfg)
     _config = cfg;
 }
 
-void DaemonBase::registerShutdownCb(std::function<void()> cb)
+void DaemonBase::registerShutdownCb(std::function<void()> &&cb)
 {
     _shutdownCb = std::move(cb);
 }

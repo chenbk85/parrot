@@ -34,6 +34,11 @@ bool Daemon::isShutdown()
     return _daemon->isShutdown();
 }
 
+void Daemon::registerShutdownCb(std::function<void()> &&cb)
+{
+    _daemon->registerShutdownCb(std::move(cb));
+}
+
 void Daemon::beforeTerminate()
 {
     _daemon->beforeTerminate();

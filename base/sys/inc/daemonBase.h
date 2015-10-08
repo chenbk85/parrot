@@ -20,7 +20,7 @@ class DaemonBase
     //
     // Register a callback function which will be called when your
     // daemon is shutting down.
-    void registerShutdownCb(std::function<void()> cb);
+    void registerShutdownCb(std::function<void()> &&cb);
 
     // daemonize
     //
