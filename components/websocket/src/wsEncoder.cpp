@@ -1,4 +1,5 @@
 #include <string>
+#include <algorithm>
 
 #include "json.h"
 #include "logger.h"
@@ -294,7 +295,7 @@ void WsEncoder::encodeDataPacket(const WsPacket& pkt)
         // 4th, write json.
         if (!jsonStr.empty())
         {
-            COPY_DATA(jsonIt, _jsonMeta.end(), it)
+            COPY_DATA(jsonIt, jsonStr.end(), it)
             jsonStr.clear();
             lastIt = _binaryMeta.begin();
         }

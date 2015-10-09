@@ -1,9 +1,12 @@
 #ifndef __BASE_SYS_INC_DAEMON_H__
 #define __BASE_SYS_INC_DAEMON_H__
 
+#include <functional>
+
 namespace parrot
 {
-class Config;
+struct Config;
+class DaemonBase;
 
 class Daemon
 {
@@ -17,7 +20,7 @@ class Daemon
     static void registerShutdownCb(std::function<void()> &&cb);
 
   private:
-    static Daemon* _daemon;
+    static DaemonBase* _daemon;
 };
 }
 

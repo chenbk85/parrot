@@ -1,12 +1,13 @@
 #include "daemon.h"
 #include "daemonNix.h"
+#include "daemonBase.h"
 
 namespace parrot
 {
 #ifdef _WIN32
-Daemon* Daemon::_daemon = nullptr;
+DaemonBase* Daemon::_daemon = nullptr;
 #else
-Daemon* Daemon::_daemon = &DaemonNix::getInstance();
+DaemonBase* Daemon::_daemon = &DaemonNix::getInstance();
 #endif
 
 void Daemon::setConfig(const Config* cfg)

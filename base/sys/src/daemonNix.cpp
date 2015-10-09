@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 
 #include "config.h"
 #include "logger.h"
@@ -64,7 +67,7 @@ void signalAction(int sig, siginfo_t* siginfo, void*)
 namespace parrot
 {
 DaemonNix::DaemonNix()
-    : _lockFd(0), _isShutdown(false), _shutdownCb(), _config(nullptr)
+    : _lockFd(0), _isShutdown(false)
 {
 }
 

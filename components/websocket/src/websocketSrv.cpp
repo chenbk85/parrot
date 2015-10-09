@@ -6,7 +6,7 @@
 #include "json.h"
 #include "wsEncoder.h"
 #include "wsParser.h"
-#include "WsHttpResponse.h"
+#include "wsHttpResponse.h"
 #include "wsTranslayer.h"
 #include "wsPacket.h"
 #include "websocketSrv.h"

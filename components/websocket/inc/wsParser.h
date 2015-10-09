@@ -96,7 +96,7 @@ class WsParser
     //
     // return:
     //  * ST_NeedRecv    // Hasn't receive the full packet,
-    //                        need recevie more.
+    //                        need receive more.
     //  * ST_Ok          // Finished parsing.
     eCodes doParse();
 
