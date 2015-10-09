@@ -3,7 +3,7 @@
 
 namespace parrot
 {
-MainThread::MainThread(const Config &cfg): _config(cfg)
+MainThread::MainThread(const Config& cfg) : _config(cfg)
 {
 }
 
@@ -23,12 +23,11 @@ void MainThread::createThreads()
     Daemon::beforeCreateThreads();
     createSysThreads();
     createUserThreads();
-    Daemon::afterCreateThreads();    
+    Daemon::afterCreateThreads();
 }
 
 void MainThread::createSysThreads()
 {
-    
 }
 
 void MainThread::beforeStart()
@@ -48,13 +47,11 @@ void MainThread::run()
 {
     while (!Daemon::isShutdown())
     {
-
     }
 }
 
 void MainThread::onStop()
 {
-
 }
 
 void MainThread::beforeTerminate()

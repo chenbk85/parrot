@@ -45,7 +45,7 @@ enum class eCodes
     ST_NeedRecv = 100022,
     ST_RetryLater = 100030,
     ST_RetryWhenReadable = 100031,
-    ST_RetryWhenWriteable = 100032,
+    ST_RetryWhenWritable = 100032,
     ST_WSHttpHandshakeOk = 100033,
     ST_Complete = 100100,
 

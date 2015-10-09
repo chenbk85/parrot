@@ -85,7 +85,7 @@ eCodes SslIo::handleResult(int ret, const std::string& funcName)
             break;
 
         case SSL_ERROR_WANT_WRITE:
-            code = eCodes::ST_RetryWhenWriteable;
+            code = eCodes::ST_RetryWhenWritable;
             break;
 
         default:
