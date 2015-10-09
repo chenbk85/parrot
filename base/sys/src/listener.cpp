@@ -111,6 +111,7 @@ void Listener::startListen()
 
     try
     {
+        // Set reuse addr before bind. Or it won't work.
         // On linux or mac, we can reuse addr. but on windows, we cannot.
         setReuseAddr(fd);
 
