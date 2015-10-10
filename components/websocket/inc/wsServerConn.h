@@ -1,5 +1,5 @@
-#ifndef __COMPONENTS_WEBSOCKET_INC_WEBSOCKETSRV_H__
-#define __COMPONENTS_WEBSOCKET_INC_WEBSOCKETSRV_H__
+#ifndef __COMPONENTS_WEBSOCKET_INC_WSSERVERCONN_H__
+#define __COMPONENTS_WEBSOCKET_INC_WSSERVERCONN_H__
 
 #include <memory>
 #include <list>
@@ -17,7 +17,7 @@ class WsPacket;
 class WsTranslayer;
 struct WsConfig;
 
-class WebSocketSrv : public TcpServer, public TimeoutGuard
+class WsServerConn : public TcpServer, public TimeoutGuard
 {
     enum class WsState
     {
@@ -27,10 +27,10 @@ class WebSocketSrv : public TcpServer, public TimeoutGuard
     };
 
   public:
-    explicit WebSocketSrv(const WsConfig& cfg);
-    virtual ~WebSocketSrv() = default;
-    WebSocketSrv(const WebSocketSrv&) = delete;
-    WebSocketSrv& operator=(const WebSocketSrv&) = delete;
+    explicit WsServerConn(const WsConfig& cfg);
+    virtual ~WsServerConn() = default;
+    WsServerConn(const WsServerConn&) = delete;
+    WsServerConn& operator=(const WsServerConn&) = delete;
 
   public:
     void sendPacket(std::unique_ptr<WsPacket>& pkt);

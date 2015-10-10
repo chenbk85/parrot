@@ -58,7 +58,7 @@ eCodes SslIo::recv(char* buff, uint32_t len, uint32_t& recvLen)
     return handleResult(rLen, "sslRecv");
 }
 
-eCodes SslIo::handleResult(int ret, const std::string& funcName)
+eCodes SslIo::handleResult(int ret, const char* funcName)
 {
     eCodes code = eCodes::ERR_Fail;
 

@@ -106,7 +106,7 @@ class SslIo : public IoEvent
     //  ST_RetryWhenWriteable
     //  ST_Ok
     //  ERR_Fail
-    eCodes handleResult(int ret, const std::string& funcName);
+    eCodes handleResult(int ret, const char* funcName);
 
   protected:
     SSL* _ssl;

@@ -25,7 +25,7 @@ LoggerThread::LoggerThread(const Config* cfg)
 #elif defined(__APPLE__)
       _notifier(new Kqueue(1)),
 #elif defined(_WIN32)
-      _notifier(new SimpleEventNotifier())
+      _notifier(new SimpleEventNotifier()),
 #endif
       _config(cfg)
 {

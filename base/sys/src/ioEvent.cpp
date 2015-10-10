@@ -28,7 +28,12 @@
 namespace parrot
 {
 IoEvent::IoEvent()
-    : _fd(-1), _filter(-1), _flags(-1), _action(eIoAction::None), _remoteIp()
+    : _fd(-1),
+      _filter(-1),
+      _flags(-1),
+      _uniqueKey(0),
+      _action(eIoAction::None),
+      _remoteIp(),
 {
 }
 
@@ -110,6 +115,16 @@ void IoEvent::setFlags(int flags)
 int IoEvent::getFlags() const
 {
     return _flags;
+}
+
+void IoEvent::setUniqueKey(uint64_t key)
+{
+    _uniqueKey = key;
+}
+
+uint64_t IoEvent::getUniqueKey() const
+{
+    return _uniqueKey;
 }
 
 bool IoEvent::isError() const

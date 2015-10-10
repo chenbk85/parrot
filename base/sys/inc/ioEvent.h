@@ -70,6 +70,10 @@ class IoEvent
 
     const std::string& getRemoteAddr() const;
 
+    void setUniqueKey(uint64_t key);
+
+    uint64_t getUniqueKey() const;
+
   protected:
     // Help function to mark the event to read.
     void setIoRead();
@@ -94,6 +98,7 @@ class IoEvent
     int _fd;
     int _filter;
     int _flags;
+    uint64_t _uniqueKey;
     eIoAction _action;
     std::string _remoteIp;
 };
