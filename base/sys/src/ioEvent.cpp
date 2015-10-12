@@ -33,7 +33,7 @@ IoEvent::IoEvent()
       _flags(-1),
       _uniqueKey(0),
       _action(eIoAction::None),
-      _remoteIp(),
+      _remoteIp()
 {
 }
 

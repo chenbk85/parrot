@@ -28,7 +28,7 @@ void signalAction(int sig, siginfo_t* siginfo, void*)
              * will not block if a child was cleaned up in another part of
              * the program.
              */
-            while (waitpid(-1, nullptr, WNOHANG) > 0)
+            while (::waitpid(-1, nullptr, WNOHANG) > 0)
             {
             }
         }
@@ -44,21 +44,23 @@ void signalAction(int sig, siginfo_t* siginfo, void*)
 
         case SIGUSR1:
         {
+            // TODO:
             // Logger level + 1.
         }
         break;
 
         case SIGUSR2:
         {
-            // Logger level -1.
+            // TODO:
+            // Logger level - 1.
         }
         break;
 
         default:
         {
             LOG_WARN("Global::signalAction: Received signal: "
-                     << sig << ". User is " << (long)siginfo->si_pid
-                     << ". Group is " << (long)siginfo->si_uid << ".");
+                     << sig << ". User is " << (long)siginfo->si_uid
+                     << ". Pid is " << (long)siginfo->si_pid << ".");
         }
         break;
     }
@@ -91,9 +93,9 @@ void DaemonNix::afterCreateThreads()
 void DaemonNix::blockAllSignals()
 {
     sigset_t set;
-    sigfillset(&set); // Fill all signals.
+    ::sigfillset(&set); // Fill all signals.
 
-    int s = pthread_sigmask(SIG_BLOCK, &set, NULL);
+    int s = ::pthread_sigmask(SIG_BLOCK, &set, NULL);
     if (s != 0)
     {
         throw std::system_error(errno, std::system_category(),
@@ -104,9 +106,9 @@ void DaemonNix::blockAllSignals()
 void DaemonNix::unblockAllSignals()
 {
     sigset_t set;
-    sigfillset(&set); // Fill all signals.
+    ::sigfillset(&set); // Fill all signals.
 
-    int s = pthread_sigmask(SIG_UNBLOCK, &set, NULL);
+    int s = ::pthread_sigmask(SIG_UNBLOCK, &set, NULL);
     if (s != 0)
     {
         throw std::system_error(errno, std::system_category(),
@@ -120,49 +122,49 @@ void DaemonNix::handleSignal()
     std::memset(&sa, 0, sizeof(struct sigaction));
     sa.sa_sigaction = signalAction;
 
-    if (sigaction(SIGINT, &sa, nullptr) == -1)
+    if (::sigaction(SIGINT, &sa, nullptr) == -1)
     {
         throw std::system_error(errno, std::system_category(),
                                 "DaemonNix::handleSignal: SIGHUP");
     }
 
-    if (sigaction(SIGTERM, &sa, nullptr) == -1)
+    if (::sigaction(SIGTERM, &sa, nullptr) == -1)
     {
         throw std::system_error(errno, std::system_category(),
                                 "DaemonNix::handleSignal: SIGTERM");
     }
     
-    if (sigaction(SIGUSR1, &sa, nullptr) == -1)
+    if (::sigaction(SIGUSR1, &sa, nullptr) == -1)
     {
         throw std::system_error(errno, std::system_category(),
                                 "DaemonNix::handleSignal: SIGUSR1");
     }
 
-    if (sigaction(SIGUSR2, &sa, nullptr) == -1)
+    if (::sigaction(SIGUSR2, &sa, nullptr) == -1)
     {
         throw std::system_error(errno, std::system_category(),
                                 "DaemonNix::handleSignal: SIGUSR2");
     }
 
-    if (sigaction(SIGCHLD, &sa, nullptr) == -1)
+    if (::sigaction(SIGCHLD, &sa, nullptr) == -1)
     {
         throw std::system_error(errno, std::system_category(),
                                 "DaemonNix::handleSignal: SIGCHLD");
     }
 
-    if (sigaction(SIGTSTP, &sa, nullptr) == -1)
+    if (::sigaction(SIGTSTP, &sa, nullptr) == -1)
     {
         throw std::system_error(errno, std::system_category(),
                                 "DaemonNix::handleSignal: SIGTSTP");
     }
 
-    if (sigaction(SIGTTOU, &sa, nullptr) == -1)
+    if (::sigaction(SIGTTOU, &sa, nullptr) == -1)
     {
         throw std::system_error(errno, std::system_category(),
                                 "DaemonNix::handleSignal: SIGTTOU");
     }
 
-    if (sigaction(SIGTTIN, &sa, nullptr) == -1)
+    if (::sigaction(SIGTTIN, &sa, nullptr) == -1)
     {
         throw std::system_error(errno, std::system_category(),
                                 "DaemonNix::handleSignal: SIGTTIN");
@@ -185,12 +187,12 @@ void DaemonNix::daemonize()
     // This function is referenced from:
     // http://www.enderunix.org/docs/eng/daemon.php
 
-    if (getppid() == 1)
+    if (::getppid() == 1)
     {
         return; /* Already a daemon. */
     }
 
-    int i = fork();
+    int i = ::fork();
 
     if (i < 0)
     {
@@ -200,7 +202,7 @@ void DaemonNix::daemonize()
 
     if (i > 0)
     {
-        exit(0); /* Parent exits */
+        ::exit(0); /* Parent exits */
     }
 
     /* Child (daemon) continues here ...*/
@@ -217,7 +219,7 @@ void DaemonNix::daemonize()
      * This call will place the server in a new process group and session and
      * detach its controlling terminal. (setpgrp() is an alternative for this)
      */
-    setsid();
+    ::setsid();
 
     /**
      * Open descriptors are inherited to child process, this may cause the
@@ -226,7 +228,7 @@ void DaemonNix::daemonize()
      * or close all open descriptors as soon as the child process starts
      * running.
      */
-    for (i = getdtablesize(); i >= 0; --i)
+    for (i = ::getdtablesize(); i >= 0; --i)
     {
         ::close(i);
     }
@@ -238,19 +240,19 @@ void DaemonNix::daemonize()
      * a terminal or file. For safety, these descriptors should be opened
      * and connectedthem to a harmless I/O device (such as /dev/null).
      */
-    i = open("/dev/null", O_RDWR);
-    dup(i);
-    dup(i);
+    i = ::open("/dev/null", O_RDWR);
+    ::dup(i);
+    ::dup(i);
 
     /**
      * Most servers runs as super-user, for security reasons they should
-     * protect files that they create. Setting user mask will pre vent
+     * protect files that they create. Setting user mask will prevent
      * unsecure file priviliges that may occur on file creation.
      */
-    umask(122); // This will restrict file creation mode to 644.
+    ::umask(122); // This will restrict file creation mode to 644.
 
     // Create lock file.
-    _lockFd = open(_config->_lockFilePath.c_str(), O_RDWR | O_CREAT, 0640);
+    _lockFd = ::open(_config->_lockFilePath.c_str(), O_RDWR | O_CREAT, 0640);
     if (_lockFd < 0)
     {
         throw std::system_error(errno, std::system_category(),
@@ -267,16 +269,16 @@ void DaemonNix::daemonize()
      * surely be efficient to make 'cat mydaamon.lock' instead of
      * 'ps -ef|grep mydaemon'
      */
-    if (lockf(_lockFd, F_TLOCK, 0) < 0)
+    if (::lockf(_lockFd, F_TLOCK, 0) < 0)
     {
-        close(_lockFd);
+        ::close(_lockFd);
         throw std::system_error(errno, std::system_category(),
                                 "DaemonNix::daemonize: lockf");
     }
 
     char buff[16];
-    snprintf(buff, sizeof(buff), "%d\n", getpid());
-    write(_lockFd, buff, strlen(buff)); /* Record pid to lockfile */
+    ::snprintf(buff, sizeof(buff), "%d\n", getpid());
+    ::write(_lockFd, buff, strlen(buff)); /* Record pid to lockfile */
 }
 
 void DaemonNix::beforeTerminate()

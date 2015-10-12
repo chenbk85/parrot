@@ -1,6 +1,7 @@
 #ifndef __BASE_SYS_INC_CONFIG_H__
 #define __BASE_SYS_INC_CONFIG_H__
 
+#include <map>
 #include <string>
 #include <cstdint>
 
@@ -46,7 +47,7 @@ struct Config
     // This server's info.
     ServerInfo _thisServer;
     // All neighbor servers' map.
-    std::map<string, ServerInfo> _neighborSrvMap;
+    std::map<std::string, ServerInfo> _neighborSrvMap;
 
     // The front thread pool size.
     uint8_t _frontThreadPoolSize = 2;

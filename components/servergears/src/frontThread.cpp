@@ -1,3 +1,5 @@
+#include <system_error>
+
 #include "eventNotifier.h"
 #include "epoll.h"
 #include "kqueue.h"
@@ -32,8 +34,10 @@ void FrontThread::beforeStart()
 #elif defined(__APPLE__)
     _notifier.reset(new Kqueue(_config->_frontThreadMaxConnCount));
 #elif defined(_WIN32)
-//    _notifier.reset(new SimpleEventNotifier(_config->_frontThreadMaxConnCount));
+//    _notifier.reset(new
+//    SimpleEventNotifier(_config->_frontThreadMaxConnCount));
 #endif
+    _notifier->create();
 }
 
 void FrontThread::stop()
@@ -51,25 +55,25 @@ void FrontThread::addConn(std::shared_ptr<WsServerConn>&& conn)
     _notifier->stopWaiting();
 }
 
-void FrontThread::addConn(std::list<std::shared_ptr<WsServerConn>> &connList)
+void FrontThread::addConn(std::list<std::shared_ptr<WsServerConn>>& connList)
 {
     _newConnListLock.lock();
     // Append the connList to the _newConnList.
     _newConnList.splice(_newConnList.end(), connList);
     _newConnListLock.unlock();
 
-    _notifier->stopWaiting();    
+    _notifier->stopWaiting();
 }
 
 void FrontThread::addConnToNotifier()
 {
     std::list<std::shared_ptr<WsServerConn>> tmpList;
-    
+
     _newConnListLock.lock();
     std::swap(tmpList, _newConnList);
     _newConnListLock.unlock();
 
-    for (auto & c: tmpList)
+    for (auto& c : tmpList)
     {
         c->setAction(eIoAction::Read);
         _notifier->addEvent(c.get());
@@ -81,52 +85,62 @@ void FrontThread::run()
 {
     uint32_t eventNum = 0;
     uint32_t idx = 0;
-    WsServerConn *conn;
+    WsServerConn* conn;
     eIoAction act = eIoAction::None;
-    
-    while (!isStopped())
+
+    try
     {
-        addConnToNotifier();
-
-        eventNum = _notifier->waitIoEvents(1000);
-
-        for (idx = 0; idx != eventNum; ++idx)
+        while (!isStopped())
         {
-            // We are sure that the IoEvnet is WsServerConn,
-            // so we can use static_cast.
-            conn = static_cast<WsServerConn*>(_notifier->getIoEvent(idx));
-            act = conn->handleIoEvent();
+            addConnToNotifier();
 
-            switch (act)
+            eventNum = _notifier->waitIoEvents(1000);
+
+            for (idx = 0; idx != eventNum; ++idx)
             {
-                // FIXME: Do both read & write at the same time.
-                // Just disable write when no data to write.
-                case eIoAction::Read:
-                {
-                    _notifier->monitorRead(conn);
-                }
-                break;
+                // We are sure that the IoEvnet is WsServerConn,
+                // so we can use static_cast.
+                conn = static_cast<WsServerConn*>(_notifier->getIoEvent(idx));
+                act = conn->handleIoEvent();
 
-                case eIoAction::Write:
+                switch (act)
                 {
-                    _notifier->monitorWrite(conn);
-                }
-                break;
+                    // FIXME: Do both read & write at the same time.
+                    // Just disable write when no data to write.
+                    case eIoAction::Read:
+                    {
+                        _notifier->monitorRead(conn);
+                    }
+                    break;
 
-                case eIoAction::Remove:
-                {
-                    _notifier->delEvent(conn);
-                    _connMap.erase(conn->getUniqueKey());
-                }
-                break;
+                    case eIoAction::Write:
+                    {
+                        _notifier->monitorWrite(conn);
+                    }
+                    break;
 
-                default:
-                {
-                    PARROT_ASSERT(false);
-                }
-                break;
-            }
-        }
+                    case eIoAction::Remove:
+                    {
+                        _notifier->delEvent(conn);
+                        _connMap.erase(conn->getUniqueKey());
+                    }
+                    break;
+
+                    default:
+                    {
+                        PARROT_ASSERT(false);
+                    }
+                    break;
+                } // switch
+            }     // for
+        }         // while
+    }
+    catch (const std::system_error& e)
+    {
+        LOG_ERROR("FrontThread::run: Errno is " << e.code() << ". Meaning "
+                                                << e.what());
+        // What we can do here? Probably nothing but an assertion.
+        PARROT_ASSERT(false);
     }
 }
 }
