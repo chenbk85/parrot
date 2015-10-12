@@ -6,11 +6,10 @@
 #include <cstdint>
 
 #include "codes.h"
+#include "ioEvent.h"
 
 namespace parrot
 {
-class IoEvent;
-
 class SslIo : public IoEvent
 {
   public:

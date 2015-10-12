@@ -6,12 +6,11 @@
 #include <list>
 
 #include "ipHelper.h"
+#include "ioEvent.h"
+#include "sysDefinitions.h"
 
 namespace parrot
 {
-class IoEvent;
-enum class eIoAction : uint8_t;
-
 class Listener : public IoEvent
 {
   public:

@@ -7,16 +7,10 @@
 #include "codes.h"
 #include "unifyPlatDef.h"
 
+#include "sysDefinitions.h"
+
 namespace parrot
 {
-enum class eIoAction : uint8_t
-{
-    None,
-    Read,
-    Write,
-    Remove
-};
-
 class IoEvent
 {
 #if defined(__linux__)

@@ -3,10 +3,10 @@
 
 #include <memory>
 
+#include "sysDefinitions.h"
+
 namespace parrot
 {
-enum class eIoAction : uint8_t;
-
 class EventTrigger : public IoEvent
 {
   public:

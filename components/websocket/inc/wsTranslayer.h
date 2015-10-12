@@ -9,6 +9,7 @@
 #include <functional>
 
 #include "codes.h"
+#include "sysDefinitions.h"
 
 namespace parrot
 {
@@ -19,7 +20,6 @@ class IoEvent;
 class WsPacket;
 class WsParser;
 struct WsConfig;
-enum class eIoAction : uint8_t;
 
 // WsTranslayer implements Websocket implement.
 class WsTranslayer
