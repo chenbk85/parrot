@@ -35,12 +35,29 @@ class IoEvent
     // Retrive the associated fd.
     int getFd() const;
 
-    // Default to read or write.
-    void setAction(eIoAction act);
+    // Retrive the default action of the event.
+    virtual eIoAction getDefaultAction() const;
 
-    // Retrive current action.
-    eIoAction getAction() const;
+    // Set next action.
+    void setNextAction(eIoAction act);
 
+    // Get next action.
+    eIoAction getNextAction() const;
+
+    // Set curr action.
+    void setCurrAction(eIoAction act);
+
+    // Get curr action.
+    eIoAction getCurrAction() const;
+
+    // Set notified action.
+    void setNotifiedAction(eIoAction act);
+
+    // Get notified action.
+    eIoAction getNotifiedAction() const;
+
+    bool sameAction() const;
+        
     // Is the event error?
     virtual bool isError() const;
 
@@ -57,31 +74,19 @@ class IoEvent
     virtual eIoAction handleIoEvent() = 0;
 
     virtual void close();
-
+    
     void setRemoteAddr(const std::string& ip);
-
     void setRemoteAddr(std::string&& ip);
-
     const std::string& getRemoteAddr() const;
 
     void setUniqueKey(uint64_t key);
-
     uint64_t getUniqueKey() const;
 
-  protected:
-    // Help function to mark the event to read.
-    void setIoRead();
+    void setError(bool isErr);
+    bool getError() const;
 
-    // Help function to mark the event to write.
-    void setIoWrite();
-
-    int getFilter() const;
-
-    void setFilter(int filter);
-
-    void setFlags(int flags);
-
-    int getFlags() const;
+    void setEof(bool isEof);
+    bool getEof() const;
 
   public:
 #if defined(__APPLE__) || defined(__linux__)
@@ -90,10 +95,15 @@ class IoEvent
 #endif
   protected:
     int _fd;
-    int _filter;
-    int _flags;
     uint64_t _uniqueKey;
-    eIoAction _action;
+    eIoAction _nextAction;
+    // Kqueue read event and write event shares one IoEvent, make
+    // sure only one of read & write is available, or here will
+    // be a bug. Because they will both update this flag.
+    eIoAction _currAction;
+    eIoAction _notifiedAction;
+    bool _isError;
+    bool _isEof;
     std::string _remoteIp;
 };
 }

@@ -91,6 +91,33 @@ uint32_t KqueueImpl::waitIoEvents(int32_t ms)
     return ret;
 }
 
+void KqueueImpl::setFilter(struct kevent &kev[2], int fd, IoEvent *ev)
+{
+    eIoAction act = ev->getNextAction();
+    if (act == eIoAction::Read)
+    {
+        EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, ev);
+        EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, ev);
+    }
+    else if (act == eIoAction::Write)
+    {
+        EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, ev);
+        EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD | EV_DISABLE, 0, 0, ev);
+    }
+    else if (act == eIoAction::ReadWrite)
+    {
+        EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, ev);
+        EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, ev);
+    }
+    else
+    {
+#if defined(DEBUG)
+        PARROT_ASSERT(0);
+#endif
+        return;
+    }
+}
+
 void KqueueImpl::addEvent(IoEvent* ev)
 {
     int fd = ev->getFd();
@@ -103,28 +130,10 @@ void KqueueImpl::addEvent(IoEvent* ev)
     }
 
     struct kevent kev[2];
-    eIoAction act = ev->getAction();
-
-    if (act == eIoAction::Read)
-    {
-        ev->setIoRead();
-        EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, ev);
-        EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, ev);
-    }
-    else if (act == eIoAction::Write)
-    {
-        ev->setIoWrite();
-        EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, ev);
-        EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD | EV_DISABLE, 0, 0, ev);
-    }
-    else
-    {
-#if defined(DEBUG)
-        PARROT_ASSERT(0);
-#endif
-        return;
-    }
-
+    eIoAction act = ev->getNextAction();
+    ev->setCurrAction(ev->getNextAction());
+    setFilter(kev, fd, ev);
+    
     int ret = ::kevent(_kqueueFd, kev, 2, nullptr, 0, nullptr);
     if (ret == -1)
     {
@@ -133,7 +142,8 @@ void KqueueImpl::addEvent(IoEvent* ev)
     }
 }
 
-void KqueueImpl::monitorRead(IoEvent* ev)
+
+void KqueueImpl::updateEventAction(IoEvent* ev)
 {
     int fd = ev->getFd();
 
@@ -145,55 +155,19 @@ void KqueueImpl::monitorRead(IoEvent* ev)
         return;
     }
 
-    if (ev->getAction() == eIoAction::Read)
+    if (ev->sameAction())
     {
         return;
     }
 
-    // Set the event to READ.
-    ev->setIoRead();
-
     struct kevent kev[2];
-    EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD | EV_DISABLE, 0, 0, ev);
-    EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, ev);
-
+    setFilter(kev, fd, ev);
+    
     int ret = ::kevent(_kqueueFd, kev, 2, nullptr, 0, nullptr);
     if (ret == -1)
     {
         throw std::system_error(errno, std::system_category(),
                                 "KqueueImpl::monitorRead");
-    }
-}
-
-void KqueueImpl::monitorWrite(IoEvent* ev)
-{
-    int fd = ev->getFd();
-
-    if (fd < 0)
-    {
-#if defined(DEBUG)
-        PARROT_ASSERT(0);
-#endif
-        return;
-    }
-
-    if (ev->getAction() == eIoAction::Write)
-    {
-        return;
-    }
-
-    // Set the event to READ.
-    ev->setIoWrite();
-
-    struct kevent kev[2];
-    EV_SET(&kev[0], fd, EVFILT_WRITE, EV_ADD | EV_ENABLE, 0, 0, ev);
-    EV_SET(&kev[1], fd, EVFILT_READ, EV_ADD | EV_DISABLE, 0, 0, ev);
-
-    int ret = ::kevent(_kqueueFd, kev, 2, nullptr, 0, nullptr);
-    if (ret == -1)
-    {
-        throw std::system_error(errno, std::system_category(),
-                                "KqueueImpl::monitorWrite");
     }
 }
 
@@ -227,8 +201,34 @@ void KqueueImpl::delEvent(IoEvent* ev)
 IoEvent* KqueueImpl::getIoEvent(uint32_t idx) const noexcept
 {
     IoEvent* ev = (IoEvent*)_events[idx].udata;
-    ev->setFilter(_events[idx].filter);
-    ev->setFlags(_events[idx].flags);
+    int16_t filter = _events[idx].filter;
+    uint16_t flags = _events[idx].flags;
+
+    if (flags & EV_ERROR)
+    {
+        ev->setError(true);
+        return ev;
+    }
+
+    if (flags & EV_EOF)
+    {
+        ev->setEof(true);
+        return ev;
+    }
+
+    if (filter == EVFILT_WRITE)
+    {
+        ev->setNotifiedAction(eIoAction::Write);
+    }
+    else if (filter == EVFILT_READ)
+    {
+        ev->setNotifiedAction(eIoAction::Read);
+    }
+    else
+    {
+        PARROT_ASSERT(false);
+    }
+
     return ev;
 }
 

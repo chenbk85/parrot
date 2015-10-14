@@ -32,14 +32,9 @@ void Epoll::addEvent(IoEvent* ev)
     _epollImpl->addEvent(ev);
 }
 
-void Epoll::monitorRead(IoEvent* ev)
+void Epoll::updateEventAction(IoEvent* ev)
 {
-    _epollImpl->monitorRead(ev);
-}
-
-void Epoll::monitorWrite(IoEvent* ev)
-{
-    _epollImpl->monitorWrite(ev);
+    _epollImpl->updateEventAction(ev);
 }
 
 void Epoll::delEvent(IoEvent* ev)

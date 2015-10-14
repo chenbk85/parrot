@@ -29,10 +29,12 @@ namespace parrot
 {
 IoEvent::IoEvent()
     : _fd(-1),
-      _filter(-1),
-      _flags(-1),
       _uniqueKey(0),
-      _action(eIoAction::None),
+      _nextAction(eIoAction::None),
+      _currAction(eIoAction::None),
+      _notifiedAction(eIoAction::None),
+      _isError(false),
+      _isEof(false),
       _remoteIp()
 {
 }
@@ -52,34 +54,64 @@ int IoEvent::getFd() const
     return _fd;
 }
 
-void IoEvent::setAction(eIoAction act)
+eIoAction IoEvent::getDefaultAction() const
 {
-    _action = act;
+    return eIoAction::Read;
 }
 
-void IoEvent::setIoRead()
+void IoEvent::setNextAction(eIoAction act)
 {
-#if defined(__linux__)
-    _filter = EPOLLIN | EPOLLRDHUP | EPOLLET;
-#elif defined(__APPLE__)
-    _filter = EVFILT_READ;
-#endif
-    _action = eIoAction::Read;
+    _nextAction = act;
 }
 
-void IoEvent::setIoWrite()
+eIoAction IoEvent::getNextAction() const
 {
-#if defined(__linux__)
-    _filter = EPOLLOUT | EPOLLRDHUP | EPOLLET;
-#elif defined(__APPLE__)
-    _filter = EVFILT_WRITE;
-#endif
-    _action = eIoAction::Write;
+    return _nextAction;
 }
 
-eIoAction IoEvent::getAction() const
+void IoEvent::setCurrAction(eIoAction act)
 {
-    return _action;
+    _currAction = act;
+}
+
+eIoAction IoEvent::getCurrAction() const
+{
+    return _currAction;
+}
+
+void IoEvent::setNotifiedAction(eIoAction act)
+{
+    _notifiedAction = act;
+}
+
+eIoAction IoEvent::getNotifiedAction() const
+{
+    return _notifiedAction;
+}
+
+bool IoEvent::sameAction() const
+{
+    return _currAction == _nextAction;
+}
+
+void IoEvent::setError(bool isErr)
+{
+    _isError = isErr;
+}
+
+bool IoEvent::getError() const
+{
+    return _isError;
+}
+
+void IoEvent::setEof(bool isEof)
+{
+    _isEof = isEof;
+}
+
+bool IoEvent::getEof() const
+{
+    return _isEof;
 }
 
 void IoEvent::setRemoteAddr(const std::string& ip)
@@ -97,26 +129,6 @@ const std::string& IoEvent::getRemoteAddr() const
     return _remoteIp;
 }
 
-int IoEvent::getFilter() const
-{
-    return _filter;
-}
-
-void IoEvent::setFilter(int filter)
-{
-    _filter = filter;
-}
-
-void IoEvent::setFlags(int flags)
-{
-    _flags = flags;
-}
-
-int IoEvent::getFlags() const
-{
-    return _flags;
-}
-
 void IoEvent::setUniqueKey(uint64_t key)
 {
     _uniqueKey = key;
@@ -127,88 +139,26 @@ uint64_t IoEvent::getUniqueKey() const
     return _uniqueKey;
 }
 
-bool IoEvent::isError() const
-{
-#if defined(__linux__)
-    if (_filter & EPOLLERR || _filter & EPOLLHUP)
-    {
-        return true;
-    }
-
-    return false;
-#elif defined(__APPLE__)
-    if (_flags & EV_ERROR)
-    {
-        return true;
-    }
-
-    return false;
-#elif defined(_WIN32)
-    return false;
-#endif
-}
-
-bool IoEvent::isEof() const
-{
-#if defined(__linux__)
-    if (_filter & EPOLLRDHUP || _filter & EPOLLHUP)
-    {
-        return true;
-    }
-
-    return false;
-#elif defined(__APPLE__)
-    if (_flags & EV_EOF)
-    {
-        return true;
-    }
-
-    return false;
-#else
-    return false;
-#endif
-}
-
 bool IoEvent::isReadAvail() const
 {
-#if defined(__linux__)
-    if (_filter & EPOLLIN)
+    if (_notifiedAction == eIoAction::Read ||
+        _notifiedAction == eIoAction::ReadWrite)
     {
         return true;
     }
 
     return false;
-#elif defined(__APPLE__)
-    if (_filter == EVFILT_READ)
-    {
-        return true;
-    }
-
-    return false;
-#elif defined(_WIN32)
-    return false;
-#endif
 }
 
 bool IoEvent::isWriteAvail() const
 {
-#if defined(__linux__)
-    if (_filter & EPOLLOUT)
+    if (_notifiedAction == eIoAction::Write ||
+        _notifiedAction == eIoAction::ReadWrite)
     {
         return true;
     }
 
     return false;
-#elif defined(__APPLE__)
-    if (_filter == EVFILT_WRITE)
-    {
-        return true;
-    }
-
-    return false;
-#elif defined(_WIN32)
-    return false;
-#endif
 }
 
 void IoEvent::close()
@@ -218,9 +168,6 @@ void IoEvent::close()
         ::shutdown(_fd, SHUT_RDWR);
         ::close(_fd);
         _fd = -1;
-        _filter = -1;
-        _flags = -1;
-        _action = eIoAction::None;
     }
 }
 
@@ -296,5 +243,4 @@ eCodes IoEvent::recv(char* buff, uint32_t buffLen, uint32_t& rcvdLen)
     return eCodes::ST_Ok;
 }
 #endif
-
 }

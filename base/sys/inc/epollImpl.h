@@ -7,6 +7,8 @@
 #include <memory>
 #include <sys/epoll.h>
 
+#include "sysDefinitions.h"
+
 namespace parrot
 {
 class IoEvent;
@@ -40,17 +42,11 @@ class EpollImpl final
     // * ev: The io event.
     void addEvent(IoEvent* ev);
 
-    // Notify read event.
+    // Update event's action.
     //
     // Params:
-    // * ev: The io event.
-    void monitorRead(IoEvent* ev);
-
-    // Notify write event.
-    //
-    // Params:
-    // * ev: The io event.
-    void monitorWrite(IoEvent* ev);
+    // * ev: The io event.    
+    void updateEventAction(IoEvent* ev);
 
     // Delete io event from epoll.
     //
@@ -72,6 +68,9 @@ class EpollImpl final
 
     // Close epoll.
     void close();
+
+  private:
+    int getFilter(eIoAction act);
 
   private:
     int32_t _epollFd;

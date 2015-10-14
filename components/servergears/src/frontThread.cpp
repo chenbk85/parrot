@@ -75,7 +75,7 @@ void FrontThread::addConnToNotifier()
 
     for (auto& c : tmpList)
     {
-        c->setAction(eIoAction::Read);
+        c->setAction(c->getDefaultAction());
         _notifier->addEvent(c.get());
         _connMap[c->getUniqueKey()] = std::move(c);
     }
@@ -83,10 +83,10 @@ void FrontThread::addConnToNotifier()
 
 void FrontThread::run()
 {
-    uint32_t eventNum = 0;
-    uint32_t idx = 0;
-    WsServerConn* conn;
-    eIoAction act = eIoAction::None;
+    uint32_t eventNum  = 0;
+    uint32_t idx       = 0;
+    WsServerConn* conn = nullptr;
+    eIoAction act      = eIoAction::None;
 
     try
     {
@@ -101,21 +101,16 @@ void FrontThread::run()
                 // We are sure that the IoEvnet is WsServerConn,
                 // so we can use static_cast.
                 conn = static_cast<WsServerConn*>(_notifier->getIoEvent(idx));
-                act = conn->handleIoEvent();
+                act  = conn->handleIoEvent();
+                conn->setNextAction(act);
 
                 switch (act)
                 {
-                    // FIXME: Do both read & write at the same time.
-                    // Just disable write when no data to write.
                     case eIoAction::Read:
-                    {
-                        _notifier->monitorRead(conn);
-                    }
-                    break;
-
                     case eIoAction::Write:
+                    case eIoAction::ReadWrite:
                     {
-                        _notifier->monitorWrite(conn);
+                        _notifier->updateEventAction(act);
                     }
                     break;
 

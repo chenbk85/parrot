@@ -157,7 +157,7 @@ void Listener::startListen()
         throw;
     }
 
-    setAction(eIoAction::Read);
+    setNextAction(eIoAction::Read);
 }
 
 eCodes Listener::doAccept(int& cliFd, IPHelper& cliIP, uint16_t& cliPort)

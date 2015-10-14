@@ -27,8 +27,7 @@ class KqueueImpl
     void create();
     uint32_t waitIoEvents(int32_t ms);
     void addEvent(IoEvent* ev);
-    void monitorRead(IoEvent* ev);
-    void monitorWrite(IoEvent* ev);
+    void updateEventAction(IoEvent* ev);
     void delEvent(IoEvent* ev);
     IoEvent* getIoEvent(uint32_t idx) const noexcept;
     void stopWaiting();

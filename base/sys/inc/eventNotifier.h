@@ -30,11 +30,7 @@ class EventNotifier
     {
     }
 
-    virtual void monitorRead(IoEvent*)
-    {
-    }
-
-    virtual void monitorWrite(IoEvent*)
+    virtual void updateEventAction(IoEvent*)
     {
     }
 

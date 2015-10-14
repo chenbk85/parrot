@@ -37,7 +37,7 @@ void EpollImpl::create()
     _events.reset(new struct epoll_event[_epollSize]);
     _trigger = std::unique_ptr<EventTrigger>(new EventTrigger());
     _trigger->create();
-    _trigger->setAction(eIoAction::Read);
+    _trigger->setNextAction(eIoAction::Read);
     addEvent(_trigger.get());
 }
 
@@ -88,6 +88,39 @@ uint32_t EpollImpl::waitIoEvents(int32_t ms)
     return ret;
 }
 
+int EpollImpl::getFilter(eIoAction act)
+{
+    int filter = 0;
+    switch (act)
+    {
+        case eIoAction::Read:
+        {
+            filter = EPOLLIN | EPOLLRDHUP | EPOLLET;
+        }
+        break;
+
+        case eIoAction::Write:
+        {
+            filter = EPOLLOUT | EPOLLRDHUP | EPOLLET;
+        }
+        break;
+
+        case eIoAction::ReadWrite:
+        {
+            filter = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLET;
+        }
+        break;
+
+        default:
+        {
+            PARROT_ASSERT(false);
+        }
+        break;
+    }
+
+    return filter;
+}
+
 void EpollImpl::addEvent(IoEvent* ev)
 {
     int fd = ev->getFd();
@@ -103,24 +136,9 @@ void EpollImpl::addEvent(IoEvent* ev)
     event.data.u64 = 0;
     event.data.ptr = ev;
 
-    eIoAction act = ev->getAction();
-    if (act == eIoAction::Read)
-    {
-        ev->setIoRead();
-    }
-    else if (act == eIoAction::Write)
-    {
-        ev->setIoWrite();
-    }
-    else
-    {
-#if defined(DEBUG)
-        PARROT_ASSERT(0);
-#endif
-        return;
-    }
-
-    event.events = ev->getFilter();
+    eIoAction act = ev->getNextAction();
+    ev->setCurrAction(act);
+    event.events = getFilter(act);
 
     int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_ADD, fd, &event);
     if (ret < 0)
@@ -130,7 +148,7 @@ void EpollImpl::addEvent(IoEvent* ev)
     }
 }
 
-void EpollImpl::monitorRead(IoEvent* ev)
+void EpollImpl::updateEventAction(IoEvent *ev)
 {
     int fd = ev->getFd();
     if (fd == -1)
@@ -141,56 +159,25 @@ void EpollImpl::monitorRead(IoEvent* ev)
         return;
     }
 
-    if (ev->getAction() == eIoAction::Read)
+    if (ev->sameAction())
     {
         return;
     }
 
-    ev->setIoRead();
+    eIoAction act = ev->getNextAction();
+    ev->setCurrAction(act);
 
     struct epoll_event event;
     event.data.u64 = 0;
     event.data.ptr = ev;
-    event.events = ev->getFilter();
+    event.events = getFilter(act);
 
     int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_MOD, fd, &event);
 
     if (ret < 0)
     {
         throw std::system_error(errno, std::system_category(),
-                                "EpollImpl::modifyEvent");
-    }
-}
-
-void EpollImpl::monitorWrite(IoEvent* ev)
-{
-    int fd = ev->getFd();
-    if (fd == -1)
-    {
-#if defined(DEBUG)
-        PARROT_ASSERT(0);
-#endif
-        return;
-    }
-
-    if (ev->getAction() == eIoAction::Write)
-    {
-        return;
-    }
-
-    ev->setIoWrite();
-
-    struct epoll_event event;
-    event.data.u64 = 0;
-    event.data.ptr = ev;
-    event.events = ev->getFilter();
-
-    int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_MOD, fd, &event);
-
-    if (ret < 0)
-    {
-        throw std::system_error(errno, std::system_category(),
-                                "EpollImpl::modifyEvent");
+                                "EpollImpl::updateEventAction");
     }
 }
 
@@ -205,31 +192,48 @@ void EpollImpl::delEvent(IoEvent* ev)
         return;
     }
 
-    int filter = ev->getFilter();
-    if (filter == -1)
-    {
-#if defined(DEBUG)
-        PARROT_ASSERT(0);
-#endif
-        return;
-    }
-
     int ret = ::epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, nullptr);
     if (ret < 0)
     {
         throw std::system_error(errno, std::system_category(),
                                 "EpollImpl::delEvent");
     }
-
-    ev->setAction(eIoAction::Remove);
-    ev->setFilter(-1);
-    ev->setFlags(-1);
 }
 
 IoEvent* EpollImpl::getIoEvent(uint32_t idx) const noexcept
 {
     IoEvent* ev = (IoEvent*)_events[idx].data.ptr;
-    ev->setFilter(_events[idx].events);
+    uint32_t filter = _events[idx].events;
+
+    if ((filter & EPOLLERR) || (filter & EPOLLHUP))
+    {
+        ev->setError(true);
+        return ev;
+    }
+
+    if ((filter & EPOLLRDHUP) || (filter & EPOLLHUP))
+    {
+        ev->setEof(true);
+        return ev;
+    }
+
+    if ((filter & EPOLLIN) && (filter & EPOLLOUT))
+    {
+        ev->setNotifiedAction(eIoAction::ReadWrite);
+    }
+    else if (filter & EPOLLIN)
+    {
+        ev->setNotifiedAction(eIoAction::Read);
+    }
+    else if (filter & EPOLLOUT)
+    {
+        ev->setNotifiedAction(eIoAction::Write);
+    }
+    else
+    {
+        PARROT_ASSERT(false);
+    }
+    
     return ev;
 }
 

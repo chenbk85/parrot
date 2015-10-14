@@ -4,6 +4,10 @@ BasedOnStyle: LLVM
 IndentWidth: 4
 AllowShortFunctionsOnASingleLine: None
 IndentCaseLabels: true
+AlignConsecutiveAssignments: true
+
+# This option needs clang v3.8.0
+# AlignConsecutiveDeclarations: true
 ---
 Language: Cpp
 # Add custom config here.
