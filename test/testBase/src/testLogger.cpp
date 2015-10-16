@@ -28,7 +28,7 @@ int main()
     parrot::Logger *logger = parrot::Logger::instance();
     logger->setConfig(cfg.get());
     logger->start();
-    for (int i = 0; i < 2; ++i)
+    for (int i = 0; i < 200000000; ++i)
     {
         LOG_DEBUG("aaa" << "1111" << 2222 << "bbb\n");
     }

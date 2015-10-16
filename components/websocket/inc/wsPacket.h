@@ -28,6 +28,8 @@ class WsPacket
     bool isControl() const;
     
     void setRoute(uint64_t route);
+    void setReqId(uint64_t reqId);
+    void setConnId(uint64_t connId);
     void setJson(std::unique_ptr<Json>&& json);
     void setBinary(std::vector<char>&& bin);
     void setPacket(eOpCode opCode, std::vector<char> &&payload);
@@ -39,6 +41,8 @@ class WsPacket
     const std::string & getCloseReason() const;
     
     uint64_t getRoute() const;
+    uint64_t getReqId() const;
+    uint64_t getConnId() const;
     const std::vector<char>& getBinary() const;
     const Json& getJson() const;
 
@@ -54,7 +58,9 @@ class WsPacket
     std::vector<char> _bin;
     std::vector<char> _payload;
     uint64_t _route;
-    bool _decoded;    
+    uint64_t _reqId;
+    uint64_t _connId;
+    bool _decoded;
 };
 }
 

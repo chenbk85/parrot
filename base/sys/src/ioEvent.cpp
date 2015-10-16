@@ -99,7 +99,7 @@ void IoEvent::setError(bool isErr)
     _isError = isErr;
 }
 
-bool IoEvent::getError() const
+bool IoEvent::isError() const
 {
     return _isError;
 }
@@ -109,7 +109,7 @@ void IoEvent::setEof(bool isEof)
     _isEof = isEof;
 }
 
-bool IoEvent::getEof() const
+bool IoEvent::isEof() const
 {
     return _isEof;
 }

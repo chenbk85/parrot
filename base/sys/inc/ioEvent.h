@@ -57,12 +57,14 @@ class IoEvent
     eIoAction getNotifiedAction() const;
 
     bool sameAction() const;
-        
-    // Is the event error?
-    virtual bool isError() const;
 
+    void setError(bool isErr);
+    // Is the event error?
+    bool isError() const;
+
+    void setEof(bool isEof);
     // Is the peer closed the socket?
-    virtual bool isEof() const;
+    bool isEof() const;
 
     // Implement this function to handle epoll event.
     virtual bool isReadAvail() const;
@@ -81,12 +83,6 @@ class IoEvent
 
     void setUniqueKey(uint64_t key);
     uint64_t getUniqueKey() const;
-
-    void setError(bool isErr);
-    bool getError() const;
-
-    void setEof(bool isEof);
-    bool getEof() const;
 
   public:
 #if defined(__APPLE__) || defined(__linux__)

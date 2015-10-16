@@ -11,6 +11,7 @@ WsPacket::WsPacket()
       _bin(),
       _payload(),
       _route(0),
+      _reqId(0),
       _decoded(false)
 {
 }
@@ -29,6 +30,12 @@ void WsPacket::setRoute(uint64_t route)
 {
     _route = route;
 }
+
+void WsPacket::setReqId(uint64_t reqId)
+{
+    _reqId = reqId;
+}
+
 
 void WsPacket::setJson(std::unique_ptr<Json>&& json)
 {
@@ -76,6 +83,11 @@ const std::string& WsPacket::getCloseReason() const
 uint64_t WsPacket::getRoute() const
 {
     return _route;
+}
+
+uint64_t WsPacket::getReqId() const
+{
+    return _reqId;
 }
 
 const std::vector<char>& WsPacket::getBinary() const

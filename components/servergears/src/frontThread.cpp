@@ -46,13 +46,40 @@ void FrontThread::stop()
     ThreadBase::stop();
 }
 
-void FrontThread::addConn(std::shared_ptr<WsServerConn>&& conn)
+void FrontThread::registerAddPktCb(void* threadPtr, AddPktFunc&& func)
 {
-    _newConnListLock.lock();
-    _newConnList.push_back(std::move(conn));
-    _newConnListLock.unlock();
+    _addPktFuncMap[threadPtr] = std::move(func);
+}
 
-    _notifier->stopWaiting();
+void FrontThread::onPacket(void* threadPtr, std::unique_ptr<WsPacket>&& pkt)
+{
+    auto it = _threadPktMap.find(threadPtr);
+    if (it == _threadPtrMap.end())
+    {
+        PARROT_ASSERT(false);
+    }
+
+    // Append packet to list.
+    it->second.push_back(std::move(pkt));
+
+    if (it->second.size() >= Constants::PKT_LIST_SIZE)
+    {
+        // Dispatch packetes.
+        (_pktHandlerFuncMap[treadPtr])(it->second);
+        (_pktHandlerFuncMap[treadPtr]).clear();
+    }
+}
+
+void FrontThread::dispatchPackets()
+{
+    for (auto &kv : _threadPktMap)
+    {
+        if (!kv.second.empty())
+        {
+            (_pktHandlerFuncMap[kv.first])(kv.second);
+            (_pktHandlerFuncMap[kv.first]).clear();
+        }
+    }
 }
 
 void FrontThread::addConn(std::list<std::shared_ptr<WsServerConn>>& connList)
@@ -73,9 +100,13 @@ void FrontThread::addConnToNotifier()
     std::swap(tmpList, _newConnList);
     _newConnListLock.unlock();
 
+    using std::placeholders;
+    auto onPacketCb = std::bind(FrontThread::onPacket, this, _1, _2);
+
     for (auto& c : tmpList)
     {
         c->setAction(c->getDefaultAction());
+        // c->setRandom();
         _notifier->addEvent(c.get());
         _connMap[c->getUniqueKey()] = std::move(c);
     }
@@ -94,7 +125,7 @@ void FrontThread::run()
         {
             addConnToNotifier();
 
-            eventNum = _notifier->waitIoEvents(1000);
+            eventNum = _notifier->waitIoEvents(-1);
 
             for (idx = 0; idx != eventNum; ++idx)
             {
@@ -128,13 +159,15 @@ void FrontThread::run()
                     break;
                 } // switch
             }     // for
+
+            dispatchPackets();
         }         // while
     }
     catch (const std::system_error& e)
     {
         LOG_ERROR("FrontThread::run: Errno is " << e.code() << ". Meaning "
                                                 << e.what());
-        // What we can do here? Probably nothing but an assertion.
+        // There's nothing we can do here ...
         PARROT_ASSERT(false);
     }
 }
