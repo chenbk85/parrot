@@ -21,6 +21,9 @@ class FrontThread : public PoolThread
     using AddPktFunc =
         std::function<void(std::list<std::unique_ptr<WsPacket>>)>;
 
+    using PacketHdrCb =
+        std::function<void(std::unique_ptr<WsPacket>&&)>;
+
     // <ThreadPtr, list<unique_ptr<WsPacket>>>
     using ThreadPktMap =
         std::unordered_map<void *, std::list<std::unique_ptr<WsPacket>>>;
@@ -35,6 +38,7 @@ class FrontThread : public PoolThread
 
   public:
     void setConfig(const Config* cfg);
+    void registerOnPacketHandler(void *handler, OnPacketHdrCb);
     void registerAddPktCb(void *threadPtr, AddPktFunc && func);
     void addConn(std::list<std::shared_ptr<WsServerConn>>& connList);
     void addConn(std::shared_ptr<WsServerConn>&& conn);
