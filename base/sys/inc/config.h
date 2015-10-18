@@ -32,7 +32,7 @@ struct ServerInfo
     std::string _rpcIp;
     uint16_t _rpcPort = 0;
 };
-    
+
 struct Config
 {
     virtual ~Config() = default;
@@ -50,10 +50,10 @@ struct Config
     std::map<std::string, ServerInfo> _neighborSrvMap;
 
     // The front thread pool size.
-    uint8_t _frontThreadPoolSize = 2;
+    uint8_t _frontThreadPoolSize      = 2;
     uint32_t _frontThreadMaxConnCount = 100000;
-    uint8_t _logicThreadPoolSize = 2;
-    
+    uint8_t _logicThreadPoolSize      = 2;
+
     // Log configurations.
 
     // The log file path.
@@ -68,8 +68,8 @@ struct Config
     uint8_t _logLevel = 0;
 
     // MySQL configurations.
-    std::string _mysqlDBName = "";
-    std::string _mysqlUserName = "";
+    std::string _mysqlDBName     = "";
+    std::string _mysqlUserName   = "";
     std::string _mysqlUserPassWd = "";
 
     // MongoDB configurations.

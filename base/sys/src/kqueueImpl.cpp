@@ -1,7 +1,4 @@
 #if defined(__APPLE__)
-#include <sys/types.h>
-#include <sys/event.h>
-#include <sys/time.h>
 #include <unistd.h>
 
 #include <system_error>
@@ -44,7 +41,7 @@ void KqueueImpl::create()
     }
 
     _trigger->create();
-    _trigger->setAction(eIoAction::Read);
+    _trigger->setNextAction(eIoAction::Read);
     addEvent(_trigger.get());
 }
 
@@ -91,7 +88,7 @@ uint32_t KqueueImpl::waitIoEvents(int32_t ms)
     return ret;
 }
 
-void KqueueImpl::setFilter(struct kevent &kev[2], int fd, IoEvent *ev)
+void KqueueImpl::setFilter(struct kevent (&kev)[2], int fd, IoEvent *ev)
 {
     eIoAction act = ev->getNextAction();
     if (act == eIoAction::Read)
@@ -130,7 +127,6 @@ void KqueueImpl::addEvent(IoEvent* ev)
     }
 
     struct kevent kev[2];
-    eIoAction act = ev->getNextAction();
     ev->setCurrAction(ev->getNextAction());
     setFilter(kev, fd, ev);
     
@@ -193,9 +189,7 @@ void KqueueImpl::delEvent(IoEvent* ev)
                                 "KqueueImpl::delEvent");
     }
 
-    ev->setAction(eIoAction::Remove);
-    ev->setFilter(-1);
-    ev->setFlags(-1);
+    ev->setCurrAction(eIoAction::Remove);
 }
 
 IoEvent* KqueueImpl::getIoEvent(uint32_t idx) const noexcept

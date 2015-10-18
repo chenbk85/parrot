@@ -5,7 +5,7 @@
 
 namespace parrot
 {
-class Config;
+struct Config;
 
 class DaemonBase
 {

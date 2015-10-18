@@ -24,8 +24,7 @@ class Kqueue final : public EventNotifier
     void create() override;
     uint32_t waitIoEvents(int32_t ms) override;
     void addEvent(IoEvent* ev) override;
-    void monitorRead(IoEvent* ev) override;
-    void monitorWrite(IoEvent* ev) override;
+    void updateEventAction(IoEvent* ev) override;
     void delEvent(IoEvent* ev) override;
     IoEvent* getIoEvent(uint32_t idx) const noexcept override;
     void stopWaiting() override;

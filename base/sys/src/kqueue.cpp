@@ -32,14 +32,9 @@ void Kqueue::addEvent(IoEvent* ev)
     _impl->addEvent(ev);
 }
 
-void Kqueue::monitorRead(IoEvent* ev)
+void Kqueue::updateEventAction(IoEvent* ev)
 {
-    _impl->monitorRead(ev);
-}
-
-void Kqueue::monitorWrite(IoEvent* ev)
-{
-    _impl->monitorWrite(ev);
+    _impl->updateEventAction(ev);
 }
 
 void Kqueue::delEvent(IoEvent* ev)

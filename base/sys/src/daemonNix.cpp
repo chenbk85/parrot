@@ -93,7 +93,7 @@ void DaemonNix::afterCreateThreads()
 void DaemonNix::blockAllSignals()
 {
     sigset_t set;
-    ::sigfillset(&set); // Fill all signals.
+    sigfillset(&set); // Fill all signals.
 
     int s = ::pthread_sigmask(SIG_BLOCK, &set, NULL);
     if (s != 0)
@@ -106,7 +106,7 @@ void DaemonNix::blockAllSignals()
 void DaemonNix::unblockAllSignals()
 {
     sigset_t set;
-    ::sigfillset(&set); // Fill all signals.
+    sigfillset(&set); // Fill all signals.
 
     int s = ::pthread_sigmask(SIG_UNBLOCK, &set, NULL);
     if (s != 0)

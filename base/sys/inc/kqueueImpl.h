@@ -34,6 +34,7 @@ class KqueueImpl
     void close();
 
   private:
+    void setFilter(struct kevent (&kev)[2], int fd, IoEvent *ev);    
     void msToTimespec(struct timespec* ts, uint32_t ms);
 
   private:
