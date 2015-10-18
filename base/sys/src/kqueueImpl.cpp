@@ -163,7 +163,7 @@ void KqueueImpl::updateEventAction(IoEvent* ev)
     if (ret == -1)
     {
         throw std::system_error(errno, std::system_category(),
-                                "KqueueImpl::monitorRead");
+                                "KqueueImpl::updateEventAction");
     }
 }
 
@@ -189,6 +189,7 @@ void KqueueImpl::delEvent(IoEvent* ev)
                                 "KqueueImpl::delEvent");
     }
 
+    // Mark the event is dead.
     ev->setCurrAction(eIoAction::Remove);
 }
 
