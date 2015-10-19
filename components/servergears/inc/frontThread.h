@@ -14,6 +14,7 @@ namespace parrot
 struct Config;
 class EventNotifier;
 class WsServerConn;
+class ThreadJob;
 
 template<typename Job>
 class FrontThread : public PoolThread
@@ -30,7 +31,7 @@ class FrontThread : public PoolThread
 
     enum class Constants
     {
-        PKT_LIST_SIZE = 100
+        kPktListSize = 100
     };
 
   public:
@@ -42,13 +43,8 @@ class FrontThread : public PoolThread
     void registerAddPktCb(void *threadPtr, AddPktFunc && func);
     void addConn(std::list<std::shared_ptr<WsServerConn>>& connList);
     void addConn(std::shared_ptr<WsServerConn>&& conn);
-
-
-
-
-
-
-    
+    void addJob(std::unique_ptr<ThreadJob> &&job);
+    void addJob(std::list<std::unique_ptr<ThreadJob>> &jobList)
 
   protected:
     void beforeStart() override;
@@ -60,11 +56,13 @@ class FrontThread : public PoolThread
     
     std::mutex _newConnListLock;
     std::list<std::shared_ptr<WsServerConn>> _newConnList;
-
     std::unordered_map<uint64_t, std::shared_ptr<WsServerConn>> _connMap;
 
     std::unique_ptr<EventNotifier> _notifier;
 
+    std::mutex _jobListLock;
+    std::list<std::unique_ptr<ThreadJob>> _jobList;
+    
     const Config* _config;
 };
 }

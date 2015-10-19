@@ -18,7 +18,7 @@ template <typename T, typename... Ts> class WeakFunction
 {
   public:
     WeakFunction(std::weak_ptr<T>&& wp,
-                 std::function<void(Ts&&... params)>&& func)
+                 std::function<void(const Ts&... params)>&& func)
         : _cb(std::move(func)), _cbWithArgs(), _owner(std::move(wp))
     {
     }
@@ -37,7 +37,7 @@ template <typename T, typename... Ts> class WeakFunction
     }
 
   private:
-    std::function<void(Ts&&... params)> _cb;
+    std::function<void(const Ts&... params)> _cb;
     std::function<void()> _cbWithArgs;
     std::weak_ptr<T> _owner;
 };

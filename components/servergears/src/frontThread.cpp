@@ -9,6 +9,8 @@
 #include "wsServerConn.h"
 #include "frontThread.h"
 #include "macroFuncs.h"
+#include "session.h"
+#include "threadJob.h"
 
 namespace parrot
 {
@@ -46,9 +48,28 @@ void FrontThread::stop()
     ThreadBase::stop();
 }
 
+void FrontThread::addJob(std::unique_ptr<ThreadJob> &&job)
+{
+    _jobListLock.lock();
+    _jobList.push_back(std::move(job));
+    _jobListLock.unlock();
+}
+
+void FrontThread::addJob(std::list<std::unique_ptr<ThreadJob>> &jobList)
+{
+    _jobListLock.lock();
+    _jobList.splice(_jobList.end(), jobList);
+    _jobListLock.unlock();
+}
+
 void FrontThread::registerAddPktCb(void* threadPtr, AddPktFunc&& func)
 {
     _addPktFuncMap[threadPtr] = std::move(func);
+}
+
+void FrontThread::onFirstPacket(WsServerConn* connPtr, std::unique_ptr<WsPacket>&& pkt)
+{
+    _pktRouter->handle(connPtr, pkt);
 }
 
 void FrontThread::onPacket(void* threadPtr, std::unique_ptr<WsPacket>&& pkt)
@@ -62,7 +83,7 @@ void FrontThread::onPacket(void* threadPtr, std::unique_ptr<WsPacket>&& pkt)
     // Append packet to list.
     it->second.push_back(std::move(pkt));
 
-    if (it->second.size() >= Constants::PKT_LIST_SIZE)
+    if (it->second.size() >= Constants::kPktListSize)
     {
         // Dispatch packetes.
         (_pktHandlerFuncMap[treadPtr])(it->second);
@@ -74,6 +95,12 @@ void FrontThread::dispatchPackets()
 {
     for (auto &kv : _threadPktMap)
     {
+        if (kv.first == nullptr)
+        {
+            // The conncection hasn't bound yet.
+            _pktRouter->bind( , kv.second);
+        }
+        
         if (!kv.second.empty())
         {
             (_pktHandlerFuncMap[kv.first])(kv.second);

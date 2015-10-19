@@ -48,7 +48,11 @@ class WsPacket
 
     const std::vector<char>& getPayload() const;
     
-    void parsePayload();
+    bool decode();
+
+  private:
+    bool decodeBinary();
+    bool decodeClose();    
 
   private:
     eOpCode _opCode;
@@ -61,6 +65,7 @@ class WsPacket
     uint64_t _reqId;
     uint64_t _connId;
     bool _decoded;
+    bool _decodeResult;
 };
 }
 

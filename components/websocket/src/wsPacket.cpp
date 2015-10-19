@@ -1,5 +1,6 @@
 #include "wsPacket.h"
 #include "json.h"
+#include "macroFuncs.h"
 
 namespace parrot
 {
@@ -12,7 +13,8 @@ WsPacket::WsPacket()
       _payload(),
       _route(0),
       _reqId(0),
-      _decoded(false)
+      _decoded(false),
+      _decodeResult(false)
 {
 }
 
@@ -103,5 +105,48 @@ const Json& WsPacket::getJson() const
 const std::vector<char>& WsPacket::getPayload() const
 {
     return _payload;
+}
+
+bool WsPacket::decode()
+{
+    if (_decoded)
+    {
+        return _decodeResult;
+    }
+
+    if (_opCode == eOpCode::Binary)
+    {
+        _decodeResult = decodeBinary();
+    }
+    else if (_opCode == eOpCode::Close)
+    {
+        _decodeResult = decodeClose();
+    }
+    else
+    {
+        if (_opCode == eOpCode::Ping || _opCode == eOpCode::Pong)
+        {
+            _decodeResult = true;
+        }
+
+        if (_opCode == eOpCode::Continue || _opCode == eOpCode::Text)
+        {
+            PARROT_ASSERT(false);
+            _decodeResult = false;
+        }
+    }
+
+    _decoded = true;
+    return _decodeResult;
+}
+
+bool WsPacket::decodeClose()
+{
+
+}
+
+bool WsPacket::decodeBinary()
+{
+
 }
 }

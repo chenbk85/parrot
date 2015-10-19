@@ -1,9 +1,17 @@
 #ifndef __COMPONENT_SERVERGEAR_INC_THREADJOB_H__
 #define __COMPONENT_SERVERGEAR_INC_THREADJOB_H__
 
+#include <memory>
+
+#include "sharedFunction.h"
+
 namespace parrot
 {
-struct ThreadJob
+struct Session;
+
+using ThreadJobBase = SharedFunction<Session, bool, std::shared_ptr<Session>>;
+
+struct ThreadJob : public ThreadJobBase
 {
     enum class JobType
     {
@@ -11,7 +19,13 @@ struct ThreadJob
         Kick
     };
 
-    std::function<void(bool, const std::string &)> _onBindCb;
+    ThreadJob(JobType jobType,
+              std::shared_ptr<Session>& sp,
+              std::function<void(bool&, std::shared_ptr<Session>&)>&& func)
+        : ThreadJobBase(sp, std::move(func)), _jobType(jobType)
+    {
+    }
+
     JobType _jobType;
 };
 }
