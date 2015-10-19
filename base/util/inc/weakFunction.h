@@ -1,43 +1,44 @@
 #include <functional>
 #include <memory>
-#include <iostream>
 
+/**
+ * Be sure to make the parameters of callback function moveable, or
+ * the complier will copy the arguments for 3 times. This is not
+ * noticeable and very bad. If the parameters are moveable, the
+ * complier will copy one time when assign the bind result. So, if
+ * the parameter takes too much memory, pass a smart pointer will
+ * be a good choice.
+ *
+ * Please ref the following link:
+ *   http://stackoverflow.com/questions/33198974/too-many-copies-when-binding-variadic-template-arguments
+ */
 namespace parrot
 {
-template <typename T1, typename... Ts> class WeakFunction
+template <typename T, typename... Ts> class WeakFunction
 {
   public:
-    WeakFunction(std::weak_ptr<T1>&& wp,
-                 std::function<void(const Ts&... params)>&& func)
-        : _func(std::move(func)), _cb(), _weakPtr(std::move(wp))
+    WeakFunction(std::weak_ptr<T>&& wp,
+                 std::function<void(Ts&&... params)>&& func)
+        : _cb(std::move(func)), _cbWithArgs(), _owner(std::move(wp))
     {
     }
 
-    template<typename... RfTs>
-    void bind(RfTs&&... params)
+    template <typename... RfTs> void bind(RfTs&&... args)
     {
-        _cb = std::bind(_func, std::forward<RfTs>(params)...);
+        _cbWithArgs = std::bind(_cb, std::forward<RfTs>(args)...);
     }
 
     void fire()
     {
-        if (_weakPtr.lock())
+        if (_owner.lock())
         {
-            _cb();
-        }        
+            _cbWithArgs();
+        }
     }
 
-    /* void fire(Ts... params) */
-    /* { */
-    /*     if (_weakPtr.lock()) */
-    /*     { */
-    /*         _func(std::forward<Ts>(params)...); */
-    /*     } */
-    /* } */
-
   private:
-    std::function<void(const Ts&... params)> _func;
-    std::function<void()> _cb;
-    std::weak_ptr<T1> _weakPtr;
+    std::function<void(Ts&&... params)> _cb;
+    std::function<void()> _cbWithArgs;
+    std::weak_ptr<T> _owner;
 };
 }
