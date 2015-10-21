@@ -1,32 +1,41 @@
 #ifndef __COMPONENT_SERVERGEAR_INC_THREADJOB_H__
 #define __COMPONENT_SERVERGEAR_INC_THREADJOB_H__
 
+#include <functional>
 #include <memory>
+#include <tuple>
 
-#include "sharedFunction.h"
+#include "seqGenHelper.h"
+#include "job.h"
 
 namespace parrot
 {
-struct Session;
-
-using ThreadJobBase = SharedFunction<Session, bool, std::shared_ptr<Session>>;
-
-struct ThreadJob : public ThreadJobBase
+template <typename... Ts> class ThreadJob : public Job
 {
-    enum class JobType
-    {
-        Bind,
-        Kick
-    };
-
-    ThreadJob(JobType jobType,
-              std::shared_ptr<Session>& sp,
-              std::function<void(bool&, std::shared_ptr<Session>&)>&& func)
-        : ThreadJobBase(sp, std::move(func)), _jobType(jobType)
+  public:
+    ThreadJob(JobType jobType) : Job(jobType), _args()
     {
     }
 
-    JobType _jobType;
+    template <typename... RfTs> void bind(RfTs&&... args)
+    {
+        _args = std::forward_as_tuple(std::forward<RfTs>(args)...);
+    }
+
+    void call(const std::function<void(Ts&...)> &func)
+    {
+        apply(func, genSeq<sizeof...(Ts)>{});
+    }
+
+  private:
+    template <std::size_t... Is>
+    void apply(const std::function<void(Ts&...)>& func, seqIndex<Is...>)
+    {
+        func(std::get<Is>(_args)...);
+    }
+
+  private:
+    std::tuple<Ts...> _args;
 };
 }
 

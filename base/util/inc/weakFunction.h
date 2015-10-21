@@ -1,16 +1,15 @@
+#ifndef __BASE_UTIL_INC_WEAKFUNCTION_H__
+#define __BASE_UTIL_INC_WEAKFUNCTION_H__
+
 #include <functional>
 #include <memory>
+#include <tuple>
+
+#include "seqGenHelper.h"
 
 /**
- * Be sure to make the parameters of callback function moveable, or
- * the complier will copy the arguments for 3 times. This is not
- * noticeable and very bad. If the parameters are moveable, the
- * complier will copy one time when assign the bind result. So, if
- * the parameter takes too much memory, pass a smart pointer will
- * be a good choice.
- *
- * Please ref the following link:
- *   http://stackoverflow.com/questions/33198974/too-many-copies-when-binding-variadic-template-arguments
+ * Before use this template, please ref the following link:
+ *   http://goo.gl/Fskd9E
  */
 namespace parrot
 {
@@ -19,26 +18,35 @@ template <typename T, typename... Ts> class WeakFunction
   public:
     WeakFunction(std::weak_ptr<T>&& wp,
                  std::function<void(const Ts&... params)>&& func)
-        : _cb(std::move(func)), _cbWithArgs(), _owner(std::move(wp))
+        : _cb(std::move(func)), _args(), _owner(std::move(wp))
     {
     }
 
     template <typename... RfTs> void bind(RfTs&&... args)
     {
-        _cbWithArgs = std::bind(_cb, std::forward<RfTs>(args)...);
+        _args = std::forward_as_tuple(std::forward<RfTs>(args)...);
     }
 
     void fire()
     {
-        if (_owner.lock())
+        auto sp = _owner.lock();
+        if (sp)
         {
-            _cbWithArgs();
+            apply(genSeq<sizeof...(Ts)>{});
         }
     }
 
   private:
+    template<std::size_t... Is> void apply(seqIndex<Is...>)
+    {
+        _cb(std::get<Is>(_args)...);
+    }
+
+  private:
     std::function<void(const Ts&... params)> _cb;
-    std::function<void()> _cbWithArgs;
+    std::tuple<Ts...> _args;
     std::weak_ptr<T> _owner;
 };
 }
+
+#endif

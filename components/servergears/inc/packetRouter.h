@@ -5,14 +5,17 @@ namespace parrot
 {
 class PacketRouter
 {
+    using DefaultPktHandler =
+        std::function<void(
+            std::list<std::pair<uint64_t, std::unique_ptr<WsPacket>>>)>;
   public:
-    bool handle(WsServerConn *connPtr, std::unique_ptr<WsPacket> &&pkt);
     bool isLocalPacket(uint64_t route);
-
-  private:
-    void * getDefaultHandler();
+    void registerDefaultPktHandler(DefautPktHandler &&hdr);
+    void callDefaultPktHandler(
+        std::list<std::pair<uint64_t, std::unique_ptr<WsPacket>>> &&pktList);
         
   private:
+    DefaultRouter _defaultRouter;
     MtRandom _random;
 };
 }

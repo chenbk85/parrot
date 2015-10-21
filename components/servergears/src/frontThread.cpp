@@ -48,28 +48,77 @@ void FrontThread::stop()
     ThreadBase::stop();
 }
 
-void FrontThread::addJob(std::unique_ptr<ThreadJob> &&job)
+void FrontThread::addJob(std::unique_ptr<ThreadJob>&& job)
 {
     _jobListLock.lock();
     _jobList.push_back(std::move(job));
     _jobListLock.unlock();
 }
 
-void FrontThread::addJob(std::list<std::unique_ptr<ThreadJob>> &jobList)
+void FrontThread::addJob(std::list<std::unique_ptr<ThreadJob>>& jobList)
 {
     _jobListLock.lock();
     _jobList.splice(_jobList.end(), jobList);
     _jobListLock.unlock();
 }
 
-void FrontThread::registerAddPktCb(void* threadPtr, AddPktFunc&& func)
+void FrontThread::handleRspBind(uint64_t connUniqueKey,
+                                std::shared_ptr<Session>& ps)
 {
-    _addPktFuncMap[threadPtr] = std::move(func);
+    auto it = _connMap.find(connUniqueKey);
+
+    if (it == _connMap.end())
+    {
+        LOG_WARN("FrontThread::handleRspBind: Failed to bind conn key"
+                 << connUniqueKey << ". Session is " << ps->toString() << ".");
+        return;
+    }
+
+    it->bindSession(ps);
 }
 
-void FrontThread::onFirstPacket(WsServerConn* connPtr, std::unique_ptr<WsPacket>&& pkt)
+void FrontThread::handleJob()
 {
-    _pktRouter->handle(connPtr, pkt);
+    std::list<std::unique_ptr<Job>> jobList;
+    _jobListLock.lock();
+    jobList = std::move(_jobList);
+    _jobListLock.unlock();
+
+    for (auto& j : jobList)
+    {
+        switch (j->getJobType())
+        {
+            case JobType::RspBind:
+            {
+                std::unqiue_ptr<RspBindJob> tj(
+                    static_cast<RspBindJob*>(j->release()));
+                tj->call(_rspBindHdr);
+            }
+            break;
+
+            case JobType::Kick:
+            {
+            }
+            break;
+
+            case JobType::Packet:
+            {
+            }
+            break;
+
+            default:
+            {
+                PARROT_ASSERT(false);
+            }
+            break;
+        }
+    }
+}
+
+void FrontThread::onNoRoutePacket(uint64_t connUniqueKey,
+                                  std::unique_ptr<WsPacket>&& pkt)
+{
+    _noRoutePktList.emplace_back(connUniqueKey, std::move(pkt));
 }
 
 void FrontThread::onPacket(void* threadPtr, std::unique_ptr<WsPacket>&& pkt)
@@ -93,14 +142,12 @@ void FrontThread::onPacket(void* threadPtr, std::unique_ptr<WsPacket>&& pkt)
 
 void FrontThread::dispatchPackets()
 {
-    for (auto &kv : _threadPktMap)
+    std::unqiue_ptr<ReqBindJob> bindJob(new ReqBindJob(JobType::ReqBind));
+    bindJob->bind(this, std::move(_noRoutePktList));
+    _defaultPktHdr(std::move(bindJob));
+
+    for (auto& kv : _threadPktMap)
     {
-        if (kv.first == nullptr)
-        {
-            // The conncection hasn't bound yet.
-            _pktRouter->bind( , kv.second);
-        }
-        
         if (!kv.second.empty())
         {
             (_pktHandlerFuncMap[kv.first])(kv.second);
@@ -159,7 +206,7 @@ void FrontThread::run()
                 // We are sure that the IoEvnet is WsServerConn,
                 // so we can use static_cast.
                 conn = static_cast<WsServerConn*>(_notifier->getIoEvent(idx));
-                act  = conn->handleIoEvent();
+                act = conn->handleIoEvent();
                 conn->setNextAction(act);
 
                 switch (act)
@@ -188,7 +235,7 @@ void FrontThread::run()
             }     // for
 
             dispatchPackets();
-        }         // while
+        } // while
     }
     catch (const std::system_error& e)
     {

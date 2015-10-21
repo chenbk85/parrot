@@ -14,21 +14,26 @@ namespace parrot
 struct Config;
 class EventNotifier;
 class WsServerConn;
-class ThreadJob;
+class Job;
 
 template<typename Job>
 class FrontThread : public PoolThread
 {
-    using AddPktFunc =
-        std::function<void(std::list<std::unique_ptr<WsPacket>>)>;
-
-    using PacketHdrCb =
-        std::function<void(std::unique_ptr<WsPacket>&&)>;
+    using PacketHdrCb = std::function<void(std::unique_ptr<WsPacket>&&)>;
+    using DefaultPktHdr = std::function<void(std::unique_ptr<Job>)>;
+        
 
     // <ThreadPtr, list<unique_ptr<WsPacket>>>
     using ThreadPktMap =
         std::unordered_map<void *, std::list<std::unique_ptr<WsPacket>>>;
 
+    using ReqBindJob = ThreadJob<FrontThread *,
+        std::list<std::pair<uint64_t, std::unique_ptr<WsPacket>>>>;
+
+    using RspBindJob = ThreadJob<uint64_t, std::shared_ptr<Session>>;
+    using RspBindHdr =
+        std::function<void(uint64_t, std::shared_ptr<Session> &ps)>;
+        
     enum class Constants
     {
         kPktListSize = 100
@@ -39,18 +44,21 @@ class FrontThread : public PoolThread
 
   public:
     void setConfig(const Config* cfg);
+    void regisgerDefaultPktHandler(DefaultPktHdr&& defaultHdr);
     void registerOnPacketHandler(void *handler, OnPacketHdrCb);
-    void registerAddPktCb(void *threadPtr, AddPktFunc && func);
     void addConn(std::list<std::shared_ptr<WsServerConn>>& connList);
     void addConn(std::shared_ptr<WsServerConn>&& conn);
-    void addJob(std::unique_ptr<ThreadJob> &&job);
-    void addJob(std::list<std::unique_ptr<ThreadJob>> &jobList)
+    void addJob(std::unique_ptr<Job> &&job);
+    void addJob(std::list<std::unique_ptr<Job>> &jobList)
 
   protected:
     void beforeStart() override;
     void run() override();
 
   private:
+
+    std::list<std::pair<uint64_t, std::unique_ptr<WsPacket>>> _noRoutePktList;
+    
     std::unordered_map<void*, AddPktFunc>> _pktHandlerFuncMap;
     ThreadPktMap _threadPktMap;
     
@@ -61,7 +69,10 @@ class FrontThread : public PoolThread
     std::unique_ptr<EventNotifier> _notifier;
 
     std::mutex _jobListLock;
-    std::list<std::unique_ptr<ThreadJob>> _jobList;
+    std::list<std::unique_ptr<Job>> _jobList;
+
+    DefaultPktHdr _defaultPktHdr;
+    RspBindHdr _rspBindHdr;
     
     const Config* _config;
 };
