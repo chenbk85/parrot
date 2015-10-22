@@ -20,7 +20,7 @@ class TimeoutGuard : public DoubleLinkedListNode<TimeoutGuard>
     TimeoutGuard& operator=(const TimeoutGuard&) = delete;
 
   public:
-    inline void updateTime(std::time_t now) noexcept
+    inline void setTime(std::time_t now) noexcept
     {
         _lastActiveTime = now;
     }

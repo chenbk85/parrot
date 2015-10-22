@@ -1,4 +1,5 @@
 #include <system_error>
+#include <ctime>
 
 #include "eventNotifier.h"
 #include "epoll.h"
@@ -11,11 +12,13 @@
 #include "macroFuncs.h"
 #include "session.h"
 #include "threadJob.h"
+#include "timeoutManager.h"
 
 namespace parrot
 {
 FrontThread::FrontThread()
     : PoolThread(),
+      TimeoutHandler(),
       _noRoutePktList,
       _pktMap(),
       _pktHandlerFuncMap(),
@@ -31,6 +34,7 @@ FrontThread::FrontThread()
       _onPktHdr(),
       _updateSessionHdr(),
       _random(),
+      _timeoutMgr(),
       _config(nullptr)
 {
     using std::placeholders;
@@ -43,6 +47,12 @@ FrontThread::FrontThread()
 void FrontThread::setConfig(const Config* cfg)
 {
     _config = cfg;
+}
+
+void FrontThread::updateSettings()
+{
+    _timeoutMgr.reset(
+        new TimeoutManager<WsServerConn>(this, _config->_frontThreadTimeout));
 }
 
 void FrontThread::registerDefaultPktHdr(DefaultPktHdr&& hdr)
@@ -222,16 +232,35 @@ void FrontThread::addConnToNotifier()
     std::swap(tmpList, _newConnList);
     _newConnListLock.unlock();
 
+    auto now = std::time(nullptr);
+
     for (auto& c : tmpList)
     {
         c->setAction(c->getDefaultAction());
         c->registerOnPacketCb(_onPktHdr);
         c->getSession()->_frontThreadPtr = this;
-        c->setRandom(_random);
-
+        c->setRandom(&_random);
+        _timeoutMgr->add(c.get(), now);
         _notifier->addEvent(c.get());
         _connMap[c->getUniqueKey()] = std::move(c);
     }
+}
+
+void FrontThread::removeConn(WsServerConn* conn)
+{
+    _connMap.erase(conn->getSession()->_connUniqueKey);
+    _timeoutMgr.remove(conn);
+    // TODO: Notify uplayer.
+}
+
+void FrontThread::updateTimeout(WsServerConn *conn, std::time_t now)
+{
+    _timeoutMgr.update(conn, now);
+}
+
+void FrontThread::onTimeout(WsServerConn* conn)
+{
+    removeConn(conn);
 }
 
 void FrontThread::run()
@@ -240,11 +269,15 @@ void FrontThread::run()
     uint32_t idx       = 0;
     WsServerConn* conn = nullptr;
     eIoAction act      = eIoAction::None;
+    std::time_t now    = 0;
 
     try
     {
         while (!isStopped())
         {
+            now = std::time(nullptr);
+            _timeoutMgr->checkTimeout(now);
+
             addConnToNotifier();
 
             eventNum = _notifier->waitIoEvents(-1);
@@ -260,8 +293,12 @@ void FrontThread::run()
                 switch (act)
                 {
                     case eIoAction::Read:
+                    case eIoAction::ReadWrite:                        
+                    {
+                        updateTimeout(conn, now);
+                    }
+                    // No break;
                     case eIoAction::Write:
-                    case eIoAction::ReadWrite:
                     {
                         _notifier->updateEventAction(act);
                     }

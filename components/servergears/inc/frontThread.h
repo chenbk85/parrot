@@ -6,8 +6,10 @@
 #include <mutex>
 #include <list>
 #include <cstdint>
+#include <ctime>
 
 #include "poolThread.h"
+#include "timeoutHandler.h"
 
 namespace parrot
 {
@@ -17,7 +19,8 @@ class EventNotifier;
 class WsServerConn;
 class Job;
 
-template <typename Job> class FrontThread : public PoolThread
+template <typename Job>
+class FrontThread : public PoolThread, public TimeoutHandler<WsServerConn>
 {
     using PacketHdrCb   = std::function<void(std::unique_ptr<WsPacket>&&)>;
     using DefaultPktHdr = std::function<void(std::unique_ptr<Job>)>;
@@ -61,6 +64,7 @@ template <typename Job> class FrontThread : public PoolThread
     void beforeStart() override;
     void run() override();
     void stop() override();
+    void onTimeout(WsServerConn *) override;
 
   protected:
     void handleRspBind(std::shared_ptr<const Session>& ps);
@@ -70,6 +74,8 @@ template <typename Job> class FrontThread : public PoolThread
                   std::unique_ptr<WsPacket>&& pkt);
     void dispatchPackets();
     void addConnToNotifier();
+    void removeConn(WsServerConn *conn);
+    void updateTimeout(WsServerConn *conn, std::time_t now);    
 
   private:
     std::list<SessionPktPair> _noRoutePktList;
@@ -93,6 +99,7 @@ template <typename Job> class FrontThread : public PoolThread
     UpdateSessionHdr _updateSessionHdr;
 
     MtRandom _random;
+    std::unique_ptr<TimeoutManager<WsServerConn>> _timeougMgr;
     const Config* _config;
 };
 }

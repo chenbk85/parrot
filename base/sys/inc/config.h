@@ -44,6 +44,9 @@ struct Config
     // The lock file path.
     std::string _lockFilePath = "";
 
+    uint32_t _frontThreadTimeout;
+    uint32_t _rpcThreadTimeout;
+
     // This server's info.
     ServerInfo _thisServer;
     // All neighbor servers' map.

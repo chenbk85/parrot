@@ -63,13 +63,10 @@ void WsServerConn::onPing()
 
 void WsServerConn::onPong()
 {
-    updateTime(std::time(nullptr)); // Update idle check timer.
 }
 
 void WsServerConn::onData(std::unique_ptr<WsPacket>&& pkt)
 {
-    updateTime(std::time(nullptr)); // Update idle check timer.
-
     // TODO:
     _onPktHdr(_session, std::move(pkt));
 }
