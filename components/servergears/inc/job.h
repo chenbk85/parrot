@@ -1,5 +1,5 @@
-#ifndef __COMPONENT_SERVERGEAR_INC_JOB_H__
-#define __COMPONENT_SERVERGEAR_INC_JOB_H__
+#ifndef __COMPONENTS_SERVERGEAR_INC_JOB_H__
+#define __COMPONENTS_SERVERGEAR_INC_JOB_H__
 
 namespace parrot
 {
@@ -9,6 +9,7 @@ enum class JobType
     SendPacket,
     ReqBind,
     RsqBind,
+    updateSession,
     Kick
 };
 

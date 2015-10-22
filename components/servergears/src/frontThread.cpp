@@ -22,6 +22,8 @@ FrontThread::FrontThread()
       _notifier(nullptr),
       _config(nullptr)
 {
+    using std::placeholders;
+    _onPktHdr = std::bind(FrontThread::onPacket, this, _1, _2);
 }
 
 void FrontThread::setConfig(const Config* cfg)
@@ -62,19 +64,39 @@ void FrontThread::addJob(std::list<std::unique_ptr<ThreadJob>>& jobList)
     _jobListLock.unlock();
 }
 
-void FrontThread::handleRspBind(uint64_t connUniqueKey,
-                                std::shared_ptr<Session>& ps)
+void FrontThread::handleRspBind(std::shared_ptr<const Session>& ps)
 {
-    auto it = _connMap.find(connUniqueKey);
+    auto it = _connMap.find(ps->_connUniqueKey);
 
     if (it == _connMap.end())
     {
         LOG_WARN("FrontThread::handleRspBind: Failed to bind conn key"
-                 << connUniqueKey << ". Session is " << ps->toString() << ".");
+                 << ps->_connUniqueKey << ". Session is "
+                 << ps->toString() << ".");
         return;
     }
 
-    it->bindSession(ps);
+    it->second->getSession()->_isBound = true;
+}
+
+void FrontThread::handleUpdateSession(std::shared_ptr<const Session>& ps)
+{
+    auto it = _connMap.find(ps->_connUniqueKey);
+
+    if (it == _connMap.end())
+    {
+        LOG_WARN("FrontThread::handleUpdateSession: Failed to bind conn key"
+                 << ps->_connUniqueKey << ". Session is "
+                 << ps->toString() << ".");
+        return;
+    }
+
+    // Copy the the session. We need to save the _isBound first. Because
+    // other thread may create the job when _isBound is not set.
+    auto & session = it->second->getSession();
+    bool isBound = session->_isBound;
+    *session = *ps;
+    session->_isBound = isBound;
 }
 
 void FrontThread::handleJob()
@@ -96,12 +118,15 @@ void FrontThread::handleJob()
             }
             break;
 
-            case JobType::Kick:
+            case JobType::UpdateSession:
             {
+                std::unqiue_ptr<UpdateSessionJob> tj(
+                    static_cast<UpdateSessionJob*>(j->release()));
+                tj->call(_updateSessionHdr);
             }
             break;
 
-            case JobType::Packet:
+            case JobType::Kick:
             {
             }
             break;
@@ -115,22 +140,26 @@ void FrontThread::handleJob()
     }
 }
 
-void FrontThread::onNoRoutePacket(uint64_t connUniqueKey,
-                                  std::unique_ptr<WsPacket>&& pkt)
+void FrontThread::onPacket(std::shared_ptr<const Session>&& session,
+                           std::unique_ptr<WsPacket>&& pkt)
 {
-    _noRoutePktList.emplace_back(connUniqueKey, std::move(pkt));
-}
-
-void FrontThread::onPacket(void* threadPtr, std::unique_ptr<WsPacket>&& pkt)
-{
-    auto it = _threadPktMap.find(threadPtr);
-    if (it == _threadPtrMap.end())
+    if (!session->_isBound)
     {
-        PARROT_ASSERT(false);
+        _noRoutePktList.emplace_back(std::move(session), std::move(pkt));
+        return;
     }
 
-    // Append packet to list.
-    it->second.push_back(std::move(pkt));
+    auto it = _pktMap.find(session->_backThreadPtr);
+
+    if (it == _pktMap.end())
+    {
+        _pktMap[session->_backThreadPtr].emplace_back(std::move(session),
+                                                 std::move(pkt));
+    }
+    else
+    {
+        it->second.emplace_back(std::move(session), std::move(pkt));
+    }
 
     if (it->second.size() >= Constants::kPktListSize)
     {
@@ -174,13 +203,13 @@ void FrontThread::addConnToNotifier()
     std::swap(tmpList, _newConnList);
     _newConnListLock.unlock();
 
-    using std::placeholders;
-    auto onPacketCb = std::bind(FrontThread::onPacket, this, _1, _2);
-
     for (auto& c : tmpList)
     {
         c->setAction(c->getDefaultAction());
-        // c->setRandom();
+        c->registerOnPacketCb(_onPktHdr);
+        c->getSession()->_frontThreadPtr = this;
+        c->setRandom(_random);
+
         _notifier->addEvent(c.get());
         _connMap[c->getUniqueKey()] = std::move(c);
     }
