@@ -46,6 +46,7 @@ class WsServerConn : public TcpServer, public TimeoutGuard
     // Up layer close the socket, we should sent the close packet and
     // disconnect the connection.
     void closeWebSocket(std::unique_ptr<WsPacket>& pkt);
+    void setRandom(MtRandom *random);
 
   private:
     void onError(eCodes c);
@@ -64,6 +65,7 @@ class WsServerConn : public TcpServer, public TimeoutGuard
     OnPacketHdr _onPktHdr;
     std::shared_ptr<Session> _session;
     std::unique_ptr<WsTranslayer> _translayer;
+    MtRandom * _random;
     bool _sentClose;
 };
 }

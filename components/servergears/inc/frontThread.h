@@ -35,13 +35,11 @@ template <typename Job> class FrontThread : public PoolThread
                                       std::unique_ptr<WsPacket>>>>;
 
     using RspBindJob = ThreadJob<std::shared_ptr<const Session>>;
-    using RspBindHdr =
-        std::function<void(std::shared_ptr<const Session>&)>;
+    using RspBindHdr = std::function<void(std::shared_ptr<const Session>&)>;
 
     using UpdateSessionJob = ThreadJob<std::shared_ptr<const Session>>;
     using UpdateSessionHdr =
-        std::function<void(std::shared_ptr<const Session &>)>;
-    
+        std::function<void(std::shared_ptr<const Session&>)>;
 
     enum class Constants
     {
@@ -53,8 +51,7 @@ template <typename Job> class FrontThread : public PoolThread
 
   public:
     void setConfig(const Config* cfg);
-    void regisgerDefaultPktHandler(DefaultPktHdr&& defaultHdr);
-    void registerOnPacketHandler(void* handler, OnPacketHdrCb);
+    void registerDefaultPktHdr(DefaultPktHdr&& defaultHdr);
     void addConn(std::list<std::shared_ptr<WsServerConn>>& connList);
     void addConn(std::shared_ptr<WsServerConn>&& conn);
     void addJob(std::unique_ptr<Job>&& job);
@@ -63,6 +60,16 @@ template <typename Job> class FrontThread : public PoolThread
   protected:
     void beforeStart() override;
     void run() override();
+    void stop() override();
+
+  protected:
+    void handleRspBind(std::shared_ptr<const Session>& ps);
+    void handleUpdateSession(std::shared_ptr<const Session>& ps);
+    void handleJob();
+    void onPacket(std::shared_ptr<const Session>&& session,
+                  std::unique_ptr<WsPacket>&& pkt);
+    void dispatchPackets();
+    void addConnToNotifier();
 
   private:
     std::list<SessionPktPair> _noRoutePktList;

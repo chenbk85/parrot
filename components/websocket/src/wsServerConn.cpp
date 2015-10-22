@@ -22,6 +22,7 @@ WsServerConn::WsServerConn(const WsConfig& cfg)
       _onPktHdr(),
       _session(new Session()),
       _translayer(new WsTranslayer(*this, true, false, cfg)),
+      _random(nullptr),
       _sentClose(false)
 {
     using namespace std::placeholders;
@@ -35,6 +36,11 @@ WsServerConn::WsServerConn(const WsConfig& cfg)
 void WsServerConn::registerOnPacketHdr(const OnPacketHdr& hdr)
 {
     _onPktHdr = hdr;
+}
+
+void WsServerConn::setRandom(MtRandom *r)
+{
+    _random = r;
 }
 
 std::shared_ptr<Session>& WsServerConn::getSession()

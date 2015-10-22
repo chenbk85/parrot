@@ -3,8 +3,8 @@
 #include "eventNotifier.h"
 #include "epoll.h"
 #include "kqueue.h"
-#include "simpleEventNotifier.h"
 
+#include "mtRandom.h"
 #include "config.h"
 #include "wsServerConn.h"
 #include "frontThread.h"
@@ -16,19 +16,38 @@ namespace parrot
 {
 FrontThread::FrontThread()
     : PoolThread(),
+      _noRoutePktList,
+      _pktMap(),
+      _pktHandlerFuncMap(),
+      _threadPktMap(),
       _newConnListLock(),
       _newConnList(),
       _connMap(),
       _notifier(nullptr),
+      _jobListLock(),
+      _jobList(),
+      _defaultPktHdr(),
+      _rspBindHdr(),
+      _onPktHdr(),
+      _updateSessionHdr(),
+      _random(),
       _config(nullptr)
 {
     using std::placeholders;
-    _onPktHdr = std::bind(FrontThread::onPacket, this, _1, _2);
+
+    _rspBindHdr       = std::bind(&FrontThread::handleRspBind, this, _1);
+    _onPktHdr         = std::bind(&FrontThread::onPacket, this, _1, _2);
+    _updateSessionHdr = std::bind(&FrontThread::handleUpdateSession, this, _1);
 }
 
 void FrontThread::setConfig(const Config* cfg)
 {
     _config = cfg;
+}
+
+void FrontThread::registerDefaultPktHdr(DefaultPktHdr&& hdr)
+{
+    _defaultPktHdr = std::move(hdr);
 }
 
 void FrontThread::beforeStart()
@@ -71,8 +90,8 @@ void FrontThread::handleRspBind(std::shared_ptr<const Session>& ps)
     if (it == _connMap.end())
     {
         LOG_WARN("FrontThread::handleRspBind: Failed to bind conn key"
-                 << ps->_connUniqueKey << ". Session is "
-                 << ps->toString() << ".");
+                 << ps->_connUniqueKey << ". Session is " << ps->toString()
+                 << ".");
         return;
     }
 
@@ -86,16 +105,16 @@ void FrontThread::handleUpdateSession(std::shared_ptr<const Session>& ps)
     if (it == _connMap.end())
     {
         LOG_WARN("FrontThread::handleUpdateSession: Failed to bind conn key"
-                 << ps->_connUniqueKey << ". Session is "
-                 << ps->toString() << ".");
+                 << ps->_connUniqueKey << ". Session is " << ps->toString()
+                 << ".");
         return;
     }
 
     // Copy the the session. We need to save the _isBound first. Because
     // other thread may create the job when _isBound is not set.
-    auto & session = it->second->getSession();
-    bool isBound = session->_isBound;
-    *session = *ps;
+    auto& session     = it->second->getSession();
+    bool isBound      = session->_isBound;
+    *session          = *ps;
     session->_isBound = isBound;
 }
 
@@ -154,7 +173,7 @@ void FrontThread::onPacket(std::shared_ptr<const Session>&& session,
     if (it == _pktMap.end())
     {
         _pktMap[session->_backThreadPtr].emplace_back(std::move(session),
-                                                 std::move(pkt));
+                                                      std::move(pkt));
     }
     else
     {
