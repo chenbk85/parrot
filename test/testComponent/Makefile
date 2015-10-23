@@ -40,7 +40,7 @@ COMMAND_COLOR        := 4
 COMPLIER             := g++ -std=c++11
 CPPFLAGS             := -g -Wall -Wextra -Werror -DDEBUG
 LINKER               := g++
-LDFLAGS              := -Wl,-rpath,$(PRJ_ROOT)/libs -L$(PRJ_ROOT)/libs
+LDFLAGS              := -Wl,-rpath,$(PRJ_ROOT)/lib -L$(PRJ_ROOT)/lib
 
 # Commands
 RM                   := rm -rf

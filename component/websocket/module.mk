@@ -2,8 +2,9 @@ MODULE := $(shell basename $(subdirectory))
 
 $(MODULE)_DIR         := $(subdirectory)
 $(MODULE)_TARGET      := $(PRJ_ROOT)/lib/lib$(MODULE).a
-$(MODULE)_DEP_COMP    :=
-$(MODULE)_DEP_BASE    :=
+$(MODULE)_DEP_COMP    := json
+$(MODULE)_DEP_BASE    := sys util
+$(MODULE)_3RD_PARTY   := openssl rapidjson
 
 $(MODULE)_SRC         := $(wildcard $($(MODULE)_DIR)/src/*.cpp)
 $(MODULE)_INC         := $($(MODULE)_DIR)/inc
@@ -15,10 +16,13 @@ BASE_INC              := $(addsuffix /inc,\
 
 # Get the inc directory of modules in $Project/component directory.
 COMP_INC              := $(addsuffix /inc,\
-							$(addprefix $(PRJ_ROOT)/component/,$($(MODULE)_DEP_COMP)))
+							$(addprefix $(PRJ_ROOT)/components/,$($(MODULE)_DEP_COMP)))
+
+THIRD_PARTY_INC       := $($(addsuffix _INC, \
+							$(shell echo $($(MODULE)_3RD_PARTY) | tr a-z A-Z)))
 
 # Join depend include directory.
-$(MODULE)_INC         += $(COMP_INC) $(BASE_INC)
+$(MODULE)_INC         += $(COMP_INC) $(BASE_INC) $(THIRD_PARTY_INC)
 
 # Add '-I ' for complier.
 $(MODULE)_INC         := $(addprefix -I ,$($(MODULE)_INC))

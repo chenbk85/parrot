@@ -25,7 +25,7 @@ else
     CPPFLAGS         := -g -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing -DDEBUG
 endif
 LINKER               := g++
-LDFLAGS              := -Wl,-rpath,$(PRJ_ROOT)/libs
+LDFLAGS              := -Wl,-rpath,$(PRJ_ROOT)/lib
 
 # Commands
 RM                   := rm -rf
@@ -48,7 +48,7 @@ all: $(OBJECTS) $(LIBRARIES) $(BINARIES)
 clean:
 	@find $(PRJ_ROOT) -name '*.o' -exec $(RM) {} \;
 	@find $(PRJ_ROOT) -name '*~' -exec $(RM) {} \;
-	@$(RM) $(PRJ_ROOT)/libs/* $(PRJ_ROOT)/bin/*
+	@$(RM) $(PRJ_ROOT)/lib/* $(PRJ_ROOT)/bin/*
 
 .PHONY: tarball
 tarball:

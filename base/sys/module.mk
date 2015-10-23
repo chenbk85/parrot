@@ -1,7 +1,7 @@
 MODULE := $(shell basename $(subdirectory))
 
 $(MODULE)_DIR         := $(subdirectory)
-$(MODULE)_TARGET      := $(PRJ_ROOT)/libs/lib$(MODULE).a
+$(MODULE)_TARGET      := $(PRJ_ROOT)/lib/lib$(MODULE).a
 $(MODULE)_DEP_COMP    :=
 $(MODULE)_DEP_BASE    := util
 $(MODULE)_3RD_PARTY   := openssl
