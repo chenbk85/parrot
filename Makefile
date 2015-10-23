@@ -18,7 +18,12 @@ NOTICE_COLOR         := 2
 COMMAND_COLOR        := 4
 
 # Complier and linker
-COMPLIER             := g++ -std=c++11
+CCACHE               := ccache
+ifeq (, $(shell which ccache))
+CCACHE               :=
+endif
+
+COMPLIER             := $(CCACHE) g++ -std=c++11
 ifdef RELEASE
     CPPFLAGS         := -Wall -Wextra -Werror -O3 -Wnon-virtual-dtor -fno-strict-aliasing -DRELEASE
 else
