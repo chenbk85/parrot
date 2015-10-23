@@ -8,10 +8,9 @@ Session::Session():
     _uid(),
     _frontSid(),
     _serverMap(),
-    _pktHdr(),
     _backThreadPtr(nullptr),
     _frontThreadPtr(nullptr),
-    _connUniqueId(nullptr),
+    _connUniqueId(0),
     _ip()
 {
 

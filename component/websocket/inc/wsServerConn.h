@@ -12,16 +12,18 @@
 #include "tcpServer.h"
 #include "timeoutGuard.h"
 #include "wsPacketHandler.h"
+#include "doubleLinkedListNode.h"
+#include "wsTranslayer.h"
 
 namespace parrot
 {
 class WsPacket;
-class WsTranslayer;
 struct WsConfig;
 struct Session;
 
 class WsServerConn : public TcpServer,
-                     public TimeoutGuard
+                     public TimeoutGuard,
+                     public DoubleLinkedListNode<WsServerConn>
 {
     using PacketHandler = WsPacketHandler<Session, WsServerConn>;
 
@@ -33,6 +35,7 @@ class WsServerConn : public TcpServer,
     };
 
   public:
+    WsServerConn() = default;
     explicit WsServerConn(const WsConfig& cfg);
     virtual ~WsServerConn() = default;
     WsServerConn(const WsServerConn&) = delete;
@@ -66,7 +69,6 @@ class WsServerConn : public TcpServer,
     PacketHandler* _pktHandler;
     std::shared_ptr<Session> _session;
     std::unique_ptr<WsTranslayer> _translayer;
-    MtRandom* _random;
     bool _sentClose;
 };
 }

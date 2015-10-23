@@ -1,21 +1,18 @@
 #ifndef __BASE_SYS_INC_DOUBLELINKEDLIST_H__
 #define __BASE_SYS_INC_DOUBLELINKEDLIST_H__
 
-#include "doubleLinkedListNode.h"
 #include "macroFuncs.h"
 
 namespace parrot
 {
 template <typename T> class DoubleLinkedList
 {
-    using Node = DoubleLinkedListNode<T>;
-
   public:
-    DoubleLinkedList() : _count(0), _head(new Node()), _tail(_head)
+    DoubleLinkedList() : _count(0), _head(new T()), _tail(_head)
     {
     }
 
-    ~DoubleLinkedList()
+    virtual ~DoubleLinkedList()
     {
         delete _head;
         _head = _tail = nullptr;
@@ -25,7 +22,7 @@ template <typename T> class DoubleLinkedList
     DoubleLinkedList& operator=(const DoubleLinkedList&) = delete;
 
   public:
-    void add(Node* n) noexcept
+    void add(T* n) noexcept
     {
         PARROT_ASSERT(n != nullptr && n->getPrev() == nullptr &&
                       n->getNext() == nullptr);
@@ -35,7 +32,7 @@ template <typename T> class DoubleLinkedList
         ++_count;
     }
 
-    Node* front() noexcept
+    T* front() noexcept
     {
         return _head->getNext();
     }
@@ -45,7 +42,7 @@ template <typename T> class DoubleLinkedList
         return _count;
     }
 
-    void remove(Node* n) noexcept
+    void remove(T* n) noexcept
     {
         PARROT_ASSERT(n != nullptr && n->getPrev() != nullptr);
 
@@ -61,13 +58,13 @@ template <typename T> class DoubleLinkedList
             _tail = n->getPrev();
         }
 
-        --count;
+        --_count;
     }
 
   private:
     uint32_t _count;
-    Node* _head;
-    Node* _tail;
+    T* _head;
+    T* _tail;
 };
 }
 

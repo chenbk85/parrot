@@ -9,16 +9,16 @@
 #include <functional>
 
 #include "codes.h"
+#include "wsEncoder.h"
+#include "wsHttpResponse.h"
+#include "wsParser.h"
 #include "sysDefinitions.h"
 
 namespace parrot
 {
 // Forward declarations.
-class MtRandom;
-class WsHttpResponse;
 class IoEvent;
 class WsPacket;
-class WsParser;
 struct WsConfig;
 
 // WsTranslayer implements Websocket implement.
@@ -42,6 +42,7 @@ class WsTranslayer
     WsTranslayer& operator=(const WsTranslayer&) = delete;
 
   public:
+    void setRandom(MtRandom *random);
     // Callbacks.
     void registerOnPacketCb(
         std::function<void(std::unique_ptr<WsPacket>&&)>&& cb);
@@ -88,7 +89,7 @@ class WsTranslayer
     std::function<void(std::unique_ptr<WsPacket> &&)> _onPacketCb;
     std::function<void(eCodes)> _onErrorCb;
 
-    std::unique_ptr<MtRandom> _random;
+    MtRandom* _random;
     const WsConfig& _config;
 };
 }

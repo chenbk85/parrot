@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdint>
 
+#include "json.h"
 #include "wsDefinition.h"
 #include "codes.h"
 

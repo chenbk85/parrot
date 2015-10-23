@@ -19,12 +19,11 @@ namespace parrot
 WsServerConn::WsServerConn(const WsConfig& cfg)
     : TcpServer(),
       TimeoutGuard(),
+      DoubleLinkedListNode<WsServerConn>(),
       _state(eWsState::NotOpened),
       _pktHandler(nullptr),
-      _onPktHdr(),
       _session(new Session()),
       _translayer(new WsTranslayer(*this, true, false, cfg)),
-      _random(nullptr),
       _sentClose(false)
 {
     using namespace std::placeholders;
@@ -42,7 +41,7 @@ void WsServerConn::setPacketHandler(PacketHandler *hdr)
 
 void WsServerConn::setRandom(MtRandom *r)
 {
-    _random = r;
+    _translayer->setRandom(r);
 }
 
 std::shared_ptr<Session>& WsServerConn::getSession()
@@ -69,7 +68,7 @@ void WsServerConn::onPong()
 
 void WsServerConn::onData(std::unique_ptr<WsPacket>&& pkt)
 {
-    _pktHandler->onPacket(_session, std::move(pkt))
+    _pktHandler->onPacket(_session, std::move(pkt));
 }
 
 void WsServerConn::doClose()
@@ -145,11 +144,6 @@ void WsServerConn::onError(eCodes code)
     sendPacket(pkt);
     _sentClose = true;
     _state     = eWsState::Closing;
-}
-
-void WsServerConn::bindSession(std::shared_ptr<Session>&& session)
-{
-    _session = std::move(session);
 }
 
 void WsServerConn::sendPacket(std::unique_ptr<WsPacket>& pkt)

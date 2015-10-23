@@ -48,7 +48,7 @@ void FrontThread::updateByConfig(const Config* cfg)
 {
     _config = cfg;
     _timeoutMgr.reset(
-        new TimeoutManager<FrontThread>(this, _config->_frontThreadTimeout));
+        new TimeoutManager<WsServerConn>(this, _config->_frontThreadTimeout));
 }
 
 void FrontThread::setDefaultJobHdr(std::vector<JobHandler*>& vec)

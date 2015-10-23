@@ -2,11 +2,10 @@
 #define __BASE_SYS_INC_TIMEOUTGUARD_H__
 
 #include <ctime>
-#include "doubleLinkedListNode.h"
 
 namespace parrot
 {
-class TimeoutGuard : public DoubleLinkedListNode<TimeoutGuard>
+class TimeoutGuard
 {
   public:
     TimeoutGuard() noexcept : _lastActiveTime(0)

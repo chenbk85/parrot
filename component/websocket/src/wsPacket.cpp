@@ -142,11 +142,11 @@ bool WsPacket::decode()
 
 bool WsPacket::decodeClose()
 {
-
+    return false;
 }
 
 bool WsPacket::decodeBinary()
 {
-
+    return false;
 }
 }

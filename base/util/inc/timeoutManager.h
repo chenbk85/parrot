@@ -28,18 +28,18 @@ template <typename T> class TimeoutManager
     TimeoutManager& operator=(const TimeoutManager&) = delete;
 
   public:
-    void add(TimeoutGuard* tg, std::time_t now) noexcept
+    void add(T* tg, std::time_t now) noexcept
     {
         tg->setTime(now);
         _timeoutList.add(tg);
     }
-    void remove(TimeoutGuard* tg) noexcept
+    void remove(T* tg) noexcept
     {
         tg->setTime(static_cast<std::time_t>(0));
         _timeoutList.remove(tg);
     }
 
-    void update(TimeoutGuard* tg, std::time_t now) noexcept
+    void update(T* tg, std::time_t now) noexcept
     {
         remove(tg);
         add(tg, now);
@@ -47,10 +47,10 @@ template <typename T> class TimeoutManager
 
     void checkTimeout(std::time_t now) noexcept
     {
-        TimeoutGuard* guard = nullptr;
+        T* guard = nullptr;
         while (true)
         {
-            guard = static_cast<TimeoutGuard*>(_timeoutList.front());
+            guard = _timeoutList.front();
             if (guard == nullptr)
             {
                 break;
@@ -69,7 +69,7 @@ template <typename T> class TimeoutManager
     }
 
   private:
-    bool isTimeout(TimeoutGuard* tg, std::time_t now) noexcept
+    bool isTimeout(T* tg, std::time_t now) noexcept
     {
         if (tg->getTime() + _timeoutSeconds >= now)
         {
@@ -82,7 +82,7 @@ template <typename T> class TimeoutManager
   private:
     TimeoutHandler<T>* _timeoutHandler;
     std::time_t _timeoutSeconds;
-    DoubleLinkedList<TimeoutGuard> _timeoutList;
+    DoubleLinkedList<T> _timeoutList;
 };
 }
 

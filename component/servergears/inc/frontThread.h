@@ -26,11 +26,9 @@ class FrontThread : public PoolThread,
                     public JobHandler,
                     public WsPacketHandler<Session, WsServerConn>
 {
-    using SessionPktPair =
-        std::pair<std::shared_ptr<const Session>, std::unique_ptr<WsPacket>>;
     // <ThreadPtr, list<unique_ptr<WsPacket>>>
     using ThreadJobMap =
-        std::unordered_map<void*, std::list<std::unique_ptr<Job>>>;
+        std::unordered_map<void*, std::list<SessionPktPair>>;
 
     enum class Constants
     {
@@ -75,7 +73,7 @@ class FrontThread : public PoolThread,
 
   private:
     std::list<SessionPktPair> _noRoutePktList;
-    std::unordered_map<void*, std::list<std::unique_ptr<Job>>> _pktMap;
+    std::unordered_map<void*, std::list<SessionPktPair>> _pktMap;
 
     std::unordered_map<void*, JobHandler*> _jobHandlerMap;
     ThreadJobMap _threadJobMap;
@@ -92,7 +90,7 @@ class FrontThread : public PoolThread,
     UpdateSessionJobHdr _updateSessionHdr;
 
     MtRandom _random;
-    std::unique_ptr<TimeoutManager<FrontThread>> _timeoutMgr;
+    std::unique_ptr<TimeoutManager<WsServerConn>> _timeoutMgr;
     const Config* _config;
 };
 }

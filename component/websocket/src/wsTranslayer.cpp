@@ -30,7 +30,7 @@ WsTranslayer::WsTranslayer(IoEvent& io,
       _wsEncoder(),
       _onPacketCb(),
       _onErrorCb(),
-      _random(new MtRandom()),
+      _random(nullptr),
       _config(cfg)
 {
     _sendVec.reserve(_config._sendBuffLen);
@@ -39,6 +39,11 @@ WsTranslayer::WsTranslayer(IoEvent& io,
     // TODO:
     _wsEncoder.reset(new WsEncoder(_sendVec, _sendFragmentedVec, _config,
                                    *_random, _needSendMasked));
+}
+
+void WsTranslayer::setRandom(MtRandom *random)
+{
+    _random = random;
 }
 
 void WsTranslayer::registerOnPacketCb(
