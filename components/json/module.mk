@@ -35,8 +35,8 @@ LIBRARIES             += $($(MODULE)_TARGET)
 $($(MODULE)_DIR)/obj/%.o: LOCAL_CPPFLAGS := $($(MODULE)_CPPFLAGS)
 $($(MODULE)_DIR)/obj/%.o: LOCAL_INCLUDE  := $($(MODULE)_INC)
 $($(MODULE)_DIR)/obj/%.o: $($(MODULE)_DIR)/src/%.cpp
-	@tput setaf $(NOTICE_COLOR); echo "Building source $^"; tput setaf $(COMMAND_COLOR)
-	$(COMPLIER) $(CPPFLAGS) $(LOCAL_INCLUDE) -c $^ -o $@
+	@tput setaf $(NOTICE_COLOR); echo "Building source $<"; tput setaf $(COMMAND_COLOR)
+	$(COMPLIER) $(CPPFLAGS) $(LOCAL_INCLUDE) -c $< -o $@
 	@echo; tput setaf 0
 
 $($(MODULE)_TARGET): LOCAL_TARGET := $($(MODULE)_TARGET)

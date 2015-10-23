@@ -3,20 +3,21 @@
 
 namespace parrot
 {
-enum class JobType
+enum class eJobType
 {
     None,
-    SendPacket,
+    Packet,
     ReqBind,
     RsqBind,
-    updateSession,
+    UpdateSession,
+    DisconnectSession,
     Kick
 };
 
 class Job
 {
   public:
-    Job(JobType jobType);
+    Job(eJobType jobType);
     virtual ~Job() = default;
     Job(const Job&) = delete;
     Job& operator=(const Job&) = delete;
@@ -24,11 +25,11 @@ class Job
     Job& operator=(Job&&) = default;
 
   public:
-    JobType getJobType() const;
-    void setJobType(JobType type);
+    eJobType getJobType() const;
+    void setJobType(eJobType type);
 
   private:
-    JobType _jobType;
+    eJobType _jobType;
 };
 }
 

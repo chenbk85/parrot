@@ -9,6 +9,8 @@
 #include <ctime>
 
 #include "poolThread.h"
+#include "jobHandler.h"
+#include "threadJob.h"
 #include "timeoutHandler.h"
 
 namespace parrot
@@ -17,32 +19,17 @@ struct Config;
 struct Session;
 class EventNotifier;
 class WsServerConn;
-class Job;
 
-template <typename Job>
-class FrontThread : public PoolThread, public TimeoutHandler<WsServerConn>
+class FrontThread : public PoolThread,
+                    public TimeoutHandler<WsServerConn>,
+                    public JobHandler,
+                    public WsPacketHandler<Session, WsServerConn>
 {
-    using PacketHdrCb   = std::function<void(std::unique_ptr<WsPacket>&&)>;
-    using DefaultPktHdr = std::function<void(std::unique_ptr<Job>)>;
-    using OnPacketHdr = std::function<void(std::shared_ptr<const Session>&,
-                                           std::unique_ptr<WsPacket>&&)>;
     using SessionPktPair =
         std::pair<std::shared_ptr<const Session>, std::unique_ptr<WsPacket>>;
     // <ThreadPtr, list<unique_ptr<WsPacket>>>
-    using ThreadPktMap =
-        std::unordered_map<void*, std::list<std::unique_ptr<WsPacket>>>;
-
-    using ReqBindJob =
-        ThreadJob<FrontThread*,
-                  std::list<std::pair<std::shared_ptr<const Session>,
-                                      std::unique_ptr<WsPacket>>>>;
-
-    using RspBindJob = ThreadJob<std::shared_ptr<const Session>>;
-    using RspBindHdr = std::function<void(std::shared_ptr<const Session>&)>;
-
-    using UpdateSessionJob = ThreadJob<std::shared_ptr<const Session>>;
-    using UpdateSessionHdr =
-        std::function<void(std::shared_ptr<const Session&>)>;
+    using ThreadJobMap =
+        std::unordered_map<void*, std::list<std::unique_ptr<Job>>>;
 
     enum class Constants
     {
@@ -53,36 +40,46 @@ class FrontThread : public PoolThread, public TimeoutHandler<WsServerConn>
     FrontThread();
 
   public:
-    void setConfig(const Config* cfg);
-    void registerDefaultPktHdr(DefaultPktHdr&& defaultHdr);
+    void updateByConfig(const Config* cfg);
+    void setDefaultJobHdr(std::vector<JobHandler*>& hdr);
     void addConn(std::list<std::shared_ptr<WsServerConn>>& connList);
-    void addConn(std::shared_ptr<WsServerConn>&& conn);
-    void addJob(std::unique_ptr<Job>&& job);
-    void addJob(std::list<std::unique_ptr<Job>>& jobList);
 
   protected:
+    // ThreadBase
     void beforeStart() override;
-    void run() override();
-    void stop() override();
-    void onTimeout(WsServerConn *) override;
+    void run() override;
+    void stop() override;
 
   protected:
-    void handleRspBind(std::shared_ptr<const Session>& ps);
+    // TimeoutHandler
+    void onTimeout(WsServerConn*) override;
+
+  protected:
+    // JobHandler
+    void handleJob() override;
+
+  public:
+    // WsPacketHandler
+    void onPacket(std::shared_ptr<const Session>&&,
+                  std::unique_ptr<WsPacket>&&) override;
+    void onClose(WsServerConn* conn, eCodes err) override;
+
+  protected:
+    void handleRspBind(std::list<std::shared_ptr<const Session>>& sl);
     void handleUpdateSession(std::shared_ptr<const Session>& ps);
-    void handleJob();
     void onPacket(std::shared_ptr<const Session>&& session,
                   std::unique_ptr<WsPacket>&& pkt);
     void dispatchPackets();
     void addConnToNotifier();
-    void removeConn(WsServerConn *conn);
-    void updateTimeout(WsServerConn *conn, std::time_t now);    
+    void removeConn(WsServerConn* conn);
+    void updateTimeout(WsServerConn* conn, std::time_t now);
 
   private:
     std::list<SessionPktPair> _noRoutePktList;
-    std::unordered_map<void*, std::list<SessionPktPair>> _pktMap;
+    std::unordered_map<void*, std::list<std::unique_ptr<Job>>> _pktMap;
 
     std::unordered_map<void*, AddPktFunc>> _pktHandlerFuncMap;
-    ThreadPktMap _threadPktMap;
+    ThreadJobMap _threadJobMap;
 
     std::mutex _newConnListLock;
     std::list<std::shared_ptr<WsServerConn>> _newConnList;
@@ -90,13 +87,10 @@ class FrontThread : public PoolThread, public TimeoutHandler<WsServerConn>
 
     std::unique_ptr<EventNotifier> _notifier;
 
-    std::mutex _jobListLock;
-    std::list<std::unique_ptr<Job>> _jobList;
-
-    DefaultPktHdr _defaultPktHdr;
-    RspBindHdr _rspBindHdr;
-    OnPacketHdr _onPktHdr;
-    UpdateSessionHdr _updateSessionHdr;
+    std::vector<JobHandler*> _defaultJobHdrVec;
+    uint32_t _lastDefaultJobIdx;
+    RspBindJobHdr _rspBindHdr;
+    UpdateSessionJobHdr _updateSessionHdr;
 
     MtRandom _random;
     std::unique_ptr<TimeoutManager<WsServerConn>> _timeougMgr;

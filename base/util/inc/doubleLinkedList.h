@@ -6,7 +6,7 @@
 
 namespace parrot
 {
-template <typename T> class DoubleLinkedList final
+template <typename T> class DoubleLinkedList
 {
     using Node = DoubleLinkedListNode<T>;
 

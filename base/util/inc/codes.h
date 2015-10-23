@@ -56,7 +56,8 @@ enum class eCodes
     ERR_FileRead   = 5000003,
     ERR_Send       = 5000004,
     ERR_Recv       = 5000005,
-    ERR_HttpHeader = 5000006
+    ERR_HttpHeader = 5000006,
+    ERR_Timeout    = 5000007
 };
 
 std::error_code make_error_code(eCodes e) noexcept;

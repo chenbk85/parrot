@@ -11,20 +11,23 @@
 #include "wsDefinition.h"
 #include "tcpServer.h"
 #include "timeoutGuard.h"
+#include "doubleLinkedList.h"
 
 namespace parrot
 {
 class WsPacket;
 class WsTranslayer;
+class WsPacketHandler;
 struct WsConfig;
 struct Session;
 
-class WsServerConn : public TcpServer, public TimeoutGuard
+class WsServerConn : public TcpServer,
+                     public TimeoutGuard,
+                     public DoubleLinkedList<WsServerConn>
 {
-    using OnPacketHdr = std::function<void(std::shared_ptr<const Session>&,
-                                           std::unique_ptr<WsPacket>&&)>;
+    using PacketHandler = WsPacketHandler<Session, WsServerConn>;
 
-    enum class WsState
+    enum class eWsState
     {
         NotOpened,
         Opened,
@@ -38,15 +41,15 @@ class WsServerConn : public TcpServer, public TimeoutGuard
     WsServerConn& operator=(const WsServerConn&) = delete;
 
   public:
-    void registerOnPacketHdr(const OnPacketHdr &hdr);
-    std::shared_ptr<Session> &getSession();
+    void setPacketHandler(PacketHandler* hdr);
+    std::shared_ptr<Session>& getSession();
     void sendPacket(std::unique_ptr<WsPacket>& pkt);
     void sendPacket(std::list<std::unique_ptr<WsPacket>>& pkt);
     eIoAction handleIoEvent() override;
     // Up layer close the socket, we should sent the close packet and
     // disconnect the connection.
     void closeWebSocket(std::unique_ptr<WsPacket>& pkt);
-    void setRandom(MtRandom *random);
+    void setRandom(MtRandom* random);
 
   private:
     void onError(eCodes c);
@@ -61,11 +64,11 @@ class WsServerConn : public TcpServer, public TimeoutGuard
     void doClose();
 
   private:
-    WsState _state;
-    OnPacketHdr _onPktHdr;
+    eWsState _state;
+    PacketHandler* _pktHandler;
     std::shared_ptr<Session> _session;
     std::unique_ptr<WsTranslayer> _translayer;
-    MtRandom * _random;
+    MtRandom* _random;
     bool _sentClose;
 };
 }

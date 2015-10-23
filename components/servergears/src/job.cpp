@@ -2,16 +2,16 @@
 
 namespace parrot
 {
-Job::Job(JobType jobType) : _jobType(jobType)
+Job::Job(eJobType jobType) : _jobType(jobType)
 {
 }
 
-JobType Job::getJobType() const
+eJobType Job::getJobType() const
 {
     return _jobType;
 }
 
-void Job::setJobType(JobType type)
+void Job::setJobType(eJobType type)
 {
     _jobType = type;
 }

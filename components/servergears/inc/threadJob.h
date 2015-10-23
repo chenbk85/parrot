@@ -22,7 +22,7 @@ template <typename... Ts> class ThreadJob : public Job
         _args = std::forward_as_tuple(std::forward<RfTs>(args)...);
     }
 
-    void call(const std::function<void(Ts&...)> &func)
+    void call(const std::function<void(Ts&...)>& func)
     {
         apply(func, genSeq<sizeof...(Ts)>{});
     }
@@ -37,6 +37,28 @@ template <typename... Ts> class ThreadJob : public Job
   private:
     std::tuple<Ts...> _args;
 };
+
+struct Session;
+class WsPacket;
+class FrontThread;
+
+using SessionPktPair =
+    std::pair<std::shared_ptr<const Session>, std::unique_ptr<WsPacket>>;
+
+using PacketJob    = ThreadJob<std::list<SessionPktPair>>;
+using PacketJobHdr = std::function<void(std::list<SessionPktPair>&)>;
+
+using ReqBindJob = ThreadJob<FrontThread*, std::list<SessionPktPair>>;
+using ReqBindJobHdr =
+    std::function<void(FrontThread*, std::list<SessionPktPair>&)>;
+
+using RspBindJob = ThreadJob<std::list<std::shared_ptr<const Session>>>;
+using RspBindJobHdr =
+    std::function<void(std::list<std::shared_ptr<const Session>>&)>;
+
+using UpdateSessionJob = ThreadJob<std::shared_ptr<const Session>>;
+using UpdateSessionJobHdr =
+    std::function<void(std::shared_ptr<const Session>&)>;
 }
 
 #endif

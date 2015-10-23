@@ -12,13 +12,16 @@
 #include "wsServerConn.h"
 #include "macroFuncs.h"
 #include "wsConfig.h"
+#include "wsPacketHandler.h"
 
 namespace parrot
 {
 WsServerConn::WsServerConn(const WsConfig& cfg)
     : TcpServer(),
       TimeoutGuard(),
-      _state(WsState::NotOpened),
+      Doublelinkedlist<WsServerConn>(),
+      _state(eWsState::NotOpened),
+      _pktHandler(nullptr),
       _onPktHdr(),
       _session(new Session()),
       _translayer(new WsTranslayer(*this, true, false, cfg)),
@@ -33,9 +36,9 @@ WsServerConn::WsServerConn(const WsConfig& cfg)
     _translayer->registerOnErrorCb(std::move(onErrCb));
 }
 
-void WsServerConn::registerOnPacketHdr(const OnPacketHdr& hdr)
+void WsServerConn::setPacketHandler(PacketHandler *hdr)
 {
-    _onPktHdr = hdr;
+    _pktHandler = hdr;
 }
 
 void WsServerConn::setRandom(MtRandom *r)
@@ -50,8 +53,8 @@ std::shared_ptr<Session>& WsServerConn::getSession()
 
 void WsServerConn::onOpen()
 {
-    PARROT_ASSERT(_state == WsState::NotOpened);
-    _state = WsState::Opened;
+    PARROT_ASSERT(_state == eWsState::NotOpened);
+    _state = eWsState::Opened;
 }
 
 void WsServerConn::onPing()
@@ -67,24 +70,21 @@ void WsServerConn::onPong()
 
 void WsServerConn::onData(std::unique_ptr<WsPacket>&& pkt)
 {
-    // TODO:
-    _onPktHdr(_session, std::move(pkt));
+    _pktHandler->onPacket(_session, std::move(pkt))
 }
 
 void WsServerConn::doClose()
 {
-    // TODO:
 }
 
-void WsServerConn::onClose(std::unique_ptr<WsPacket>&&)
+void WsServerConn::onClose(std::unique_ptr<WsPacket>&&p)
 {
-    _state = WsState::Closing;
+    _state = eWsState::Closing;
 
     if (_sentClose && _translayer->isAllSent())
     {
-        // TODO: Notify up layer.
-        // uplayer->onClose(p->getErrorCode())
         doClose();
+        _pktHandler->onClose(this, p->getErrorCode());
     }
     else
     {
@@ -145,7 +145,7 @@ void WsServerConn::onError(eCodes code)
     pkt->setClose(code);
     sendPacket(pkt);
     _sentClose = true;
-    _state     = WsState::Closing;
+    _state     = eWsState::Closing;
 }
 
 void WsServerConn::bindSession(std::shared_ptr<Session>&& session)
@@ -155,14 +155,14 @@ void WsServerConn::bindSession(std::shared_ptr<Session>&& session)
 
 void WsServerConn::sendPacket(std::unique_ptr<WsPacket>& pkt)
 {
-    if (_state == WsState::NotOpened)
+    if (_state == eWsState::NotOpened)
     {
         LOG_WARN("WsServerConn::sendPacket: Websocket has not opened yet. "
                  "Packet will not be sent.");
         return;
     }
 
-    if (_state == WsState::Closing)
+    if (_state == eWsState::Closing)
     {
         LOG_WARN("WsServerConn::sendPacket: Websocket is closing. Packet will "
                  "not be sent.");
@@ -173,14 +173,14 @@ void WsServerConn::sendPacket(std::unique_ptr<WsPacket>& pkt)
 
 void WsServerConn::sendPacket(std::list<std::unique_ptr<WsPacket>>& pktList)
 {
-    if (_state == WsState::NotOpened)
+    if (_state == eWsState::NotOpened)
     {
         LOG_WARN("WsServerConn::sendPacket: Websocket has not opened yet. "
                  "Packet will not be sent.");
         return;
     }
 
-    if (_state == WsState::Closing)
+    if (_state == eWsState::Closing)
     {
         LOG_WARN("WsServerConn::sendPacket: Websocket is closing. Packet list "
                  "will not be sent.");
@@ -191,7 +191,7 @@ void WsServerConn::sendPacket(std::list<std::unique_ptr<WsPacket>>& pktList)
 
 bool WsServerConn::canClose()
 {
-    if (_state != WsState::Closing)
+    if (_state != eWsState::Closing)
     {
         return false;
     }
@@ -249,7 +249,7 @@ eIoAction WsServerConn::handleIoEvent()
 void WsServerConn::closeWebSocket(std::unique_ptr<WsPacket>& pkt)
 {
     sendPacket(pkt);
-    _state     = WsState::Closing;
+    _state     = eWsState::Closing;
     _sentClose = true;
 }
 }
