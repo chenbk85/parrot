@@ -50,7 +50,7 @@ template <typename T> class TimeoutManager
         TimeoutGuard* guard = nullptr;
         while (true)
         {
-            guard = timeoutList.front();
+            guard = static_cast<TimeoutGuard*>(_timeoutList.front());
             if (guard == nullptr)
             {
                 break;
@@ -59,7 +59,7 @@ template <typename T> class TimeoutManager
             if (isTimeout(guard, now))
             {
                 remove(guard);
-                _timeoutHandler.onTimeout(guard);
+                _timeoutHandler->onTimeout(guard);
             }
             else
             {

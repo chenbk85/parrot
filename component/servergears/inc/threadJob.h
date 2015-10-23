@@ -13,7 +13,7 @@ namespace parrot
 template <typename... Ts> class ThreadJob : public Job
 {
   public:
-    ThreadJob(JobType jobType) : Job(jobType), _args()
+    ThreadJob(eJobType jobType) : Job(jobType), _args()
     {
     }
 

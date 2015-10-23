@@ -11,19 +11,17 @@
 #include "wsDefinition.h"
 #include "tcpServer.h"
 #include "timeoutGuard.h"
-#include "doubleLinkedList.h"
+#include "wsPacketHandler.h"
 
 namespace parrot
 {
 class WsPacket;
 class WsTranslayer;
-class WsPacketHandler;
 struct WsConfig;
 struct Session;
 
 class WsServerConn : public TcpServer,
-                     public TimeoutGuard,
-                     public DoubleLinkedList<WsServerConn>
+                     public TimeoutGuard
 {
     using PacketHandler = WsPacketHandler<Session, WsServerConn>;
 

@@ -9,12 +9,12 @@ MainThread::MainThread(const Config& cfg) : _config(cfg)
 
 void MainThread::daemonize()
 {
-    Daemon::setConfig(_config);
+    Daemon::setConfig(&_config);
 
     // Make this process as daemon.
     Daemon::daemonize();
 
-    auto shutdownCb = std::bind(MainThread::onStop, this);
+    auto shutdownCb = std::bind(&MainThread::onStop, this);
     Daemon::registerShutdownCb(shutdownCb);
 }
 

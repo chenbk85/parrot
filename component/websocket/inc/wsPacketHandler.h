@@ -6,9 +6,9 @@
 
 namespace parrot
 {
+class WsPacket;
 
-template<typename Sess, typename Conn>
-class WsPacketHandler
+template <typename Sess, typename Conn> class WsPacketHandler
 {
   public:
     virtual ~WsPacketHandler() = default;
@@ -16,7 +16,7 @@ class WsPacketHandler
   public:
     virtual void onPacket(std::shared_ptr<const Sess>&&,
                           std::unique_ptr<WsPacket>&&) = 0;
-    virtual void onClose(Conn* conn, eCodes) = 0;
+    virtual void onClose(Conn* conn, std::unique_ptr<WsPacket>&&) = 0;
 };
 }
 

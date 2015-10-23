@@ -12,6 +12,7 @@ class MainThread
 {
   public:
     explicit MainThread(const Config& cfg);
+    virtual ~MainThread() = default;
 
   public:
     // onStop
@@ -27,7 +28,7 @@ class MainThread
     virtual void beforeStart();
     virtual void createUserThreads() {}
     virtual void run();
-    virutal void beforeTerminate();
+    virtual void beforeTerminate();
 
   protected:
     void createSysThreads();

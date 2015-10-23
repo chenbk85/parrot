@@ -1,6 +1,8 @@
 #include <system_error>
+#include <string>
 #include <ctime>
 
+#include "wsPacket.h"
 #include "eventNotifier.h"
 #include "epoll.h"
 #include "kqueue.h"
@@ -13,15 +15,16 @@
 #include "session.h"
 #include "threadJob.h"
 #include "timeoutManager.h"
+#include "logger.h"
 
 namespace parrot
 {
 FrontThread::FrontThread()
     : PoolThread(),
       TimeoutHandler(),
-      _noRoutePktList,
+      _noRoutePktList(),
       _pktMap(),
-      _pktHandlerFuncMap(),
+      _jobHandlerMap(),
       _threadJobMap(),
       _newConnListLock(),
       _newConnList(),
@@ -35,7 +38,7 @@ FrontThread::FrontThread()
       _timeoutMgr(),
       _config(nullptr)
 {
-    using std::placeholders;
+    using namespace std::placeholders;
 
     _rspBindHdr       = std::bind(&FrontThread::handleRspBind, this, _1);
     _updateSessionHdr = std::bind(&FrontThread::handleUpdateSession, this, _1);
@@ -45,12 +48,12 @@ void FrontThread::updateByConfig(const Config* cfg)
 {
     _config = cfg;
     _timeoutMgr.reset(
-        new TimeoutManager<WsServerConn>(this, _config->_frontThreadTimeout));
+        new TimeoutManager<FrontThread>(this, _config->_frontThreadTimeout));
 }
 
 void FrontThread::setDefaultJobHdr(std::vector<JobHandler*>& vec)
 {
-    _defaultJobHdrVec = hdr;
+    _defaultJobHdrVec = vec;
 }
 
 void FrontThread::beforeStart()
@@ -77,11 +80,11 @@ void FrontThread::handleRspBind(std::list<std::shared_ptr<const Session>>& sl)
     std::unordered_map<uint64_t, std::shared_ptr<WsServerConn>>::iterator it;
     for (auto& s : sl)
     {
-        it = _connMap.find(ps->_connUniqueKey);
+        it = _connMap.find(s->_connUniqueId);
         if (it == _connMap.end())
         {
             LOG_WARN("FrontThread::handleRspBind: Failed to bind conn key"
-                     << ps->_connUniqueKey << ". Session is " << ps->toString()
+                     << s->_connUniqueId << ". Session is " << s->toString()
                      << ".");
             continue;
         }
@@ -91,12 +94,12 @@ void FrontThread::handleRspBind(std::list<std::shared_ptr<const Session>>& sl)
 
 void FrontThread::handleUpdateSession(std::shared_ptr<const Session>& ps)
 {
-    auto it = _connMap.find(ps->_connUniqueKey);
+    auto it = _connMap.find(ps->_connUniqueId);
 
     if (it == _connMap.end())
     {
         LOG_WARN("FrontThread::handleUpdateSession: Failed to bind conn key"
-                 << ps->_connUniqueKey << ". Session is " << ps->toString()
+                 << ps->_connUniqueId << ". Session is " << ps->toString()
                  << ".");
         return;
     }
@@ -118,20 +121,20 @@ void FrontThread::handleJob()
 
     for (auto& j : jobList)
     {
-        switch (j->geteJobType())
+        switch (j->getJobType())
         {
             case eJobType::RspBind:
             {
-                std::unqiue_ptr<RspBindJob> tj(
-                    static_cast<RspBindJob*>(j->release()));
+                std::unique_ptr<RspBindJob> tj(
+                    static_cast<RspBindJob*>(j.release()));
                 tj->call(_rspBindHdr);
             }
             break;
 
             case eJobType::UpdateSession:
             {
-                std::unqiue_ptr<UpdateSessionJob> tj(
-                    static_cast<UpdateSessionJob*>(j->release()));
+                std::unique_ptr<UpdateSessionJob> tj(
+                    static_cast<UpdateSessionJob*>(j.release()));
                 tj->call(_updateSessionHdr);
             }
             break;
@@ -171,28 +174,31 @@ void FrontThread::onPacket(std::shared_ptr<const Session>&& session,
         it->second.emplace_back(std::move(session), std::move(pkt));
     }
 
-    if (it->second.size() >= Constants::kPktListSize)
+    if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
     {
         // Dispatch packetes.
-        (_pktHandlerFuncMap[treadPtr])(it->second);
-        (_pktHandlerFuncMap[treadPtr]).clear();
+        std::unique_ptr<PacketJob> pktJob(new PacketJob(eJobType::Packet));
+        pktJob->bind(std::move(it->second));
+        (_jobHandlerMap[session->_backThreadPtr])->addJob(std::move(pktJob));
+        it->second.clear();
     }
 }
 
-void FrontThread::onClose(WsServerConn* conn, eCodes err)
+void FrontThread::onClose(WsServerConn* conn, std::unique_ptr<WsPacket> &&pkt)
 {
-    if (!conn->getSession()->_isBound)
+    std::shared_ptr<const Session> session = conn->getSession();
+    
+    if (!session->_isBound)
     {
         // Here, do not need notify up layer.
         removeConn(conn);
         LOG_INFO("FrontThread::onClose: Not bind. Err is "
-                 << (uint32_t)pkt->getCloseCode()
-                 << ". Session is " << conn->getSession()->toString());
+                 << (uint32_t)pkt->getCloseCode() << ". Session is "
+                 << session->toString());
         return;
     }
 
     auto it = _pktMap.find(session->_backThreadPtr);
-    std::shared_ptr<const Session> session = conn->getSession();
 
     if (it == _pktMap.end())
     {
@@ -204,34 +210,37 @@ void FrontThread::onClose(WsServerConn* conn, eCodes err)
         it->second.emplace_back(std::move(session), std::move(pkt));
     }
 
-    if (it->second.size() >= Constants::kPktListSize)
+    if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
     {
         // Dispatch packetes.
-        (_pktHandlerFuncMap[treadPtr])(it->second);
-        (_pktHandlerFuncMap[treadPtr]).clear();
+        std::unique_ptr<PacketJob> pktJob(new PacketJob(eJobType::Packet));
+        pktJob->bind(std::move(it->second));
+        (_jobHandlerMap[session->_backThreadPtr])->addJob(std::move(pktJob));
+        it->second.clear();
     }
 
     removeConn(conn);
     LOG_INFO("FrontThread::onClose: Bound. Err is "
-             << (uint32_t)pkt->getCloseCode()
-             << ". Session is " << conn->getSession()->toString());
+             << (uint32_t)pkt->getCloseCode() << ". Session is "
+             << session->toString());
 }
 
 void FrontThread::dispatchPackets()
 {
-    std::unqiue_ptr<ReqBindJob> bindJob(new ReqBindJob(eJobType::ReqBind));
+    std::unique_ptr<ReqBindJob> bindJob(new ReqBindJob(eJobType::ReqBind));
     bindJob->bind(this, std::move(_noRoutePktList));
-    (_defaultPktHdrVec[_lastDefaultJobIdx])(std::move(bindJob));
+    (_defaultJobHdrVec[_lastDefaultJobIdx])->addJob(std::move(bindJob));
     _lastDefaultJobIdx = (_lastDefaultJobIdx + 1) % _defaultJobHdrVec.size();
 
     for (auto& kv : _threadJobMap)
     {
         if (!kv.second.empty())
         {
-            std::unqiue_ptr<PacketJob> pktJob(
-                new PacketJob(eJobType::RcvdPacket));
+            std::unique_ptr<PacketJob> pktJob(
+                new PacketJob(eJobType::Packet));
             pktJob->bind(std::move(kv.second));
-            (_pktHandlerFuncMap[kv.first])->addJob(pktJob);
+            (_jobHandlerMap[kv.first])->addJob(std::move(pktJob));
+            kv.second.clear();
         }
     }
 }
@@ -258,7 +267,7 @@ void FrontThread::addConnToNotifier()
 
     for (auto& c : tmpList)
     {
-        c->setAction(c->getDefaultAction());
+        c->setNextAction(c->getDefaultAction());
         c->setPacketHandler(this);
         c->setRandom(&_random);
 
@@ -273,19 +282,19 @@ void FrontThread::addConnToNotifier()
 
 void FrontThread::removeConn(WsServerConn* conn)
 {
-    _connMap.erase(conn->getSession()->_connUniqueKey);
-    _timeoutMgr.remove(conn);
+    _connMap.erase(conn->getSession()->_connUniqueId);
+    _timeoutMgr->remove(conn);
     _notifier->delEvent(conn);
 }
 
 void FrontThread::updateTimeout(WsServerConn* conn, std::time_t now)
 {
-    _timeoutMgr.update(conn, now);
+    _timeoutMgr->update(conn, now);
 }
 
 void FrontThread::onTimeout(WsServerConn* conn)
 {
-    std::unqiue_ptr<WsPacket> pkt (new WsPacket());
+    std::unique_ptr<WsPacket> pkt(new WsPacket());
     pkt->setOpCode(eOpCode::Close);
     pkt->setClose(eCodes::ERR_Timeout);
     onClose(conn, std::move(pkt));
@@ -328,7 +337,7 @@ void FrontThread::run()
                     // No break;
                     case eIoAction::Write:
                     {
-                        _notifier->updateEventAction(act);
+                        _notifier->updateEventAction(conn);
                     }
                     break;
 
@@ -351,8 +360,8 @@ void FrontThread::run()
     }
     catch (const std::system_error& e)
     {
-        LOG_ERROR("FrontThread::run: Errno is " << e.code() << ". Meaning "
-                                                << e.what());
+        LOG_ERROR("FrontThread::run: Errno is " << e.code().message()
+                                                << ". Meaning " << e.what());
         // There's nothing we can do here ...
         PARROT_ASSERT(false);
     }

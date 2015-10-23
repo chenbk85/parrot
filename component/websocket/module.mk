@@ -16,7 +16,7 @@ BASE_INC              := $(addsuffix /inc,\
 
 # Get the inc directory of modules in $Project/component directory.
 COMP_INC              := $(addsuffix /inc,\
-							$(addprefix $(PRJ_ROOT)/components/,$($(MODULE)_DEP_COMP)))
+							$(addprefix $(PRJ_ROOT)/component/,$($(MODULE)_DEP_COMP)))
 
 THIRD_PARTY_INC       := $($(addsuffix _INC, \
 							$(shell echo $($(MODULE)_3RD_PARTY) | tr a-z A-Z)))

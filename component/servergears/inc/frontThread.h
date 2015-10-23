@@ -12,6 +12,7 @@
 #include "jobHandler.h"
 #include "threadJob.h"
 #include "timeoutHandler.h"
+#include "timeoutManager.h"
 
 namespace parrot
 {
@@ -62,13 +63,11 @@ class FrontThread : public PoolThread,
     // WsPacketHandler
     void onPacket(std::shared_ptr<const Session>&&,
                   std::unique_ptr<WsPacket>&&) override;
-    void onClose(WsServerConn* conn, eCodes err) override;
+    void onClose(WsServerConn* conn, std::unique_ptr<WsPacket> &&) override;
 
   protected:
     void handleRspBind(std::list<std::shared_ptr<const Session>>& sl);
     void handleUpdateSession(std::shared_ptr<const Session>& ps);
-    void onPacket(std::shared_ptr<const Session>&& session,
-                  std::unique_ptr<WsPacket>&& pkt);
     void dispatchPackets();
     void addConnToNotifier();
     void removeConn(WsServerConn* conn);
@@ -78,7 +77,7 @@ class FrontThread : public PoolThread,
     std::list<SessionPktPair> _noRoutePktList;
     std::unordered_map<void*, std::list<std::unique_ptr<Job>>> _pktMap;
 
-    std::unordered_map<void*, AddPktFunc>> _pktHandlerFuncMap;
+    std::unordered_map<void*, JobHandler*> _jobHandlerMap;
     ThreadJobMap _threadJobMap;
 
     std::mutex _newConnListLock;
@@ -93,7 +92,7 @@ class FrontThread : public PoolThread,
     UpdateSessionJobHdr _updateSessionHdr;
 
     MtRandom _random;
-    std::unique_ptr<TimeoutManager<WsServerConn>> _timeougMgr;
+    std::unique_ptr<TimeoutManager<FrontThread>> _timeoutMgr;
     const Config* _config;
 };
 }

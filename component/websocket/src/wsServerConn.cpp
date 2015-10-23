@@ -19,7 +19,6 @@ namespace parrot
 WsServerConn::WsServerConn(const WsConfig& cfg)
     : TcpServer(),
       TimeoutGuard(),
-      Doublelinkedlist<WsServerConn>(),
       _state(eWsState::NotOpened),
       _pktHandler(nullptr),
       _onPktHdr(),
@@ -84,7 +83,7 @@ void WsServerConn::onClose(std::unique_ptr<WsPacket>&&p)
     if (_sentClose && _translayer->isAllSent())
     {
         doClose();
-        _pktHandler->onClose(this, p->getErrorCode());
+        _pktHandler->onClose(this, std::move(p));
     }
     else
     {

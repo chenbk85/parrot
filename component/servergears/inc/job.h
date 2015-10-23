@@ -8,7 +8,7 @@ enum class eJobType
     None,
     Packet,
     ReqBind,
-    RsqBind,
+    RspBind,
     UpdateSession,
     DisconnectSession,
     Kick

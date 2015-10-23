@@ -2,9 +2,10 @@
 #define __COMPONENT_SERVERGEAR_INC_JOBHandler_H__
 
 #include <mutex>
+#include <list>
 #include <memory>
 
-#inclde "job.h"
+#include "job.h"
 
 namespace parrot
 {
@@ -24,7 +25,7 @@ class JobHandler
   protected:
     std::mutex _jobListLock;
     std::list<std::unique_ptr<Job>> _jobList;
-}
+};
 }
 
 #endif
