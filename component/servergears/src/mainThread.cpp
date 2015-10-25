@@ -1,4 +1,5 @@
 #include "mainThread.h"
+#include "frontThread.h"
 #include "daemon.h"
 
 namespace parrot

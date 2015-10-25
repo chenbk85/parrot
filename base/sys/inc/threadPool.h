@@ -12,6 +12,9 @@ namespace parrot
 template <typename ThreadClass> class ThreadPool
 {
   public:
+    ThreadPool() : _count(0), _threadVec()
+    {
+    }
     ThreadPool(uint32_t count) : _count(count), _threadVec()
     {
     }
@@ -25,6 +28,16 @@ template <typename ThreadClass> class ThreadPool
     ThreadPool& operator=(const ThreadPool&) = delete;
 
   public:
+    void setCount(uint32_t count)
+    {
+        _count = count;
+    }
+
+    void getCount() const
+    {
+        return _count;
+    }
+    
     void create()
     {
         PARROT_ASSERT(_count > 0);

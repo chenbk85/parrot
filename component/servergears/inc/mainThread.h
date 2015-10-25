@@ -7,9 +7,14 @@
 namespace parrot
 {
 struct Config;
+class FrontThread;
 
 class MainThread
 {
+  public:
+    using FrontThreadPool = std::unique_ptr<ThreadPool<FrontThread>>;
+
+    
   public:
     explicit MainThread(const Config& cfg);
     virtual ~MainThread() = default;
@@ -26,7 +31,7 @@ class MainThread
 
   protected:
     virtual void beforeStart();
-    virtual void createUserThreads() {}
+    virtual void createUserThreads() = 0;
     virtual void run();
     virtual void beforeTerminate();
 
@@ -37,6 +42,7 @@ class MainThread
 
   protected:
     const Config& _config;
+    FrontThreadPool _frontThreadPool;
 };
 }
 
