@@ -8,7 +8,10 @@ namespace parrot
 class PoolThread : public ThreadBase
 {
   public:
-    void beforeRun() override;
+    virtual ~PoolThread() = default;
+    
+  protected:
+    virtual void beforeRun() override;
 };
 }
 

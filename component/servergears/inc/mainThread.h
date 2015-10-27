@@ -2,12 +2,18 @@
 #define __COMPONENT_SERVERGEAR_INC_MAINTHREAD_H__
 
 #include <string>
+#include <memory>
 #include <cstdint>
+
+#include "threadPool.h"
+#include "eventNotifier.h"
+#include "listener.h"
+#include "connFactory.h"
 
 namespace parrot
 {
 struct Config;
-class FrontThread;
+class WsServerConn;
 
 class MainThread
 {
@@ -16,7 +22,7 @@ class MainThread
 
     
   public:
-    explicit MainThread(const Config& cfg);
+    explicit MainThread(const Config* cfg);
     virtual ~MainThread() = default;
 
   public:
@@ -41,8 +47,10 @@ class MainThread
     void daemonize();
 
   protected:
-    const Config& _config;
+    std::unique_ptr<Listener<WsServerConn, ConnFactory>> _frontListener;
+    std::unique_ptr<EventNotifier> _listenerNotifier;
     FrontThreadPool _frontThreadPool;
+    const Config* _config;
 };
 }
 

@@ -8,18 +8,20 @@
 #include <cstdint>
 #include <ctime>
 
+#include "mtRandom.h"
 #include "poolThread.h"
 #include "jobHandler.h"
 #include "threadJob.h"
 #include "timeoutHandler.h"
 #include "timeoutManager.h"
+#include "session.h"
+#include "wsServerConn.h"
+#include "eventNotifier.h"
+#include "wsPacket.h"
 
 namespace parrot
 {
 struct Config;
-struct Session;
-class EventNotifier;
-class WsServerConn;
 
 class FrontThread : public PoolThread,
                     public TimeoutHandler<WsServerConn>,
@@ -37,17 +39,21 @@ class FrontThread : public PoolThread,
 
   public:
     FrontThread();
+    virtual ~FrontThread() = default;
 
   public:
     void updateByConfig(const Config* cfg);
     void setDefaultJobHdr(std::vector<JobHandler*>& hdr);
     void addConn(std::list<std::shared_ptr<WsServerConn>>& connList);
 
+  public:
+    // ThreadBase
+    void stop() override;    
   protected:
     // ThreadBase
     void beforeStart() override;
     void run() override;
-    void stop() override;
+
 
   protected:
     // TimeoutHandler

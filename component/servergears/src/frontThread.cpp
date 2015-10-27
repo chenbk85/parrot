@@ -317,7 +317,7 @@ void FrontThread::run()
 
             addConnToNotifier();
 
-            eventNum = _notifier->waitIoEvents(-1);
+            eventNum = _notifier->waitIoEvents(5000);
 
             for (idx = 0; idx != eventNum; ++idx)
             {

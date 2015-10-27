@@ -1,5 +1,5 @@
 #ifndef __BASE_SYS_INC_THREADPOOL_H__
-#define __BASE_SYS_INC_THREADBASE_H__
+#define __BASE_SYS_INC_THREADPOOL_H__
 
 #include <cstdint>
 #include <vector>
@@ -15,6 +15,7 @@ template <typename ThreadClass> class ThreadPool
     ThreadPool() : _count(0), _threadVec()
     {
     }
+    
     ThreadPool(uint32_t count) : _count(count), _threadVec()
     {
     }
