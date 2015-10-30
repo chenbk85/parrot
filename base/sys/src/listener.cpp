@@ -60,11 +60,6 @@ Listener::Listener(uint16_t listenPort, const std::string& listenIp)
     PARROT_ASSERT(_listenPort != 0);
 }
 
-eIoAction Listener::handleIoEvent()
-{
-    return eIoAction::Read;
-}
-
 void Listener::startListen()
 {
     socklen_t addrLen;

@@ -26,8 +26,6 @@ FrontThread::FrontThread()
       _pktMap(),
       _jobHandlerMap(),
       _threadJobMap(),
-      _newConnListLock(),
-      _newConnList(),
       _connMap(),
       _notifier(nullptr),
       _defaultJobHdrVec(),
@@ -245,23 +243,19 @@ void FrontThread::dispatchPackets()
     }
 }
 
-void FrontThread::addConn(std::list<std::shared_ptr<WsServerConn>>& connList)
+void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn>>& connList)
 {
-    _newConnListLock.lock();
-    // Append the connList to the _newConnList.
-    _newConnList.splice(_newConnList.end(), connList);
-    _newConnListLock.unlock();
-
+    connAcceptor<WsServerConn>::addConn(connList);
     _notifier->stopWaiting();
 }
 
 void FrontThread::addConnToNotifier()
 {
-    std::list<std::shared_ptr<WsServerConn>> tmpList;
+    std::list<std::unique_ptr<WsServerConn>> tmpList;
 
-    _newConnListLock.lock();
-    std::swap(tmpList, _newConnList);
-    _newConnListLock.unlock();
+    _connListLock.lock();
+    std::swap(tmpList, _connList);
+    _connListLock.unlock();
 
     auto now = std::time(nullptr);
 

@@ -5,14 +5,23 @@
 #include "frontThread.h"
 #include "daemon.h"
 
- namespace parrot
+namespace parrot
 {
 MainThread::MainThread(const Config* cfg)
     : _frontListener(),
-      _listenerNotifier,
+      _connDispatcher(new FrontConnDispatcher(cfg->_thisServer->_frontPort,
+                                              cfg->_thisServer->_frontIp)),
+#if defined(__linux__)
+      _notifier(new Epoll(100)),
+#elif defined(__APPLE__)
+      _notifier(new Kqueue(100)),
+#elif defined(_WIN32)
+      _notifier(new SimpleEventNotifier()),
+#endif
       _frontThreadPtr(new FrontThreadPool()),
       _config(cfg)
 {
+    _notifier->create();
 }
 
 void MainThread::daemonize()
@@ -38,6 +47,37 @@ void MainThread::createSysThreads()
 {
     _frontThreadPool->setCount(_config->_frontThreadPoolSize);
     _frontThreadPool->create();
+
+    std::vector<JobHandler*> vec;
+    auto& threadVec = _frontThreadPool->getThreadPoolVec();
+    for (auto& t : threadVec)
+    {
+        vec.push_back(t.get());
+    }
+    _connDispatcher->setConnAcceptor(std::move(vec));
+}
+
+void MainThread::createListenerEvent()
+{
+    auto& thisServer = _config->_thisServer;
+    _connDispatcher.reset(
+        new FrontConnDispatcher(thisServer._frontPort, thisServer._frontIp));
+
+    _connDispatcher->setNextAction(eIoAction::Read);
+    _connDispatcher->startListen();
+    _notifier->addEvent(_connDispatcher.get());
+}
+
+void MainThread::setFrontConnAcceptor(
+    std::vector<ConnAcceptor<WsServerConn>*>&& acceptor)
+{
+    _connDispatcher->setConnAcceptor(std::move(acceptor));
+}
+
+void MainThread::setFrontConnAcceptor(
+    std::vector<ConnAcceptor<WsServerConn>*>& acceptro)
+{
+    _connDispatcher->setConnAcceptor(acceptor);    
 }
 
 void MainThread::beforeStart()
@@ -50,26 +90,22 @@ void MainThread::start()
 {
     beforeStart();
     _frontThreadPool->start();
-    run();    
+    run();
     beforeTerminate();
 }
 
 void MainThread::run()
 {
     int eventNum = 0;
-
-    _frontListener.reset(new Listener<WsServerConn, ConnFactory>(
-                             _config->_thisServer._frontPort, _config->_thisServer._frontIp));
-
-    
+    IoEvent* ev  = nullptr;
 
     while (!Daemon::isShutdown())
     {
         eventNum = _notifier->waitIoEvents(-1);
-
         for (int i = 0; i != eventNum; ++i)
         {
-            
+            ev = _notifier->getIoEvent(i);
+            ev->handleIoEvent();
         }
     }
 }

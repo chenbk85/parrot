@@ -6,9 +6,6 @@
 
 #include <netinet/ip.h>
 
-// TODO: support anyaddr.
-
-
 namespace parrot
 {
 class IPHelper

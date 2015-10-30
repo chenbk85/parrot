@@ -18,9 +18,10 @@ class WsServerConn;
 class MainThread
 {
   public:
+    using FrontConnDispatcher = std::unique_ptr<
+        ConnDispatcher<WsServerConn, ConnFactory, ConnAcceptor>>;
     using FrontThreadPool = std::unique_ptr<ThreadPool<FrontThread>>;
 
-    
   public:
     explicit MainThread(const Config* cfg);
     virtual ~MainThread() = default;
@@ -31,7 +32,11 @@ class MainThread
     // onStop is the callback which will be called when the
     // process received the shutdown signal.
     void onStop();
-    
+
+  public:
+    void setFrontConnAcceptor(std::vector<ConnAcceptor<WsServerConn>*>&& );
+    void setFrontConnAcceptor(std::vector<ConnAcceptor<WsServerConn>*>& );
+
   public:
     virtual void start();
 
@@ -40,6 +45,7 @@ class MainThread
     virtual void createUserThreads() = 0;
     virtual void run();
     virtual void beforeTerminate();
+    virtual void createListenerEvent();
 
   protected:
     void createSysThreads();
@@ -47,8 +53,8 @@ class MainThread
     void daemonize();
 
   protected:
-    std::unique_ptr<Listener<WsServerConn, ConnFactory>> _frontListener;
-    std::unique_ptr<EventNotifier> _listenerNotifier;
+    FrontConnDispatcher _connDispatcher;
+    std::unique_ptr<EventNotifier> _notifier;
     FrontThreadPool _frontThreadPool;
     const Config* _config;
 };

@@ -26,6 +26,7 @@ struct Config;
 class FrontThread : public PoolThread,
                     public TimeoutHandler<WsServerConn>,
                     public JobHandler,
+                    public ConnAcceptor<WsServerConn>,
                     public WsPacketHandler<Session, WsServerConn>
 {
     // <ThreadPtr, list<unique_ptr<WsPacket>>>
@@ -44,7 +45,6 @@ class FrontThread : public PoolThread,
   public:
     void updateByConfig(const Config* cfg);
     void setDefaultJobHdr(std::vector<JobHandler*>& hdr);
-    void addConn(std::list<std::shared_ptr<WsServerConn>>& connList);
 
   public:
     // ThreadBase
@@ -84,8 +84,6 @@ class FrontThread : public PoolThread,
     std::unordered_map<void*, JobHandler*> _jobHandlerMap;
     ThreadJobMap _threadJobMap;
 
-    std::mutex _newConnListLock;
-    std::list<std::shared_ptr<WsServerConn>> _newConnList;
     std::unordered_map<uint64_t, std::shared_ptr<WsServerConn>> _connMap;
 
     std::unique_ptr<EventNotifier> _notifier;

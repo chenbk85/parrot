@@ -11,23 +11,29 @@
 
 namespace parrot
 {
-IPHelper::IPHelper() : _version(-1), _ip(), _addr6(), _addr4()
+IPHelper::IPHelper()
+    : _version(-1), _ip(), _addr6(in6addr_any), _addr4(INADDR_ANY)
 {
-    std::memset(&_addr6, 0, sizeof(struct in6_addr));
-    std::memset(&_addr4, 0, sizeof(struct in_addr));
 }
 
 IPHelper::IPHelper(const std::string& ip)
-    : _version(-1), _ip(), _addr6(), _addr4()
+    : _version(-1), _ip(ip), _addr6(), _addr4()
 {
     std::memset(&_addr6, 0, sizeof(struct in6_addr));
     std::memset(&_addr4, 0, sizeof(struct in_addr));
-
     setIP(ip);
 }
 
 void IPHelper::setIP(const std::string& ip)
 {
+    if (ip.length() == 0)
+    {
+        _addr6 = in6addr_any;
+        _addr4 = INADDR_ANY;
+        _version = 6;
+        return;
+    }
+    
     if (ip.find(".") != std::string::npos)
     {
         int ret = inet_pton(AF_INET, ip.c_str(), &_addr4);
