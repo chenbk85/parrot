@@ -18,6 +18,7 @@
 #include "wsServerConn.h"
 #include "eventNotifier.h"
 #include "wsPacket.h"
+#include "connHandler.h"
 
 namespace parrot
 {
@@ -26,7 +27,7 @@ struct Config;
 class FrontThread : public PoolThread,
                     public TimeoutHandler<WsServerConn>,
                     public JobHandler,
-                    public ConnAcceptor<WsServerConn>,
+                    public ConnHandler<WsServerConn>,
                     public WsPacketHandler<Session, WsServerConn>
 {
     // <ThreadPtr, list<unique_ptr<WsPacket>>>
@@ -48,18 +49,23 @@ class FrontThread : public PoolThread,
 
   public:
     // ThreadBase
-    void stop() override;    
+    void stop() override;
+    
+    // JobHandler
+    void addJob(std::unique_ptr<Job>&& job) override;
+    void addJob(std::list<std::unique_ptr<Job>>& jobList) override;
+
+    // ConnHandler<WsServerConn>
+    void addConn(std::list<std::unique_ptr<WsServerConn>>& ) override;
+
   protected:
     // ThreadBase
     void beforeStart() override;
     void run() override;
-
-
-  protected:
+    
     // TimeoutHandler
     void onTimeout(WsServerConn*) override;
 
-  protected:
     // JobHandler
     void handleJob() override;
 
@@ -78,6 +84,13 @@ class FrontThread : public PoolThread,
     void updateTimeout(WsServerConn* conn, std::time_t now);
 
   private:
+
+    std::mutex _jobListLock;
+    std::list<std::unique_ptr<Job>> _jobList;
+
+    std::mutex _connListLock;
+    std::list<std::unique_ptr<Job>> _connList;
+        
     std::list<SessionPktPair> _noRoutePktList;
     std::unordered_map<void*, std::list<SessionPktPair>> _pktMap;
 

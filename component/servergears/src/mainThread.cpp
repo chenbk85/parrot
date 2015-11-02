@@ -16,9 +16,9 @@ MainThread::MainThread(const Config* cfg)
 #elif defined(__APPLE__)
       _notifier(new Kqueue(100)),
 #elif defined(_WIN32)
-      _notifier(new SimpleEventNotifier()),
+//      _notifier(new SimpleEventNotifier()),
 #endif
-      _frontThreadPtr(new FrontThreadPool()),
+      _frontThreadPool(new ThreadPool(cfg->_frontThreadMaxConnCount)),
       _config(cfg)
 {
     _notifier->create();
@@ -75,7 +75,7 @@ void MainThread::setFrontConnAcceptor(
 }
 
 void MainThread::setFrontConnAcceptor(
-    std::vector<ConnAcceptor<WsServerConn>*>& acceptro)
+    std::vector<ConnAcceptor<WsServerConn>*>& acceptor)
 {
     _connDispatcher->setConnAcceptor(acceptor);    
 }

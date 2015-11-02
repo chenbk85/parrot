@@ -22,6 +22,10 @@ namespace parrot
 FrontThread::FrontThread()
     : PoolThread(),
       TimeoutHandler(),
+      _connListLock(),
+      _connList(),
+      _jobListLock(),
+      _jobList(),
       _noRoutePktList(),
       _pktMap(),
       _jobHandlerMap(),
@@ -151,6 +155,24 @@ void FrontThread::handleJob()
     }
 }
 
+void FrontThread::addJob(std::unique_ptr<LoggerJob>&& job) noexcept
+{
+    _jobListLock.lock();
+    _jobList.push_back(std::move(job));
+    _jobListLock.unlock();
+    
+    _notifier->stopWaiting();
+}
+
+void FrontThread::addJob(std::list<std::unique_ptr<Job>>& jobList)
+{
+    _jobListLock.lock();
+    _jobList.splice(_jobList.end(), jobList);
+    _jobListLock.unlock();
+    
+    _notifier->stopWaiting();    
+}
+
 void FrontThread::onPacket(std::shared_ptr<const Session>&& session,
                            std::unique_ptr<WsPacket>&& pkt)
 {
@@ -245,7 +267,10 @@ void FrontThread::dispatchPackets()
 
 void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn>>& connList)
 {
-    connAcceptor<WsServerConn>::addConn(connList);
+    _connListLock.lock();
+    _connList.splice(_connList.end(), connList);
+    _connListLock.unlock();
+    
     _notifier->stopWaiting();
 }
 
@@ -254,7 +279,7 @@ void FrontThread::addConnToNotifier()
     std::list<std::unique_ptr<WsServerConn>> tmpList;
 
     _connListLock.lock();
-    std::swap(tmpList, _connList);
+    _tmpList = std::move(_connList);
     _connListLock.unlock();
 
     auto now = std::time(nullptr);

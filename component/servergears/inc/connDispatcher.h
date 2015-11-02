@@ -1,63 +1,71 @@
 #ifndef __COMPONENT_SERVERGEAR_INC_CONNDISPATCHER_H__
 #define __COMPONENT_SERVERGEAR_INC_CONNDISPATCHER_H__
 
+#include <vector>
+#include <cstdint>
+#include <string>
+
 #include "listener.h"
+#include "sysDefinitions.h"
+#include "codes.h"
+#include "ipHelper.h"
+#include "macroFuncs.h"
 
 namespace parrot
 {
 template <typename Conn,
           template <typename> typename ConnFactory,
-          template <typename> typename ConnAcceptor>
+          template <typename> typename ConnHandler>
 class ConnDispatcher : public Listener
 {
   public:
     ConnDispatcher(uint16_t listenPort, const std::string& listenIp);
 
   public:
-    void setConnAcceptor(std::vector<ConnAcceptor<Conn>*>&& jobHandler);
-    void setConnAcceptor(std::vector<ConnAcceptor<Conn>*>& jobHandler);
+    void setConnHandler(std::vector<ConnHandler<Conn>*>&& jobHandler);
+    void setConnHandler(std::vector<ConnHandler<Conn>*>& jobHandler);
 
   protected:
     eIoAction handleIoEvent() override;
 
   protected:
-    std::vector<ConnAcceptor<Conn>*> _connAcceptorVec;
+    std::vector<ConnHandler<Conn>*> _connHandlerVec;
     uint32_t _jobHandlerVecIdx;
     uint64_t _connUniqueIdIdx;
 };
 
 template <typename Conn,
           template <typename> typename ConnFactory,
-          template <typename> typename ConnAcceptor>
+          template <typename> typename ConnHandler>
 ConnDispatcher::ConnDispatcher(uint16_t listenPort, const std::string& listenIp)
     : Listener(listenPort, listenIp),
-      _connAcceptorVec(),
-      _connAcceptorVecIdx(0),
+      _connHandlerVec(),
+      _connHandlerVecIdx(0),
       _connUniqueIdIdx(0)
 {
 }
 
 template <typename Conn,
           template <typename> typename ConnFactory,
-          template <typename> typename ConnAcceptor>
-void ConnDispatcher<ConnFactory>::setConnAcceptor<Conn>(
-    std::vector<ConnAcceptor<Conn>*>&& connAcceptor)
+          template <typename> typename ConnHandler>
+void ConnDispatcher<ConnFactory>::setConnHandler<Conn>(
+    std::vector<ConnHandler<Conn>*>&& connHandlerVec)
 {
-    _connAcceptorVec = std::move(jobhandler);
+    _connHandlerVec = std::move(connHandlerVec);
 }
 
 template <typename Conn,
           template <typename> typename ConnFactory,
-          template <typename> typename ConnAcceptor>
-void ConnDispatcher<ConnFactory>::setConnAcceptor<Conn>(
-    std::vector<ConnAcceptor<Conn>*>& connAcceptor)
+          template <typename> typename ConnHandler>
+void ConnDispatcher<ConnFactory>::setConnHandler<Conn>(
+    std::vector<ConnHandler<Conn>*>& connHandlerVec)
 {
-    _connAcceptorVec = jobhandler;
+    _connHandlerVec = connHandlerVec;
 }
 
 template <typename Conn,
           template <typename> typename ConnFactory,
-          template <typename> typename ConnAcceptor>
+          template <typename> typename ConnHandler>
 eIoAction ConnDispatcher<ConnFactory>::handleIoEvent()
 {
     eIoAction act = getNotifiedAction();
@@ -89,8 +97,8 @@ eIoAction ConnDispatcher<ConnFactory>::handleIoEvent()
         connList.push_back(std::move(conn));
     } while (code == eCodes::ST_Ok);
 
-    _connAcceptorVec[_connAcceptorVecIdx]->addConn(connList);
-    _connAcceptorVecIdx = (_connAcceptorVecIdx + 1) % _connAcceptorVec.size();
+    _connHandlerVec[_connHandlerVecIdx]->addConn(connList);
+    _connHandlerVecIdx = (_connHandlerVecIdx + 1) % _connHandlerVec.size();
 
     return eIoAction::Read;
 }

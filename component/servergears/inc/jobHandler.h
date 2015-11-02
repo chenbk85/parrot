@@ -16,15 +16,11 @@ class JobHandler
     virtual ~JobHandler() = default;
 
   public:
-    void addJob(std::unique_ptr<Job>&& job);
-    void addJob(std::list<std::unique_ptr<Job>>& jobList);
+    virtual void addJob(std::unique_ptr<Job>&& job) = 0;
+    virtual void addJob(std::list<std::unique_ptr<Job>>& jobList) = 0;
 
   protected:
     virtual void handleJob() = 0;
-
-  protected:
-    std::mutex _jobListLock;
-    std::list<std::unique_ptr<Job>> _jobList;
 };
 }
 

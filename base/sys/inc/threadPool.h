@@ -16,7 +16,7 @@ template <typename ThreadClass> class ThreadPool
     {
     }
     
-    ThreadPool(uint32_t count) : _count(count), _threadVec()
+    explicit ThreadPool(uint32_t count) : _count(count), _threadVec()
     {
     }
 
