@@ -1,5 +1,5 @@
-#ifndef __BASE_SYS_INC_TCPCLIENT_H__
-#define __BASE_SYS_INC_TCPCLIENT_H__
+#ifndef __BASE_SYS_INC_TCPCLIENTCONN_H__
+#define __BASE_SYS_INC_TCPCLIENTCONN_H__
 
 #include <cstdint>
 #include <string>
@@ -8,13 +8,13 @@ namespace parrot
 {
 class IoEvent;
 
-class TcpClient : public IoEvent
+class TcpClientConn : public IoEvent
 {
   public:
-    TcpClient();
-    virtual ~TcpClient();
-    TcpClient(const TcpClient&) = delete;
-    TcpClient& operator=(const TcpClient&) = delete;
+    TcpClientConn();
+    virtual ~TcpClientConn();
+    TcpClientConn(const TcpClientConn&) = delete;
+    TcpClientConn& operator=(const TcpClientConn&) = delete;
 
   public:
     void connect(const std::string& srvIp, uint16_t srvPort);

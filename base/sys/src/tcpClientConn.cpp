@@ -7,20 +7,20 @@
 #include "sysHelper.h"
 #include "ipHelper.h"
 #include "ioEvent.h"
-#include "tcpClient.h"
+#include "tcpClientConn.h"
 
 namespace parrot
 {
-TcpClient::TcpClient() : IoEvent(), _srvIp(), _srvPort(0), _connected(false)
+TcpClientConn::TcpClientConn() : IoEvent(), _srvIp(), _srvPort(0), _connected(false)
 {
 }
 
-TcpClient::~TcpClient()
+TcpClientConn::~TcpClientConn()
 {
     disconnect();
 }
 
-void TcpClient::connect(const std::string& srvIp, uint16_t srvPort)
+void TcpClientConn::connect(const std::string& srvIp, uint16_t srvPort)
 {
     _srvIp = srvIp;
     _srvPort = srvPort;
@@ -42,7 +42,7 @@ void TcpClient::connect(const std::string& srvIp, uint16_t srvPort)
     if (fd < 0)
     {
         throw std::system_error(errno, std::system_category(),
-                                "TcpClient::connect: socket");
+                                "TcpClientConn::connect: socket");
     }
 
     setNonBlock(fd);
@@ -77,17 +77,17 @@ void TcpClient::connect(const std::string& srvIp, uint16_t srvPort)
     }
 }
 
-void TcpClient::setConnected() noexcept
+void TcpClientConn::setConnected() noexcept
 {
     _connected = true;
 }
 
-bool TcpClient::isConnected() const noexcept
+bool TcpClientConn::isConnected() const noexcept
 {
     return _connected;
 }
 
-void TcpClient::disconnect()
+void TcpClientConn::disconnect()
 {
     close();
     _connected = false;

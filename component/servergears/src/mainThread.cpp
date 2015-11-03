@@ -1,16 +1,18 @@
+#include <vector>
+
 #include "config.h"
 #include "wsServerConn.h"
 #include "mainThread.h"
 #include "threadBase.h"
 #include "frontThread.h"
 #include "daemon.h"
+#include "epoll.h"
 
 namespace parrot
 {
 MainThread::MainThread(const Config* cfg)
-    : _frontListener(),
-      _connDispatcher(new FrontConnDispatcher(cfg->_thisServer->_frontPort,
-                                              cfg->_thisServer->_frontIp)),
+    : _connDispatcher(new FrontConnDispatcher(cfg->_thisServer._frontPort,
+                                              cfg->_thisServer._frontIp)),
 #if defined(__linux__)
       _notifier(new Epoll(100)),
 #elif defined(__APPLE__)
@@ -18,7 +20,7 @@ MainThread::MainThread(const Config* cfg)
 #elif defined(_WIN32)
 //      _notifier(new SimpleEventNotifier()),
 #endif
-      _frontThreadPool(new ThreadPool(cfg->_frontThreadMaxConnCount)),
+      _frontThreadPool(new FrontThreadPool(cfg->_frontThreadMaxConnCount)),
       _config(cfg)
 {
     _notifier->create();
@@ -48,16 +50,16 @@ void MainThread::createSysThreads()
     _frontThreadPool->setCount(_config->_frontThreadPoolSize);
     _frontThreadPool->create();
 
-    std::vector<JobHandler*> vec;
+    std::vector<ConnHandler<WsServerConn>*> vec;
     auto& threadVec = _frontThreadPool->getThreadPoolVec();
     for (auto& t : threadVec)
     {
         vec.push_back(t.get());
     }
-    _connDispatcher->setConnAcceptor(std::move(vec));
+    _connDispatcher->setConnHandler(std::move(vec));
 }
 
-void MainThread::createListenerEvent()
+void MainThread::createListenerEvents()
 {
     auto& thisServer = _config->_thisServer;
     _connDispatcher.reset(
@@ -68,21 +70,22 @@ void MainThread::createListenerEvent()
     _notifier->addEvent(_connDispatcher.get());
 }
 
-void MainThread::setFrontConnAcceptor(
-    std::vector<ConnAcceptor<WsServerConn>*>&& acceptor)
+void MainThread::setFrontConnHandler(
+    std::vector<ConnHandler<WsServerConn>*>&& hdrs)
 {
-    _connDispatcher->setConnAcceptor(std::move(acceptor));
+    _connDispatcher->setConnHandler(std::move(hdrs));
 }
 
-void MainThread::setFrontConnAcceptor(
-    std::vector<ConnAcceptor<WsServerConn>*>& acceptor)
+void MainThread::setFrontConnHandler(
+    std::vector<ConnHandler<WsServerConn>*>& hdrs)
 {
-    _connDispatcher->setConnAcceptor(acceptor);    
+    _connDispatcher->setConnHandler(hdrs);
 }
 
 void MainThread::beforeStart()
 {
     daemonize();
+    createListenerEvents();
     createThreads();
 }
 

@@ -7,13 +7,15 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
+#include "sysHelper.h"
 #include "ipHelper.h"
 
 namespace parrot
 {
 IPHelper::IPHelper()
-    : _version(-1), _ip(), _addr6(in6addr_any), _addr4(INADDR_ANY)
+    : _version(-1), _ip(), _addr6(IN6ADDR_ANY_INIT), _addr4()
 {
+    _addr4.s_addr = uniHtonl(INADDR_ANY);
 }
 
 IPHelper::IPHelper(const std::string& ip)
@@ -28,8 +30,8 @@ void IPHelper::setIP(const std::string& ip)
 {
     if (ip.length() == 0)
     {
-        _addr6 = in6addr_any;
-        _addr4 = INADDR_ANY;
+        _addr6 = IN6ADDR_ANY_INIT;
+        _addr4.s_addr = uniHtonl(INADDR_ANY);
         _version = 6;
         return;
     }

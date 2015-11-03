@@ -3,12 +3,12 @@
 #include "kqueue.h"
 #include "codes.h"
 #include "simpleEventNotifier.h"
-#include "logicThread.h"
+#include "frontSrvLogicThread.h"
 #include "threadJob.h"
 
 namespace chat
 {
-LogicThread::LogicThread()
+FrontSrvLogicThread::FrontSrvLogicThread()
     : PoolThread(),
       JobHandler(),
       _reqBindJobHdr(),
@@ -25,21 +25,21 @@ LogicThread::LogicThread()
       _config(nullptr)
 {
     using namespace std::placeholders;
-    _reqBindJobHdr = std::bind(&LogicThread::handleReqBind, this, _1, _2);
-    _packetJobHdr  = std::bind(&LogicThread::handlePacket, this, _1);
+    _reqBindJobHdr = std::bind(&FrontSrvLogicThread::handleReqBind, this, _1, _2);
+    _packetJobHdr  = std::bind(&FrontSrvLogicThread::handlePacket, this, _1);
 }
 
-void LogicThread::setConfig(const Config *cfg)
+void FrontSrvLogicThread::setConfig(const FrontSrvConfig *cfg)
 {
     _config = cfg;
 }
 
-void LogicThread::beforeStart()
+void FrontSrvLogicThread::beforeStart()
 {
     _notifier->create();
 }
 
-void LogicThread::addJob(std::unique_ptr<LoggerJob>&& job)
+void FrontSrvLogicThread::addJob(std::unique_ptr<LoggerJob>&& job)
 {
     _jobListLock.lock();
     _jobList.push_back(std::move(job));
@@ -48,7 +48,7 @@ void LogicThread::addJob(std::unique_ptr<LoggerJob>&& job)
     _notifier->stopWaiting();
 }
 
-void LogicThread::addJob(std::list<std::unique_ptr<Job>>& jobList)
+void FrontSrvLogicThread::addJob(std::list<std::unique_ptr<Job>>& jobList)
 {
     _jobListLock.lock();
     _jobList.splice(_jobList.end(), jobList);
@@ -57,7 +57,7 @@ void LogicThread::addJob(std::list<std::unique_ptr<Job>>& jobList)
     _notifier->stopWaiting();
 }
 
-void LogicThread::handleReqBind(FrontThread* thread,
+void FrontSrvLogicThread::handleReqBind(FrontThread* thread,
                                 std::list<SessionPktPair>& pktList)
 {
     Session* session = nullptr;
@@ -73,14 +73,14 @@ void LogicThread::handleReqBind(FrontThread* thread,
     rbJob.bind(std::move(sessionList));
 }
 
-void LogicThread::handlePacket(std::list<SessionPktPair>& pktList)
+void FrontSrvLogicThread::handlePacket(std::list<SessionPktPair>& pktList)
 {
     for (auto& sp : pktList)
     {
     }
 }
 
-void LogicThread::handleJob()
+void FrontSrvLogicThread::handleJob()
 {
     std::list<std::unique_ptr<Job>> jobList;
     _jobListLock.lock();
@@ -116,7 +116,7 @@ void LogicThread::handleJob()
     }
 }
 
-void LogicThread::run()
+void FrontSrvLogicThread::run()
 {
     IoEvent* ev = nullptr;
     uint32_t ret = 0;
@@ -135,7 +135,7 @@ void LogicThread::run()
     }
 }
 
-void LogicThread::stop()
+void FrontSrvLogicThread::stop()
 {
     _notifier->stopWaiting();
     ThreadBase::stop();

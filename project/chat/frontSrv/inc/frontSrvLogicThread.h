@@ -1,5 +1,5 @@
-#ifndef __PROJECT_CHAT_FRONTSRV_INC_LOGICTHREAD_H__
-#define __PROJECT_CHAT_FRONTSRV_INC_LOGICTHREAD_H__
+#ifndef __PROJECT_CHAT_FRONTSRV_INC_FRONTSRVLOGICTHREAD_H__
+#define __PROJECT_CHAT_FRONTSRV_INC_FRONTSRVLOGICTHREAD_H__
 
 #include <list>
 #include <memory>
@@ -10,14 +10,16 @@
 
 namespace chat
 {
-class LogicThread : public parrot::PoolThread, public parrot::JobHandler
+struct FrontSrvConfig;
+
+class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
 {
   public:
-    LogicThread();
+    FrontSrvLogicThread();
 
   public:
-    void setConfig(const Config *cfg);
-    
+    void setConfig(const FrontSrvConfig* cfg);
+
   public:
     void stop() override;
     void addJob(std::unique_ptr<Job>&& job) override;
@@ -40,7 +42,7 @@ class LogicThread : public parrot::PoolThread, public parrot::JobHandler
     std::mutex _jobListLock;
     std::list<std::unique_ptr<Job>> _jobList;
     std::unique_ptr<EventNotifier> _notifier;
-    const Config * _config;
+    const FrontSrvConfig* _config;
 };
 }
 #endif

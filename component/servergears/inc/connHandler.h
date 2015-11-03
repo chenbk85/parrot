@@ -11,6 +11,8 @@ template <typename Conn>
 class ConnHandler
 {
   public:
+    virtual ~ConnHandler() = default;
+  public:
     virtual void addConn(std::list<std::unique_ptr<Conn>> &connList) = 0;
 };
 }

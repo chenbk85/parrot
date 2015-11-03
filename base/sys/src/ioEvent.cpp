@@ -34,8 +34,7 @@ IoEvent::IoEvent()
       _currAction(eIoAction::None),
       _notifiedAction(eIoAction::None),
       _isError(false),
-      _isEof(false),
-      _remoteIp()
+      _isEof(false)
 {
 }
 
@@ -112,21 +111,6 @@ void IoEvent::setEof(bool isEof)
 bool IoEvent::isEof() const
 {
     return _isEof;
-}
-
-void IoEvent::setRemoteAddr(const std::string& ip)
-{
-    _remoteIp = ip;
-}
-
-void IoEvent::setRemoteAddr(std::string&& ip)
-{
-    _remoteIp = std::move(ip);
-}
-
-const std::string& IoEvent::getRemoteAddr() const
-{
-    return _remoteIp;
 }
 
 void IoEvent::setUniqueKey(uint64_t key)

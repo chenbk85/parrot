@@ -14,6 +14,7 @@ ifeq ($(uname_S), Linux)
 # Openssl
 OPENSSL_INC       := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/openssl/include
 OPENSSL_LIB       := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/openssl/lib
+OPENSSL_LIB       := -Wl,-rpath,$(OPENSSL_LIB) -L$(OPENSSL_LIB) -lssl -lcrypto
 
 # Rapidjson
 RAPIDJSON_INC     := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/rapidjson/include
@@ -25,6 +26,7 @@ ifeq ($(uname_S), Darwin)
 # Openssl
 OPENSSL_INC       := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/openssl/include
 OPENSSL_LIB       := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/openssl/lib
+OPENSSL_LIB       := -Wl,-rpath,$(OPENSSL_LIB) -L$(OPENSSL_LIB) -lssl -lcrypto
 
 # Rapidjson
 RAPIDJSON_INC     := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/rapidjson/include

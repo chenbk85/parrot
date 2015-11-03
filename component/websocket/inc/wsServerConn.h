@@ -9,7 +9,7 @@
 #include "codes.h"
 #include "session.h"
 #include "wsDefinition.h"
-#include "tcpServer.h"
+#include "tcpServerConn.h"
 #include "timeoutGuard.h"
 #include "wsPacketHandler.h"
 #include "doubleLinkedListNode.h"
@@ -21,7 +21,7 @@ class WsPacket;
 struct WsConfig;
 struct Session;
 
-class WsServerConn : public TcpServer,
+class WsServerConn : public TcpServerConn,
                      public TimeoutGuard,
                      public DoubleLinkedListNode<WsServerConn>
 {

@@ -30,7 +30,7 @@ else
     CPPFLAGS         := -g -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing -DDEBUG
 endif
 LINKER               := g++
-LDFLAGS              := -Wl,-rpath,$(PRJ_ROOT)/lib
+LDFLAGS              := -Wl,-rpath,$(PRJ_ROOT)/lib -L$(PRJ_ROOT)/lib
 
 # Commands
 RM                   := rm -rf

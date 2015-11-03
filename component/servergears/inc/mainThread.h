@@ -9,6 +9,9 @@
 #include "eventNotifier.h"
 #include "listener.h"
 #include "connFactory.h"
+#include "connHandler.h"
+#include "connDispatcher.h"
+#include "frontThread.h"
 
 namespace parrot
 {
@@ -18,9 +21,9 @@ class WsServerConn;
 class MainThread
 {
   public:
-    using FrontConnDispatcher = std::unique_ptr<
-        ConnDispatcher<WsServerConn, ConnFactory, ConnAcceptor>>;
-    using FrontThreadPool = std::unique_ptr<ThreadPool<FrontThread>>;
+    using FrontConnDispatcher =
+        ConnDispatcher<WsServerConn, ConnFactory, ConnHandler>;
+    using FrontThreadPool = ThreadPool<FrontThread>;
 
   public:
     explicit MainThread(const Config* cfg);
@@ -34,8 +37,8 @@ class MainThread
     void onStop();
 
   public:
-    void setFrontConnAcceptor(std::vector<ConnAcceptor<WsServerConn>*>&& );
-    void setFrontConnAcceptor(std::vector<ConnAcceptor<WsServerConn>*>& );
+    void setFrontConnHandler(std::vector<ConnHandler<WsServerConn>*>&&);
+    void setFrontConnHandler(std::vector<ConnHandler<WsServerConn>*>&);
 
   public:
     virtual void start();
@@ -45,7 +48,7 @@ class MainThread
     virtual void createUserThreads() = 0;
     virtual void run();
     virtual void beforeTerminate();
-    virtual void createListenerEvent();
+    virtual void createListenerEvents();
 
   protected:
     void createSysThreads();
@@ -53,9 +56,9 @@ class MainThread
     void daemonize();
 
   protected:
-    FrontConnDispatcher _connDispatcher;
+    std::unique_ptr<FrontConnDispatcher> _connDispatcher;
     std::unique_ptr<EventNotifier> _notifier;
-    FrontThreadPool _frontThreadPool;
+    std::unique_ptr<FrontThreadPool> _frontThreadPool;
     const Config* _config;
 };
 }

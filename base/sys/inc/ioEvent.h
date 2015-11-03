@@ -77,10 +77,6 @@ class IoEvent
 
     virtual void close();
     
-    void setRemoteAddr(const std::string& ip);
-    void setRemoteAddr(std::string&& ip);
-    const std::string& getRemoteAddr() const;
-
     void setUniqueKey(uint64_t key);
     uint64_t getUniqueKey() const;
 
@@ -100,7 +96,6 @@ class IoEvent
     eIoAction _notifiedAction;
     bool _isError;
     bool _isEof;
-    std::string _remoteIp;
 };
 }
 

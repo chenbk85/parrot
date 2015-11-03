@@ -17,7 +17,7 @@
 namespace parrot
 {
 WsServerConn::WsServerConn(const WsConfig& cfg)
-    : TcpServer(),
+    : TcpServerConn(),
       TimeoutGuard(),
       DoubleLinkedListNode<WsServerConn>(),
       _state(eWsState::NotOpened),

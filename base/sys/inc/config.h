@@ -7,7 +7,6 @@
 
 namespace parrot
 {
-
 struct ServerInfo
 {
     bool _isFront = true;
@@ -31,6 +30,10 @@ struct ServerInfo
     // This IP/port is used to handle rpc requests.
     std::string _rpcIp;
     uint16_t _rpcPort = 0;
+
+    // WsURL. 
+    std::string _frontWsUrl;
+    std::string _rpcWsUrl;
 };
 
 struct Config
@@ -55,7 +58,6 @@ struct Config
     // The front thread pool size.
     uint8_t _frontThreadPoolSize      = 2;
     uint32_t _frontThreadMaxConnCount = 100000;
-    uint8_t _logicThreadPoolSize      = 2;
 
     // Log configurations.
 

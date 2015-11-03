@@ -44,9 +44,8 @@ template <typename ThreadClass> class ThreadPool
         PARROT_ASSERT(_count > 0);
         for (auto i = 0u; i != _count; ++i)
         {
-            _threadVec.embrace_back(
-                std::unique_ptr<ThreadClass>(new ThreadClass()));
-            _threadVec[i].start();
+            _threadVec.emplace_back(new ThreadClass());
+            _threadVec[i]->start();
         }
     }
 
