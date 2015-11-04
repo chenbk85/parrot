@@ -7,6 +7,7 @@
 #include "frontThread.h"
 #include "daemon.h"
 #include "epoll.h"
+#include "logger.h"
 #include "connFactory.h"
 
 namespace parrot
@@ -41,6 +42,10 @@ void MainThread::daemonize()
 void MainThread::beforeStart()
 {
     daemonize();
+
+    parrot::Logger *logger = parrot::Logger::instance();
+    logger->setConfig(_config);
+    logger->start();
 
     _notifier->create();
 
@@ -138,6 +143,7 @@ void MainThread::onStop()
 void MainThread::beforeTerminate()
 {
     _frontThreadPool->destroy();
+    parrot::Logger::instance()->stop();
     Daemon::beforeTerminate();
 }
 }

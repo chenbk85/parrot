@@ -19,7 +19,7 @@ class Logger
 
   public:
     static Logger* instance() noexcept;
-    void setConfig(Config* cfg) noexcept;
+    void setConfig(const Config* cfg) noexcept;
     bool canLog(eLoggerLevel level) const noexcept;
     void start();
     void stop();

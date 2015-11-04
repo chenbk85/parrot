@@ -28,7 +28,7 @@ int main()
     
     std::unique_ptr<chat::FrontSrvMainThread> mainThread(
         new chat::FrontSrvMainThread(&config));
-
     mainThread->start();
+    
     return 0;
 }

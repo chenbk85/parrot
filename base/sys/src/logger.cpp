@@ -20,7 +20,7 @@ Logger* Logger::instance() noexcept
     return &logger;
 }
 
-void Logger::setConfig(Config* cfg) noexcept
+void Logger::setConfig(const Config* cfg) noexcept
 {
     _config = cfg;
 }
