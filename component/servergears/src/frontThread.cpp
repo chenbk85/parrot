@@ -51,6 +51,16 @@ void FrontThread::updateByConfig(const Config* cfg)
     _config = cfg;
     _timeoutMgr.reset(
         new TimeoutManager<WsServerConn>(this, _config->_frontThreadTimeout));
+
+#if defined(__linux__)
+    _notifier.reset(new Epoll(_config->_frontThreadMaxConnCount));
+#elif defined(__APPLE__)
+    _notifier.reset(new Kqueue(_config->_frontThreadMaxConnCount));
+#elif defined(_WIN32)
+//    _notifier.reset(new
+//    SimpleEventNotifier(_config->_frontThreadMaxConnCount));
+#endif
+    _notifier->create();    
 }
 
 void FrontThread::setDefaultJobHdr(std::vector<JobHandler*>& vec)
@@ -61,19 +71,6 @@ void FrontThread::setDefaultJobHdr(std::vector<JobHandler*>& vec)
 void FrontThread::setJobHdr(std::unordered_map<void*, JobHandler*>& hdr)
 {
     _jobHandlerMap = hdr;
-}
-
-void FrontThread::beforeStart()
-{
-#if defined(__linux__)
-    _notifier.reset(new Epoll(_config->_frontThreadMaxConnCount));
-#elif defined(__APPLE__)
-    _notifier.reset(new Kqueue(_config->_frontThreadMaxConnCount));
-#elif defined(_WIN32)
-//    _notifier.reset(new
-//    SimpleEventNotifier(_config->_frontThreadMaxConnCount));
-#endif
-    _notifier->create();
 }
 
 void FrontThread::stop()

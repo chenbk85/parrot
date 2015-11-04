@@ -61,7 +61,6 @@ class FrontThread : public PoolThread,
 
   protected:
     // ThreadBase
-    void beforeStart() override;
     void run() override;
     
     // TimeoutHandler

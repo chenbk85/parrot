@@ -25,7 +25,6 @@ MainThread::MainThread(const Config* cfg)
       _wsConfig(new WsConfig()),
       _config(cfg)
 {
-    _notifier->create();
 }
 
 void MainThread::daemonize()
@@ -37,6 +36,20 @@ void MainThread::daemonize()
 
     auto shutdownCb = std::bind(&MainThread::onStop, this);
     Daemon::registerShutdownCb(shutdownCb);
+}
+
+void MainThread::beforeStart()
+{
+    daemonize();
+
+    _notifier->create();
+
+    _wsConfig->_host = "10.24.100.202";
+    ConnFactory<WsServerConn, WsConfig>::getInstance()->setConfig(
+        _wsConfig.get());
+    
+    createListenerEvents();
+    createThreads();
 }
 
 void MainThread::createThreads()
@@ -56,6 +69,7 @@ void MainThread::createSysThreads()
     auto& threadVec = _frontThreadPool->getThreadPoolVec();
     for (auto& t : threadVec)
     {
+        t->updateByConfig(_config);
         vec.push_back(t.get());
     }
     _connDispatcher->setConnHandler(std::move(vec));
@@ -92,17 +106,6 @@ void MainThread::setFrontThreadJobHandler(
     }
 }
 
-void MainThread::beforeStart()
-{
-    daemonize();
-
-    _wsConfig->_host = "10.24.100.202";
-    ConnFactory<WsServerConn, WsConfig>::getInstance()->setConfig(
-        _wsConfig.get());
-    
-    createListenerEvents();
-    createThreads();
-}
 
 void MainThread::start()
 {
