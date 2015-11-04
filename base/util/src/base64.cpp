@@ -85,7 +85,7 @@ static const char basis_64[] =
 
 namespace parrot
 {
-uint32_t getDecodedLength(const char* bufcoded)
+uint32_t getBase64DecodeLen(const char* bufcoded)
 {
     uint32_t nbytesdecoded;
     const unsigned char* bufin;

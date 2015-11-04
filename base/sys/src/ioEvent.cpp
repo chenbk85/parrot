@@ -34,7 +34,9 @@ IoEvent::IoEvent()
       _currAction(eIoAction::None),
       _notifiedAction(eIoAction::None),
       _isError(false),
-      _isEof(false)
+      _isEof(false),
+      _remoteIP(),
+      _remotePort()
 {
 }
 
@@ -153,6 +155,31 @@ void IoEvent::close()
         ::close(_fd);
         _fd = -1;
     }
+}
+
+void IoEvent::setRemoteAddr(const std::string& ip)
+{
+    _remoteIP = ip;
+}
+
+void IoEvent::setRemoteAddr(std::string&& ip)
+{
+    _remoteIP = std::move(ip);
+}
+
+void IoEvent::setRemotePort(uint16_t port)
+{
+    _remotePort = port;
+}
+
+const std::string & IoEvent::getRemoteAddr() const
+{
+    return _remoteIP;
+}
+
+uint16_t IoEvent::getRemotePort() const
+{
+    return _remotePort;
 }
 
 #if defined(__APPLE__) || defined(__linux__)

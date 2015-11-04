@@ -278,6 +278,11 @@ void WsHttpResponse::createHttpHandshakeRsp()
                 std::back_inserter(_sendVec));
 }
 
+eCodes WsHttpResponse::getResult() const
+{
+    return _httpResult;
+}
+
 eCodes WsHttpResponse::work()
 {
     eCodes code = eCodes::ST_Init;

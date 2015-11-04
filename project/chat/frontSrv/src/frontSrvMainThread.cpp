@@ -1,5 +1,8 @@
+#include <unordered_map>
+
 #include "frontSrvMainThread.h"
 #include "frontSrvConfig.h"
+#include "jobHandler.h"
 
 namespace chat
 {
@@ -12,14 +15,17 @@ void FrontSrvMainThread::createUserThreads()
 {
     _logicThreadPool.create();
     auto& threads = _logicThreadPool.getThreadPoolVec();
-    std::vector<ConnHandler*> connHandlerVec;
+    std::unordered_map<void *,parrot::JobHandler*> jobHandlerMap;
+    std::vector<parrot::JobHandler*> jobHandlerVec;
     for (auto& t : threads)
     {
-        t->setConfig(static_cast<FrontSrvConfig*>(_config));
-        connHandlerVec.push_back(t.get());
+        t->setConfig(static_cast<const FrontSrvConfig*>(_config));
+        jobHandlerMap[t.get()] = t.get();
+        jobHandlerVec.push_back(t.get());
     }
     _logicThreadPool.start();
 
-    setFrontConnHandler(std::move(connHandlerVec));
+    setFrontThreadDefaultJobHandler(jobHandlerVec);
+    setFrontThreadJobHandler(jobHandlerMap);
 }
 }

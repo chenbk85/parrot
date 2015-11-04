@@ -46,6 +46,7 @@ class FrontThread : public PoolThread,
   public:
     void updateByConfig(const Config* cfg);
     void setDefaultJobHdr(std::vector<JobHandler*>& hdr);
+    void setJobHdr(std::unordered_map<void*, JobHandler*> &hdr);
 
   public:
     // ThreadBase
@@ -89,7 +90,7 @@ class FrontThread : public PoolThread,
     std::list<std::unique_ptr<Job>> _jobList;
 
     std::mutex _connListLock;
-    std::list<std::unique_ptr<Job>> _connList;
+    std::list<std::unique_ptr<WsServerConn>> _connList;
         
     std::list<SessionPktPair> _noRoutePktList;
     std::unordered_map<void*, std::list<SessionPktPair>> _pktMap;

@@ -12,6 +12,7 @@
 #include "connHandler.h"
 #include "connDispatcher.h"
 #include "frontThread.h"
+#include "wsConfig.h"
 
 namespace parrot
 {
@@ -22,7 +23,7 @@ class MainThread
 {
   public:
     using FrontConnDispatcher =
-        ConnDispatcher<WsServerConn, ConnFactory, ConnHandler>;
+        ConnDispatcher<WsServerConn, WsConfig, ConnFactory, ConnHandler>;
     using FrontThreadPool = ThreadPool<FrontThread>;
 
   public:
@@ -37,8 +38,8 @@ class MainThread
     void onStop();
 
   public:
-    void setFrontConnHandler(std::vector<ConnHandler<WsServerConn>*>&&);
-    void setFrontConnHandler(std::vector<ConnHandler<WsServerConn>*>&);
+    void setFrontThreadDefaultJobHandler(std::vector<JobHandler*>& hdrs);
+    void setFrontThreadJobHandler(std::unordered_map<void*, JobHandler*>& hdrs);
 
   public:
     virtual void start();
@@ -59,6 +60,7 @@ class MainThread
     std::unique_ptr<FrontConnDispatcher> _connDispatcher;
     std::unique_ptr<EventNotifier> _notifier;
     std::unique_ptr<FrontThreadPool> _frontThreadPool;
+    std::unique_ptr<WsConfig> _wsConfig;
     const Config* _config;
 };
 }

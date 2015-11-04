@@ -10,10 +10,10 @@
 
 namespace parrot
 {
-template <typename... Ts> class ThreadJob : public Job
+template <eJobType JOBTYPE, typename... Ts> class ThreadJob : public Job
 {
   public:
-    ThreadJob(eJobType jobType) : Job(jobType), _args()
+    ThreadJob() : Job(JOBTYPE), _args()
     {
     }
 
@@ -45,18 +45,21 @@ class FrontThread;
 using SessionPktPair =
     std::pair<std::shared_ptr<const Session>, std::unique_ptr<WsPacket>>;
 
-using PacketJob    = ThreadJob<std::list<SessionPktPair>>;
+using PacketJob    = ThreadJob<eJobType::Packet, std::list<SessionPktPair>>;
 using PacketJobHdr = std::function<void(std::list<SessionPktPair>&)>;
 
-using ReqBindJob = ThreadJob<FrontThread*, std::list<SessionPktPair>>;
+using ReqBindJob =
+    ThreadJob<eJobType::ReqBind, FrontThread*, std::list<SessionPktPair>>;
 using ReqBindJobHdr =
     std::function<void(FrontThread*, std::list<SessionPktPair>&)>;
 
-using RspBindJob = ThreadJob<std::list<std::shared_ptr<const Session>>>;
+using RspBindJob =
+    ThreadJob<eJobType::RspBind, std::list<std::shared_ptr<const Session>>>;
 using RspBindJobHdr =
     std::function<void(std::list<std::shared_ptr<const Session>>&)>;
 
-using UpdateSessionJob = ThreadJob<std::shared_ptr<const Session>>;
+using UpdateSessionJob =
+    ThreadJob<eJobType::UpdateSession, std::shared_ptr<const Session>>;
 using UpdateSessionJobHdr =
     std::function<void(std::shared_ptr<const Session>&)>;
 }

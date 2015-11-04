@@ -7,6 +7,7 @@
 #include "frontThread.h"
 #include "daemon.h"
 #include "epoll.h"
+#include "connFactory.h"
 
 namespace parrot
 {
@@ -21,6 +22,7 @@ MainThread::MainThread(const Config* cfg)
 //      _notifier(new SimpleEventNotifier()),
 #endif
       _frontThreadPool(new FrontThreadPool(cfg->_frontThreadMaxConnCount)),
+      _wsConfig(new WsConfig()),
       _config(cfg)
 {
     _notifier->create();
@@ -70,21 +72,34 @@ void MainThread::createListenerEvents()
     _notifier->addEvent(_connDispatcher.get());
 }
 
-void MainThread::setFrontConnHandler(
-    std::vector<ConnHandler<WsServerConn>*>&& hdrs)
+void MainThread::setFrontThreadDefaultJobHandler(
+    std::vector<JobHandler*>& hdrs)
 {
-    _connDispatcher->setConnHandler(std::move(hdrs));
+    auto& threadVec = _frontThreadPool->getThreadPoolVec();
+    for (auto& t : threadVec)
+    {
+        t->setDefaultJobHdr(hdrs);
+    }
 }
 
-void MainThread::setFrontConnHandler(
-    std::vector<ConnHandler<WsServerConn>*>& hdrs)
+void MainThread::setFrontThreadJobHandler(
+    std::unordered_map<void*, JobHandler*>& hdrs)
 {
-    _connDispatcher->setConnHandler(hdrs);
+    auto& threadVec = _frontThreadPool->getThreadPoolVec();
+    for (auto& t : threadVec)
+    {
+        t->setJobHdr(hdrs);
+    }
 }
 
 void MainThread::beforeStart()
 {
     daemonize();
+
+    _wsConfig->_host = "10.24.100.202";
+    ConnFactory<WsServerConn, WsConfig>::getInstance()->setConfig(
+        _wsConfig.get());
+    
     createListenerEvents();
     createThreads();
 }

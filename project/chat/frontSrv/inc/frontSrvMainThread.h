@@ -12,7 +12,7 @@ struct FrontSrvConfig;
 class FrontSrvMainThread : public parrot::MainThread
 {
   public:
-    FrontSrvMainThread();
+    explicit FrontSrvMainThread(const FrontSrvConfig* cfg);
 
   protected:
     void createUserThreads() override;

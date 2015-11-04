@@ -18,8 +18,10 @@ BASE_INC              := $(addsuffix /inc,\
 COMP_INC              := $(addsuffix /inc,\
 							$(addprefix $(PRJ_ROOT)/component/,$($(MODULE)_DEP_COMP)))
 
-THIRD_PARTY_INC       := $($(addsuffix _INC, \
-							$(shell echo $($(MODULE)_3RD_PARTY) | tr a-z A-Z)))
+THIRD_PARTY_INC       := $(addsuffix _INC, \
+							$(shell echo $($(MODULE)_3RD_PARTY) | tr a-z A-Z))
+THIRD_PARTY_INC       := $(foreach VA,$(THIRD_PARTY_INC),$($(VA)))
+
 
 # Join depend include directory.
 $(MODULE)_INC         += $(COMP_INC) $(BASE_INC) $(THIRD_PARTY_INC)

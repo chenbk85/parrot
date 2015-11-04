@@ -1,9 +1,12 @@
+#include "logger.h"
 #include "ioEvent.h"
 #include "epoll.h"
 #include "kqueue.h"
 #include "codes.h"
+#include "session.h"
 #include "simpleEventNotifier.h"
 #include "frontSrvLogicThread.h"
+#include "frontThread.h"
 #include "threadJob.h"
 
 namespace chat
@@ -25,11 +28,12 @@ FrontSrvLogicThread::FrontSrvLogicThread()
       _config(nullptr)
 {
     using namespace std::placeholders;
-    _reqBindJobHdr = std::bind(&FrontSrvLogicThread::handleReqBind, this, _1, _2);
-    _packetJobHdr  = std::bind(&FrontSrvLogicThread::handlePacket, this, _1);
+    _reqBindJobHdr =
+        std::bind(&FrontSrvLogicThread::handleReqBind, this, _1, _2);
+    _packetJobHdr = std::bind(&FrontSrvLogicThread::handlePacket, this, _1);
 }
 
-void FrontSrvLogicThread::setConfig(const FrontSrvConfig *cfg)
+void FrontSrvLogicThread::setConfig(const FrontSrvConfig* cfg)
 {
     _config = cfg;
 }
@@ -39,7 +43,7 @@ void FrontSrvLogicThread::beforeStart()
     _notifier->create();
 }
 
-void FrontSrvLogicThread::addJob(std::unique_ptr<LoggerJob>&& job)
+void FrontSrvLogicThread::addJob(std::unique_ptr<parrot::Job>&& job)
 {
     _jobListLock.lock();
     _jobList.push_back(std::move(job));
@@ -48,7 +52,8 @@ void FrontSrvLogicThread::addJob(std::unique_ptr<LoggerJob>&& job)
     _notifier->stopWaiting();
 }
 
-void FrontSrvLogicThread::addJob(std::list<std::unique_ptr<Job>>& jobList)
+void FrontSrvLogicThread::addJob(
+    std::list<std::unique_ptr<parrot::Job>>& jobList)
 {
     _jobListLock.lock();
     _jobList.splice(_jobList.end(), jobList);
@@ -57,32 +62,36 @@ void FrontSrvLogicThread::addJob(std::list<std::unique_ptr<Job>>& jobList)
     _notifier->stopWaiting();
 }
 
-void FrontSrvLogicThread::handleReqBind(FrontThread* thread,
-                                std::list<SessionPktPair>& pktList)
+void FrontSrvLogicThread::handleReqBind(
+    parrot::FrontThread* thread, std::list<parrot::SessionPktPair>& pktList)
 {
-    Session* session = nullptr;
-    std::list<std::shared_ptr<const Session*>> sessionList;
+    parrot::Session* session = nullptr;
+    std::list<std::shared_ptr<const parrot::Session>> sessionList;
     for (auto& sp : pktList)
     {
-        session                  = const_cast<Session*>(sp.first.get());
+        session                  = const_cast<parrot::Session*>(sp.first.get());
         session->_frontThreadPtr = this;
         sessionList.push_back(std::move(sp.first));
     }
 
-    std::unique_ptr<RspBindJob> rbJob(new RspBindJob());
-    rbJob.bind(std::move(sessionList));
+    std::unique_ptr<parrot::RspBindJob> rbJob(new parrot::RspBindJob());
+    rbJob->bind(std::move(sessionList));
+    thread->addJob(std::move(rbJob));
 }
 
-void FrontSrvLogicThread::handlePacket(std::list<SessionPktPair>& pktList)
+void FrontSrvLogicThread::handlePacket(
+    std::list<parrot::SessionPktPair>& pktList)
 {
     for (auto& sp : pktList)
     {
+        LOG_INFO("FrontSrvLogicThread::handlePacket: session is "
+                 << (sp.first)->toString() << ".");
     }
 }
 
 void FrontSrvLogicThread::handleJob()
 {
-    std::list<std::unique_ptr<Job>> jobList;
+    std::list<std::unique_ptr<parrot::Job>> jobList;
     _jobListLock.lock();
     jobList = std::move(_jobList);
     _jobListLock.unlock();
@@ -91,18 +100,18 @@ void FrontSrvLogicThread::handleJob()
     {
         switch (j->getJobType())
         {
-            case eJobType::ReqBind:
+            case parrot::eJobType::ReqBind:
             {
-                std::unique_ptr<ReqBindJob> tj(
-                    static_cast<ReqBindJob*>(j.release()));
+                std::unique_ptr<parrot::ReqBindJob> tj(
+                    static_cast<parrot::ReqBindJob*>(j.release()));
                 tj->call(_reqBindJobHdr);
             }
             break;
 
-            case eJobType::Packet:
+            case parrot::eJobType::Packet:
             {
-                std::unique_ptr<PacketJob> tj(
-                    static_cast<PacketJob*>(j.release()));
+                std::unique_ptr<parrot::PacketJob> tj(
+                    static_cast<parrot::PacketJob*>(j.release()));
                 tj->call(_packetJobHdr);
             }
             break;
@@ -118,9 +127,9 @@ void FrontSrvLogicThread::handleJob()
 
 void FrontSrvLogicThread::run()
 {
-    IoEvent* ev = nullptr;
-    uint32_t ret = 0;
-    
+    parrot::IoEvent* ev = nullptr;
+    uint32_t ret        = 0;
+
     while (!isStopped())
     {
         ret = _notifier->waitIoEvents(-1);
@@ -131,13 +140,13 @@ void FrontSrvLogicThread::run()
             ev->handleIoEvent();
         }
 
-        processJob();        
+        handleJob();
     }
 }
 
 void FrontSrvLogicThread::stop()
 {
     _notifier->stopWaiting();
-    ThreadBase::stop();
+    parrot::ThreadBase::stop();
 }
 }

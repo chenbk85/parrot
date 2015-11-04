@@ -22,10 +22,10 @@ namespace parrot
 FrontThread::FrontThread()
     : PoolThread(),
       TimeoutHandler(),
-      _connListLock(),
-      _connList(),
       _jobListLock(),
       _jobList(),
+      _connListLock(),
+      _connList(),
       _noRoutePktList(),
       _pktMap(),
       _jobHandlerMap(),
@@ -56,6 +56,11 @@ void FrontThread::updateByConfig(const Config* cfg)
 void FrontThread::setDefaultJobHdr(std::vector<JobHandler*>& vec)
 {
     _defaultJobHdrVec = vec;
+}
+
+void FrontThread::setJobHdr(std::unordered_map<void*, JobHandler*>& hdr)
+{
+    _jobHandlerMap = hdr;
 }
 
 void FrontThread::beforeStart()
@@ -155,12 +160,12 @@ void FrontThread::handleJob()
     }
 }
 
-void FrontThread::addJob(std::unique_ptr<LoggerJob>&& job) noexcept
+void FrontThread::addJob(std::unique_ptr<Job>&& job)
 {
     _jobListLock.lock();
     _jobList.push_back(std::move(job));
     _jobListLock.unlock();
-    
+
     _notifier->stopWaiting();
 }
 
@@ -169,8 +174,8 @@ void FrontThread::addJob(std::list<std::unique_ptr<Job>>& jobList)
     _jobListLock.lock();
     _jobList.splice(_jobList.end(), jobList);
     _jobListLock.unlock();
-    
-    _notifier->stopWaiting();    
+
+    _notifier->stopWaiting();
 }
 
 void FrontThread::onPacket(std::shared_ptr<const Session>&& session,
@@ -197,17 +202,17 @@ void FrontThread::onPacket(std::shared_ptr<const Session>&& session,
     if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
     {
         // Dispatch packetes.
-        std::unique_ptr<PacketJob> pktJob(new PacketJob(eJobType::Packet));
+        std::unique_ptr<PacketJob> pktJob(new PacketJob());
         pktJob->bind(std::move(it->second));
         (_jobHandlerMap[session->_backThreadPtr])->addJob(std::move(pktJob));
         it->second.clear();
     }
 }
 
-void FrontThread::onClose(WsServerConn* conn, std::unique_ptr<WsPacket> &&pkt)
+void FrontThread::onClose(WsServerConn* conn, std::unique_ptr<WsPacket>&& pkt)
 {
     std::shared_ptr<const Session> session = conn->getSession();
-    
+
     if (!session->_isBound)
     {
         // Here, do not need notify up layer.
@@ -233,7 +238,7 @@ void FrontThread::onClose(WsServerConn* conn, std::unique_ptr<WsPacket> &&pkt)
     if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
     {
         // Dispatch packetes.
-        std::unique_ptr<PacketJob> pktJob(new PacketJob(eJobType::Packet));
+        std::unique_ptr<PacketJob> pktJob(new PacketJob());
         pktJob->bind(std::move(it->second));
         (_jobHandlerMap[session->_backThreadPtr])->addJob(std::move(pktJob));
         it->second.clear();
@@ -247,7 +252,7 @@ void FrontThread::onClose(WsServerConn* conn, std::unique_ptr<WsPacket> &&pkt)
 
 void FrontThread::dispatchPackets()
 {
-    std::unique_ptr<ReqBindJob> bindJob(new ReqBindJob(eJobType::ReqBind));
+    std::unique_ptr<ReqBindJob> bindJob(new ReqBindJob());
     bindJob->bind(this, std::move(_noRoutePktList));
     (_defaultJobHdrVec[_lastDefaultJobIdx])->addJob(std::move(bindJob));
     _lastDefaultJobIdx = (_lastDefaultJobIdx + 1) % _defaultJobHdrVec.size();
@@ -256,8 +261,7 @@ void FrontThread::dispatchPackets()
     {
         if (!kv.second.empty())
         {
-            std::unique_ptr<PacketJob> pktJob(
-                new PacketJob(eJobType::Packet));
+            std::unique_ptr<PacketJob> pktJob(new PacketJob());
             pktJob->bind(std::move(kv.second));
             (_jobHandlerMap[kv.first])->addJob(std::move(pktJob));
             kv.second.clear();
@@ -270,7 +274,7 @@ void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn>>& connList)
     _connListLock.lock();
     _connList.splice(_connList.end(), connList);
     _connListLock.unlock();
-    
+
     _notifier->stopWaiting();
 }
 
@@ -279,7 +283,7 @@ void FrontThread::addConnToNotifier()
     std::list<std::unique_ptr<WsServerConn>> tmpList;
 
     _connListLock.lock();
-    _tmpList = std::move(_connList);
+    tmpList = std::move(_connList);
     _connListLock.unlock();
 
     auto now = std::time(nullptr);

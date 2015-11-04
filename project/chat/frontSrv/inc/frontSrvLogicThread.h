@@ -7,6 +7,9 @@
 
 #include "poolThread.h"
 #include "wsPacket.h"
+#include "job.h"
+#include "threadJob.h"
+#include "jobHandler.h"
 
 namespace chat
 {
@@ -22,8 +25,8 @@ class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
 
   public:
     void stop() override;
-    void addJob(std::unique_ptr<Job>&& job) override;
-    void addJob(std::list<std::unique_ptr<Job>>& jobList) override;
+    void addJob(std::unique_ptr<parrot::Job>&& job) override;
+    void addJob(std::list<std::unique_ptr<parrot::Job>>& jobList) override;
 
   protected:
     void beforeStart() override;
@@ -33,15 +36,16 @@ class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
     void handleJob() override;
 
   protected:
-    void handleReqBind(FrontThread* thread, std::list<SessionPktPair>& pktList);
-    void handlePacket(std::list<SessionPktPair>& pktList);
+    void handleReqBind(parrot::FrontThread* thread,
+                       std::list<parrot::SessionPktPair>& pktList);
+    void handlePacket(std::list<parrot::SessionPktPair>& pktList);
 
   protected:
-    ReqBindJobHdr _reqBindJobHdr;
-    PacketJobHdr _packetJobHdr;
+    parrot::ReqBindJobHdr _reqBindJobHdr;
+    parrot::PacketJobHdr _packetJobHdr;
     std::mutex _jobListLock;
-    std::list<std::unique_ptr<Job>> _jobList;
-    std::unique_ptr<EventNotifier> _notifier;
+    std::list<std::unique_ptr<parrot::Job>> _jobList;
+    std::unique_ptr<parrot::EventNotifier> _notifier;
     const FrontSrvConfig* _config;
 };
 }

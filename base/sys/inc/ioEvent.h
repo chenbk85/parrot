@@ -80,6 +80,13 @@ class IoEvent
     void setUniqueKey(uint64_t key);
     uint64_t getUniqueKey() const;
 
+    void setRemoteAddr(const std::string& ip);
+    void setRemoteAddr(std::string&& ip);
+    const std::string &getRemoteAddr() const;
+
+    void setRemotePort(uint16_t port);
+    uint16_t getRemotePort() const;
+
   public:
 #if defined(__APPLE__) || defined(__linux__)
     virtual eCodes send(const char* buff, uint32_t buffLen, uint32_t& sentLen);
@@ -96,6 +103,8 @@ class IoEvent
     eIoAction _notifiedAction;
     bool _isError;
     bool _isEof;
+    std::string _remoteIP;
+    uint16_t _remotePort;    
 };
 }
 
