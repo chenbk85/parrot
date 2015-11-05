@@ -64,6 +64,11 @@ class ConnDispatcher : public Listener
         {
             code = doAccept(fd, ipHelper, port);
 
+            if (code != eCodes::ST_Ok)
+            {
+                break;
+            }
+
             conn = std::move(ConnFactory<Conn, Cfg>::getInstance()->create());
             conn->setFd(fd);
             conn->setNextAction(eIoAction::Read);
@@ -73,8 +78,12 @@ class ConnDispatcher : public Listener
             connList.push_back(std::move(conn));
         } while (code == eCodes::ST_Ok);
 
-        _connHandlerVec[_connHandlerVecIdx]->addConn(connList);
-        _connHandlerVecIdx = (_connHandlerVecIdx + 1) % _connHandlerVec.size();
+        if (!connList.empty())
+        {
+            _connHandlerVec[_connHandlerVecIdx]->addConn(connList);
+            _connHandlerVecIdx =
+                (_connHandlerVecIdx + 1) % _connHandlerVec.size();
+        }
 
         return eIoAction::Read;
     }

@@ -14,8 +14,7 @@
 namespace parrot
 {
 MainThread::MainThread(const Config* cfg)
-    : _connDispatcher(new FrontConnDispatcher(cfg->_thisServer._frontPort,
-                                              cfg->_thisServer._frontIp)),
+    : _connDispatcher(),
 #if defined(__linux__)
       _notifier(new Epoll(100)),
 #elif defined(__APPLE__)
@@ -34,7 +33,7 @@ void MainThread::beforeStart()
     Daemon::setConfig(_config);
 
     // Make this process as daemon.
-    Daemon::daemonize();
+    //Daemon::daemonize();
 
     auto shutdownCb = std::bind(&MainThread::onStop, this);
     Daemon::registerShutdownCb(shutdownCb);
@@ -45,7 +44,7 @@ void MainThread::beforeStart()
 
     auto& sid = _config->_thisServer._serverId;
     LOG_INFO("*************************************************************");
-    LOG_INFO("*-->  Service " << sid << " started.                           ");
+    LOG_INFO("*   SERVICE " << sid << " STARTED.                           ");
     LOG_INFO("*************************************************************");
 
     _notifier->create();

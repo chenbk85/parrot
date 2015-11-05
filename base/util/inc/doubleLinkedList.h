@@ -24,9 +24,9 @@ template <typename T> class DoubleLinkedList
   public:
     void add(T* n) noexcept
     {
-        PARROT_ASSERT(n != nullptr && n->getPrev() == nullptr &&
-                      n->getNext() == nullptr);
+        PARROT_ASSERT(n != nullptr);
         n->setPrev(_tail);
+        n->setNext(_tail->getNext());
         _tail->setNext(n);
         _tail = n;
         ++_count;

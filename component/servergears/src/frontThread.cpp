@@ -1,6 +1,7 @@
 #include <system_error>
 #include <string>
 #include <ctime>
+#include <iostream>
 
 #include "wsPacket.h"
 #include "eventNotifier.h"
@@ -16,6 +17,7 @@
 #include "threadJob.h"
 #include "timeoutManager.h"
 #include "logger.h"
+
 
 namespace parrot
 {
@@ -299,15 +301,20 @@ void FrontThread::addConnToNotifier()
 
         _timeoutMgr->add(c.get(), now);
         _notifier->addEvent(c.get());
+
+        LOG_DEBUG("FrontThread::addConnToNotifier: Add client connection "
+                  << c->getRemoteAddr() << ".");
         _connMap[c->getUniqueKey()] = std::move(c);
     }
 }
 
 void FrontThread::removeConn(WsServerConn* conn)
 {
-    _connMap.erase(conn->getSession()->_connUniqueId);
+    LOG_DEBUG("FrontThread::removeConn: Client " << conn->getRemoteAddr()
+              << " disconnected.");
     _timeoutMgr->remove(conn);
     _notifier->delEvent(conn);
+    _connMap.erase(conn->getSession()->_connUniqueId);    
 }
 
 void FrontThread::updateTimeout(WsServerConn* conn, std::time_t now)

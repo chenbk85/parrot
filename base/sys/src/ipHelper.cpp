@@ -66,7 +66,7 @@ void IPHelper::setIP(const std::string& ip)
 void IPHelper::setIP(const struct in6_addr& addr)
 {
     char buff[INET6_ADDRSTRLEN];
-    if (!inet_ntop(AF_INET6, &addr, buff, sizeof(struct in6_addr)))
+    if (!inet_ntop(AF_INET6, &addr, buff, INET6_ADDRSTRLEN))
     {
         throw std::system_error(errno, std::system_category(),
                                 "IPHelper::setIP ");
@@ -79,7 +79,7 @@ void IPHelper::setIP(const struct in6_addr& addr)
 void IPHelper::setIP(const struct in_addr& addr)
 {
     char buff[INET_ADDRSTRLEN];
-    if (!inet_ntop(AF_INET, &addr, buff, sizeof(struct in_addr)))
+    if (!inet_ntop(AF_INET, &addr, buff, INET_ADDRSTRLEN))
     {
         throw std::system_error(errno, std::system_category(),
                                 "IPHelper::setIP ");
