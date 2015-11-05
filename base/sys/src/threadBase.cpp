@@ -10,10 +10,7 @@ namespace parrot
 {
 
 ThreadBase::ThreadBase()
-    : _threadPtr(),
-      _state(ThreadState::Init),
-      _lock(),
-      _condVar()
+    : _threadPtr(), _state(ThreadState::Init), _lock(), _condVar()
 {
 }
 
@@ -34,7 +31,7 @@ void ThreadBase::start()
 
 void ThreadBase::entryFunc()
 {
-    _state = ThreadState::Started;    
+    _state = ThreadState::Started;
     beforeRun();
     run();
     _state = ThreadState::Stopped;
@@ -42,6 +39,11 @@ void ThreadBase::entryFunc()
 
 void ThreadBase::stop()
 {
+    if (isSleeping())
+    {
+        wakeUp();
+    }
+    
     _state = ThreadState::Stopping;
 }
 
@@ -51,11 +53,10 @@ void ThreadBase::join()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
-    
+
     _threadPtr->join();
     _threadPtr.reset(nullptr);
 }
-
 
 bool ThreadBase::isStarted() const noexcept
 {
@@ -121,11 +122,16 @@ std::thread::id ThreadBase::getThreadId() const
 void ThreadBase::wakeUp()
 {
     std::unique_lock<std::mutex> lk(_lock);
-    _state = ThreadState::Started;    
+    _state = ThreadState::Init;
 
     // Release the lock.
     lk.unlock();
 
     _condVar.notify_one();
+
+    while (!isStarted())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
 }
 }

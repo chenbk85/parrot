@@ -31,13 +31,13 @@ class ThreadBase
     ThreadBase& operator=(const ThreadBase&) = delete;
 
   public:
-    // Start this thread.
+    // Start this thread. Asynchronize.
     virtual void start();
 
-    // Stop this thread.
+    // Stop this thread. Asynchronize.
     virtual void stop();
 
-    // Wake up this thread.
+    // Wake up this thread. Synchronize.
     void wakeUp();
 
     bool isStarted() const noexcept;
@@ -50,10 +50,11 @@ class ThreadBase
 
     std::thread::id getThreadId() const;
 
+    // Join the thread. Synchronize.
     void join();
 
   protected:
-    // Sleep this thread for ms milliseconds.
+    // Sleep this thread for ms milliseconds. Synchronize.
     //
     // Params:
     // * ms  milliseconds. If ms < 0, blocks the current thread
