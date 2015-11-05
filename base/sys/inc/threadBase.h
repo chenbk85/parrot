@@ -15,6 +15,14 @@ namespace parrot
 //     class RpcThread : public ThreadBase {} ...
 class ThreadBase
 {
+    enum class ThreadState : uint8_t
+    {
+        Init,
+        Started,
+        Stopping,
+        Stopped
+    };
+
   public:
     ThreadBase();
     virtual ~ThreadBase();
@@ -34,7 +42,11 @@ class ThreadBase
     // Check whether the thread has stopped.
     bool isStopped() const noexcept;
 
+    bool isStopping() const noexcept;
+
     std::thread::id getThreadId() const;
+
+    void join();
 
   protected:
     // Sleep this thread for ms milliseconds.
@@ -67,7 +79,7 @@ class ThreadBase
 
   private:
     std::unique_ptr<std::thread> _threadPtr;
-    std::atomic<bool> _stopped;
+    std::atomic<ThreadState> _state;
     bool _sleeping;
     std::mutex _lock;
     std::condition_variable _condVar;

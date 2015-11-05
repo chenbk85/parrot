@@ -60,7 +60,7 @@ void FrontThread::updateByConfig(const Config* cfg)
 //    _notifier.reset(new
 //    SimpleEventNotifier(_config->_frontThreadMaxConnCount));
 #endif
-    _notifier->create();    
+    _notifier->create();
 }
 
 void FrontThread::setDefaultJobHdr(std::vector<JobHandler*>& vec)
@@ -75,8 +75,10 @@ void FrontThread::setJobHdr(std::unordered_map<void*, JobHandler*>& hdr)
 
 void FrontThread::stop()
 {
-    _notifier->stopWaiting();
+    LOG_DEBUG("FrontThread::Stop: stopWaiting is Called.");
     ThreadBase::stop();
+    _notifier->stopWaiting();
+    ThreadBase::join();
 }
 
 void FrontThread::handleRspBind(std::list<std::shared_ptr<const Session>>& sl)
@@ -163,6 +165,7 @@ void FrontThread::addJob(std::unique_ptr<Job>&& job)
     _jobList.push_back(std::move(job));
     _jobListLock.unlock();
 
+    LOG_DEBUG("FrontThread::addJob: stopWaiting is Called.");
     _notifier->stopWaiting();
 }
 
@@ -172,6 +175,7 @@ void FrontThread::addJob(std::list<std::unique_ptr<Job>>& jobList)
     _jobList.splice(_jobList.end(), jobList);
     _jobListLock.unlock();
 
+    LOG_DEBUG("FrontThread::addJob: stopWaiting is Called.");
     _notifier->stopWaiting();
 }
 
@@ -249,10 +253,14 @@ void FrontThread::onClose(WsServerConn* conn, std::unique_ptr<WsPacket>&& pkt)
 
 void FrontThread::dispatchPackets()
 {
-    std::unique_ptr<ReqBindJob> bindJob(new ReqBindJob());
-    bindJob->bind(this, std::move(_noRoutePktList));
-    (_defaultJobHdrVec[_lastDefaultJobIdx])->addJob(std::move(bindJob));
-    _lastDefaultJobIdx = (_lastDefaultJobIdx + 1) % _defaultJobHdrVec.size();
+    if (!_noRoutePktList.empty())
+    {
+        std::unique_ptr<ReqBindJob> bindJob(new ReqBindJob());
+        bindJob->bind(this, std::move(_noRoutePktList));
+        (_defaultJobHdrVec[_lastDefaultJobIdx])->addJob(std::move(bindJob));
+        _lastDefaultJobIdx =
+            (_lastDefaultJobIdx + 1) % _defaultJobHdrVec.size();
+    }
 
     for (auto& kv : _threadJobMap)
     {
@@ -272,6 +280,7 @@ void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn>>& connList)
     _connList.splice(_connList.end(), connList);
     _connListLock.unlock();
 
+    LOG_DEBUG("FrontThread::addConn: stopWaiting is Called.");
     _notifier->stopWaiting();
 }
 
@@ -322,15 +331,17 @@ void FrontThread::onTimeout(WsServerConn* conn)
 
 void FrontThread::run()
 {
-    uint32_t eventNum  = 0;
-    uint32_t idx       = 0;
-    WsServerConn* conn = nullptr;
-    eIoAction act      = eIoAction::None;
-    std::time_t now    = 0;
+    uint32_t eventNum = 0;
+    uint32_t idx      = 0;
+    IoEvent* ev       = nullptr;
+    eIoAction act     = eIoAction::None;
+    std::time_t now   = 0;
+
+    assert(_notifier.get());
 
     try
     {
-        while (!isStopped())
+        while (!isStopping())
         {
             now = std::time(nullptr);
             _timeoutMgr->checkTimeout(now);
@@ -343,27 +354,30 @@ void FrontThread::run()
             {
                 // We are sure that the IoEvnet is WsServerConn,
                 // so we can use static_cast.
-                conn = static_cast<WsServerConn*>(_notifier->getIoEvent(idx));
-                act = conn->handleIoEvent();
-                conn->setNextAction(act);
+                ev  = _notifier->getIoEvent(idx);
+                act = ev->handleIoEvent();
+                ev->setNextAction(act);
 
                 switch (act)
                 {
                     case eIoAction::Read:
                     case eIoAction::ReadWrite:
                     {
-                        updateTimeout(conn, now);
+                        if (ev->isConnection())
+                        {
+                            updateTimeout(static_cast<WsServerConn*>(ev), now);
+                        }
                     }
                     // No break;
                     case eIoAction::Write:
                     {
-                        _notifier->updateEventAction(conn);
+                        _notifier->updateEventAction(ev);
                     }
                     break;
 
                     case eIoAction::Remove:
                     {
-                        removeConn(conn);
+                        removeConn(static_cast<WsServerConn*>(ev));
                     }
                     break;
 

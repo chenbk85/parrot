@@ -6,7 +6,7 @@ $(MODULE)_DEP_PRJ     :=
 $(MODULE)_DEP_COMP    := servergears websocket json 
 $(MODULE)_DEP_BASE    := sys util
 $(MODULE)_3RD_PARTY   := openssl rapidjson
-$(MODULE)_OTHER_LIB   := -lpthread -ldl
+$(MODULE)_OTHER_LIB   := -pthread -ldl
 
 $(MODULE)_SRC         := $(wildcard $($(MODULE)_DIR)/src/*.cpp)
 $(MODULE)_INC         := $($(MODULE)_DIR)/inc

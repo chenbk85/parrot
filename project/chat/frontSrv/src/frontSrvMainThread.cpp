@@ -28,4 +28,9 @@ void FrontSrvMainThread::createUserThreads()
     setFrontThreadDefaultJobHandler(jobHandlerVec);
     setFrontThreadJobHandler(jobHandlerMap);
 }
+
+void FrontSrvMainThread::stopUserThreads()
+{
+    _logicThreadPool.destroy();
+}
 }

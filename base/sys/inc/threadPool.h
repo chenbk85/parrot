@@ -22,7 +22,7 @@ template <typename ThreadClass> class ThreadPool
 
     ~ThreadPool()
     {
-        destroy();
+        PARROT_ASSERT(_count == 0);
     }
 
     ThreadPool(const ThreadPool&) = delete;
@@ -73,7 +73,8 @@ template <typename ThreadClass> class ThreadPool
         {
             t->stop();
         }
-        _threadVec.clear();
+
+        _count = 0;
     }
 
   private:

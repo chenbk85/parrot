@@ -7,8 +7,8 @@
 
 namespace chat
 {
-struct FrontSrvConfig;    
-    
+struct FrontSrvConfig;
+
 class FrontSrvMainThread : public parrot::MainThread
 {
   public:
@@ -16,10 +16,10 @@ class FrontSrvMainThread : public parrot::MainThread
 
   protected:
     void createUserThreads() override;
-    
+    void stopUserThreads() override;
+
   protected:
     parrot::ThreadPool<FrontSrvLogicThread> _logicThreadPool;
 };
-
 }
 #endif

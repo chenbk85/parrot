@@ -63,9 +63,9 @@ void LoggerThread::addJob(std::unique_ptr<LoggerJob>&& job) noexcept
 
 void LoggerThread::stop()
 {
+    ThreadBase::stop();    
     _notifier->stopWaiting();
-    ThreadBase::stop();
-    _fileStream.close();
+    ThreadBase::join();
 }
 
 void LoggerThread::createLog()
@@ -91,7 +91,6 @@ void LoggerThread::writeToLog(JobListType& jobList)
     for (auto& j : jobList)
     {
         _fileStream << j->getLogBuff();
-
         if (_fileStream.fail())
         {
             throw std::system_error(static_cast<int>(eCodes::ERR_FileWrite),
@@ -101,6 +100,13 @@ void LoggerThread::writeToLog(JobListType& jobList)
         _currFileSize += j->getLogLen();
     }
 
+    _fileStream.flush();
+    if (_fileStream.fail())
+    {
+        throw std::system_error(static_cast<int>(eCodes::ERR_FileWrite),
+                                ParrotCategory(),
+                                "LoggerThread::createLog:flush");
+    }
     jobList.clear();
 }
 
@@ -152,10 +158,10 @@ void LoggerThread::processJob()
 
 void LoggerThread::run()
 {
-    IoEvent* ev = nullptr;
+    IoEvent* ev  = nullptr;
     uint32_t ret = 0;
 
-    while (!isStopped())
+    while (!isStopping())
     {
         ret = _notifier->waitIoEvents(-1);
 
@@ -167,5 +173,6 @@ void LoggerThread::run()
 
         processJob();
     }
+    _fileStream.close();
 }
 }

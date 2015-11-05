@@ -37,7 +37,6 @@ void EpollImpl::create()
     _events.reset(new struct epoll_event[_epollSize]);
     _trigger = std::unique_ptr<EventTrigger>(new EventTrigger());
     _trigger->create();
-    _trigger->setNextAction(eIoAction::Read);
     addEvent(_trigger.get());
 }
 
@@ -75,6 +74,7 @@ uint32_t EpollImpl::waitIoEvents(int32_t ms)
 
             if (needWait <= 0)
             {
+                ret = 0;
                 break;
             }
         }
@@ -221,7 +221,7 @@ IoEvent* EpollImpl::getIoEvent(uint32_t idx) const noexcept
     {
         ev->setNotifiedAction(eIoAction::ReadWrite);
     }
-    else if (filter & EPOLLIN)
+    else if (filter & EPOLLIN || filter & EPOLLPRI)
     {
         ev->setNotifiedAction(eIoAction::Read);
     }

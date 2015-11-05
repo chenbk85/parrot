@@ -7,7 +7,7 @@ namespace chat
 {
 struct FrontSrvConfig : public parrot::Config
 {
-    uint32_t _logicThreadPoolSize = 2;
+    uint32_t _logicThreadPoolSize = 1;
 };
 }
 

@@ -1,4 +1,5 @@
 #include <vector>
+#include <thread>
 
 #include "config.h"
 #include "wsServerConn.h"
@@ -43,16 +44,21 @@ void MainThread::beforeStart()
 {
     daemonize();
 
-    parrot::Logger *logger = parrot::Logger::instance();
+    parrot::Logger* logger = parrot::Logger::instance();
     logger->setConfig(_config);
     logger->start();
+
+    auto & sid = _config->_thisServer._serverId;
+    LOG_INFO("*************************************************************");
+    LOG_INFO("*-->  Service "<< sid <<" started.                           ");
+    LOG_INFO("*************************************************************");
 
     _notifier->create();
 
     _wsConfig->_host = "10.24.100.202";
     ConnFactory<WsServerConn, WsConfig>::getInstance()->setConfig(
         _wsConfig.get());
-    
+
     createListenerEvents();
     createThreads();
 }
@@ -91,8 +97,7 @@ void MainThread::createListenerEvents()
     _notifier->addEvent(_connDispatcher.get());
 }
 
-void MainThread::setFrontThreadDefaultJobHandler(
-    std::vector<JobHandler*>& hdrs)
+void MainThread::setFrontThreadDefaultJobHandler(std::vector<JobHandler*>& hdrs)
 {
     auto& threadVec = _frontThreadPool->getThreadPoolVec();
     for (auto& t : threadVec)
@@ -111,7 +116,6 @@ void MainThread::setFrontThreadJobHandler(
     }
 }
 
-
 void MainThread::start()
 {
     beforeStart();
@@ -125,9 +129,12 @@ void MainThread::run()
     int eventNum = 0;
     IoEvent* ev  = nullptr;
 
+    LOG_INFO("MainThread::run: before run.");
+    
     while (!Daemon::isShutdown())
     {
         eventNum = _notifier->waitIoEvents(-1);
+        LOG_INFO("MainThread::run: Event num is " << eventNum << ".");
         for (int i = 0; i != eventNum; ++i)
         {
             ev = _notifier->getIoEvent(i);
@@ -138,11 +145,26 @@ void MainThread::run()
 
 void MainThread::onStop()
 {
+    LOG_INFO("MainThread::onStop.");
+    _notifier->stopWaiting();
+}
+
+void MainThread::stopSysThreads()
+{
+    _frontThreadPool->destroy();
+}
+
+void MainThread::stopThreads()
+{
+    stopUserThreads();
+    stopSysThreads();
 }
 
 void MainThread::beforeTerminate()
 {
-    _frontThreadPool->destroy();
+    LOG_INFO("MainThread::beforeTerminate.");
+    stopThreads();
+    std::this_thread::sleep_for(std::chrono::seconds(5));
     parrot::Logger::instance()->stop();
     Daemon::beforeTerminate();
 }

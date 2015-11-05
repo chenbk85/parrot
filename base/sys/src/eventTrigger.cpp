@@ -40,6 +40,7 @@ void EventTrigger::create()
     // Make fd for reading nonblocking.
     setNonBlock(_pipeFds[0]);
     setFd(_pipeFds[0]);
+    setNextAction(eIoAction::Read);
 }
 
 void EventTrigger::trigger()
@@ -91,6 +92,11 @@ void EventTrigger::acknowledge()
     }
 }
 
+bool EventTrigger::isConnection() const
+{
+    return false;
+}
+
 eIoAction EventTrigger::handleIoEvent()
 {
     if (isError())
@@ -106,6 +112,6 @@ eIoAction EventTrigger::handleIoEvent()
     }
 
     acknowledge();
-    return eIoAction::None;
+    return eIoAction::Read;
 }
 }

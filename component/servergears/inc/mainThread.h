@@ -48,12 +48,15 @@ class MainThread
     virtual void beforeStart();
     virtual void createUserThreads() = 0;
     virtual void run();
+    virtual void stopUserThreads() = 0;
     virtual void beforeTerminate();
     virtual void createListenerEvents();
 
   protected:
     void createSysThreads();
     void createThreads();
+    void stopSysThreads();
+    void stopThreads();
     void daemonize();
 
   protected:

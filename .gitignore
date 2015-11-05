@@ -29,4 +29,9 @@
 
 # Emacs tmp files
 *~
+
+# Ignore bin directory
 bin/
+
+# Logs
+*.log

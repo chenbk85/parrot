@@ -7,7 +7,11 @@ namespace parrot
 {
 
 ThreadBase::ThreadBase()
-    : _threadPtr(), _stopped(true), _sleeping(false), _lock(), _condVar()
+    : _threadPtr(),
+      _state(ThreadState::Init),
+      _sleeping(false),
+      _lock(),
+      _condVar()
 {
 }
 
@@ -22,7 +26,7 @@ ThreadBase::~ThreadBase()
 void ThreadBase::start()
 {
     beforeStart();
-    _stopped = false;
+    _state = ThreadState::Started;
     _threadPtr = std::unique_ptr<std::thread>(
         new std::thread(&ThreadBase::entryFunc, this));
 }
@@ -31,18 +35,33 @@ void ThreadBase::entryFunc()
 {
     beforeRun();
     run();
+    _state = ThreadState::Stopped;
 }
 
 void ThreadBase::stop()
 {
-    _stopped = true;
+    _state = ThreadState::Stopping;
+}
+
+void ThreadBase::join()
+{
+    while (!isStopped())
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+    
     _threadPtr->join();
     _threadPtr.reset(nullptr);
 }
 
+bool ThreadBase::isStopping() const noexcept
+{
+    return _state == ThreadState::Stopping;
+}
+
 bool ThreadBase::isStopped() const noexcept
 {
-    return _stopped;
+    return _state == ThreadState::Stopped;
 }
 
 void ThreadBase::sleep(int64_t ms)

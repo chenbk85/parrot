@@ -55,6 +55,11 @@ int IoEvent::getFd() const
     return _fd;
 }
 
+bool IoEvent::isConnection() const
+{
+    return true;
+}
+
 eIoAction IoEvent::getDefaultAction() const
 {
     return eIoAction::Read;

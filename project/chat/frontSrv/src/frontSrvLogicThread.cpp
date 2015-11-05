@@ -130,7 +130,7 @@ void FrontSrvLogicThread::run()
     parrot::IoEvent* ev = nullptr;
     uint32_t ret        = 0;
 
-    while (!isStopped())
+    while (!isStopping())
     {
         ret = _notifier->waitIoEvents(-1);
 
@@ -146,7 +146,8 @@ void FrontSrvLogicThread::run()
 
 void FrontSrvLogicThread::stop()
 {
+    parrot::ThreadBase::stop();    
     _notifier->stopWaiting();
-    parrot::ThreadBase::stop();
+    parrot::ThreadBase::join();
 }
 }

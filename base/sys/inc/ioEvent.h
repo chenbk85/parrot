@@ -35,6 +35,8 @@ class IoEvent
     // Retrive the associated fd.
     int getFd() const;
 
+    virtual bool isConnection() const;
+
     // Retrive the default action of the event.
     virtual eIoAction getDefaultAction() const;
 
@@ -76,7 +78,7 @@ class IoEvent
     virtual eIoAction handleIoEvent() = 0;
 
     virtual void close();
-    
+
     void setUniqueKey(uint64_t key);
     uint64_t getUniqueKey() const;
 

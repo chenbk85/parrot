@@ -17,8 +17,9 @@
 #include "logger.h"
 #include "daemonNix.h"
 
-void signalAction(int sig, siginfo_t* siginfo, void*)
+static void signalAction(int sig, siginfo_t* siginfo, void*)
 {
+    LOG_INFO("GLOBAL::signalAction: sig is " << sig << ".");
     switch (sig)
     {
         case SIGCHLD:
@@ -249,7 +250,7 @@ void DaemonNix::daemonize()
      * protect files that they create. Setting user mask will prevent
      * unsecure file priviliges that may occur on file creation.
      */
-    ::umask(122); // This will restrict file creation mode to 644.
+    ::umask(0122); // This will restrict file creation mode to 644.
 
     // Create lock file.
     _lockFd = ::open(_config->_lockFilePath.c_str(), O_RDWR | O_CREAT, 0640);
