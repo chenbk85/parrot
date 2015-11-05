@@ -43,7 +43,7 @@ void ThreadBase::stop()
     {
         wakeUp();
     }
-    
+
     _state = ThreadState::Stopping;
 }
 
@@ -56,26 +56,6 @@ void ThreadBase::join()
 
     _threadPtr->join();
     _threadPtr.reset(nullptr);
-}
-
-bool ThreadBase::isStarted() const noexcept
-{
-    return _state == ThreadState::Started;
-}
-
-bool ThreadBase::isStopping() const noexcept
-{
-    return _state == ThreadState::Stopping;
-}
-
-bool ThreadBase::isStopped() const noexcept
-{
-    return _state == ThreadState::Stopped;
-}
-
-bool ThreadBase::isSleeping() const noexcept
-{
-    return _state == ThreadState::Sleeping;
 }
 
 void ThreadBase::sleep(int64_t ms)

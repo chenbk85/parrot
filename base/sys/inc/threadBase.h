@@ -40,13 +40,25 @@ class ThreadBase
     // Wake up this thread. Synchronize.
     void wakeUp();
 
-    bool isStarted() const noexcept;
-    // Check whether the thread has stopped.
-    bool isStopped() const noexcept;
+    inline bool isStarted() const noexcept
+    {
+        return _state == ThreadState::Started;
+    }
 
-    bool isStopping() const noexcept;
+    inline bool isStopping() const noexcept
+    {
+        return _state == ThreadState::Stopping;
+    }
 
-    bool isSleeping() const noexcept;
+    inline bool isStopped() const noexcept
+    {
+        return _state == ThreadState::Stopped;
+    }
+
+    inline bool isSleeping() const noexcept
+    {
+        return _state == ThreadState::Sleeping;
+    }
 
     std::thread::id getThreadId() const;
 
