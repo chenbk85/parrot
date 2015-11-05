@@ -130,6 +130,9 @@ void FrontSrvLogicThread::run()
     parrot::IoEvent* ev = nullptr;
     uint32_t ret        = 0;
 
+    
+    LOG_INFO("FrontSrvLogicThread::run. Tid is " << std::this_thread::get_id() << ".");
+    
     while (!isStopping())
     {
         ret = _notifier->waitIoEvents(-1);
@@ -146,8 +149,9 @@ void FrontSrvLogicThread::run()
 
 void FrontSrvLogicThread::stop()
 {
-    parrot::ThreadBase::stop();    
+    parrot::ThreadBase::stop();
     _notifier->stopWaiting();
     parrot::ThreadBase::join();
+    LOG_INFO("FrontSrvLogicThread::stop: Done.");
 }
 }

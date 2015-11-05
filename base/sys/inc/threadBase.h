@@ -19,6 +19,7 @@ class ThreadBase
     {
         Init,
         Started,
+        Sleeping,
         Stopping,
         Stopped
     };
@@ -39,10 +40,13 @@ class ThreadBase
     // Wake up this thread.
     void wakeUp();
 
+    bool isStarted() const noexcept;
     // Check whether the thread has stopped.
     bool isStopped() const noexcept;
 
     bool isStopping() const noexcept;
+
+    bool isSleeping() const noexcept;
 
     std::thread::id getThreadId() const;
 
@@ -80,7 +84,6 @@ class ThreadBase
   private:
     std::unique_ptr<std::thread> _threadPtr;
     std::atomic<ThreadState> _state;
-    bool _sleeping;
     std::mutex _lock;
     std::condition_variable _condVar;
 };

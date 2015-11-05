@@ -3,6 +3,8 @@
 
 #include <cstdint>
 #include <vector>
+#include <thread>
+#include <chrono>
 #include <memory>
 
 #include "macroFuncs.h"
@@ -46,6 +48,11 @@ template <typename ThreadClass> class ThreadPool
         {
             _threadVec.emplace_back(new ThreadClass());
             _threadVec[i]->start();
+
+            while (!_threadVec[i]->isSleeping())
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
         }
     }
 

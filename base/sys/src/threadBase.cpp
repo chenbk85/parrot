@@ -1,7 +1,10 @@
 #include <chrono>
+#include <iostream>
 
 #include "threadBase.h"
 #include "macroFuncs.h"
+
+using namespace std;
 
 namespace parrot
 {
@@ -9,7 +12,6 @@ namespace parrot
 ThreadBase::ThreadBase()
     : _threadPtr(),
       _state(ThreadState::Init),
-      _sleeping(false),
       _lock(),
       _condVar()
 {
@@ -26,13 +28,13 @@ ThreadBase::~ThreadBase()
 void ThreadBase::start()
 {
     beforeStart();
-    _state = ThreadState::Started;
     _threadPtr = std::unique_ptr<std::thread>(
         new std::thread(&ThreadBase::entryFunc, this));
 }
 
 void ThreadBase::entryFunc()
 {
+    _state = ThreadState::Started;    
     beforeRun();
     run();
     _state = ThreadState::Stopped;
@@ -54,6 +56,12 @@ void ThreadBase::join()
     _threadPtr.reset(nullptr);
 }
 
+
+bool ThreadBase::isStarted() const noexcept
+{
+    return _state == ThreadState::Started;
+}
+
 bool ThreadBase::isStopping() const noexcept
 {
     return _state == ThreadState::Stopping;
@@ -64,9 +72,15 @@ bool ThreadBase::isStopped() const noexcept
     return _state == ThreadState::Stopped;
 }
 
+bool ThreadBase::isSleeping() const noexcept
+{
+    return _state == ThreadState::Sleeping;
+}
+
 void ThreadBase::sleep(int64_t ms)
 {
     PARROT_ASSERT(ms != 0);
+    PARROT_ASSERT(_state == ThreadState::Started);
 
     if (std::this_thread::get_id() != getThreadId())
     {
@@ -76,27 +90,25 @@ void ThreadBase::sleep(int64_t ms)
 
     // Acquire _lock.
     std::unique_lock<std::mutex> lk(_lock);
-    _sleeping = true;
+    _state = ThreadState::Sleeping;
 
     if (ms > 0)
     {
         // Release _lock. Block this thread.
         _condVar.wait_for(lk, std::chrono::milliseconds(ms), [this]()
                           {
-                              return !_sleeping;
+                              return _state != ThreadState::Sleeping;
                           });
     }
     else
     {
         _condVar.wait(lk, [this]()
                       {
-                          return !_sleeping;
+                          return _state != ThreadState::Sleeping;
                       });
     }
 
-    // Here, Reacquire _lock again.
-    _sleeping = false;
-
+    _state = ThreadState::Started;
     // Release the lock;
     lk.unlock();
 }
@@ -109,7 +121,7 @@ std::thread::id ThreadBase::getThreadId() const
 void ThreadBase::wakeUp()
 {
     std::unique_lock<std::mutex> lk(_lock);
-    _sleeping = false;
+    _state = ThreadState::Started;    
 
     // Release the lock.
     lk.unlock();

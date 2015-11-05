@@ -57,7 +57,6 @@ class MainThread
     void createThreads();
     void stopSysThreads();
     void stopThreads();
-    void daemonize();
 
   protected:
     std::unique_ptr<FrontConnDispatcher> _connDispatcher;

@@ -19,7 +19,7 @@
 
 static void signalAction(int sig, siginfo_t* siginfo, void*)
 {
-    LOG_INFO("GLOBAL::signalAction: sig is " << sig << ".");
+    LOG_INFO("GLOBAL::signalAction: Received sig " << sig << ".");
     switch (sig)
     {
         case SIGCHLD:

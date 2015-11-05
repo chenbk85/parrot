@@ -75,10 +75,10 @@ void FrontThread::setJobHdr(std::unordered_map<void*, JobHandler*>& hdr)
 
 void FrontThread::stop()
 {
-    LOG_DEBUG("FrontThread::Stop: stopWaiting is Called.");
     ThreadBase::stop();
     _notifier->stopWaiting();
     ThreadBase::join();
+    LOG_INFO("FrontThread::Stop: Done.");
 }
 
 void FrontThread::handleRspBind(std::list<std::shared_ptr<const Session>>& sl)
@@ -164,8 +164,6 @@ void FrontThread::addJob(std::unique_ptr<Job>&& job)
     _jobListLock.lock();
     _jobList.push_back(std::move(job));
     _jobListLock.unlock();
-
-    LOG_DEBUG("FrontThread::addJob: stopWaiting is Called.");
     _notifier->stopWaiting();
 }
 
@@ -174,8 +172,6 @@ void FrontThread::addJob(std::list<std::unique_ptr<Job>>& jobList)
     _jobListLock.lock();
     _jobList.splice(_jobList.end(), jobList);
     _jobListLock.unlock();
-
-    LOG_DEBUG("FrontThread::addJob: stopWaiting is Called.");
     _notifier->stopWaiting();
 }
 
@@ -279,8 +275,6 @@ void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn>>& connList)
     _connListLock.lock();
     _connList.splice(_connList.end(), connList);
     _connListLock.unlock();
-
-    LOG_DEBUG("FrontThread::addConn: stopWaiting is Called.");
     _notifier->stopWaiting();
 }
 
@@ -336,8 +330,6 @@ void FrontThread::run()
     IoEvent* ev       = nullptr;
     eIoAction act     = eIoAction::None;
     std::time_t now   = 0;
-
-    assert(_notifier.get());
 
     try
     {

@@ -29,7 +29,7 @@ MainThread::MainThread(const Config* cfg)
 {
 }
 
-void MainThread::daemonize()
+void MainThread::beforeStart()
 {
     Daemon::setConfig(_config);
 
@@ -38,19 +38,14 @@ void MainThread::daemonize()
 
     auto shutdownCb = std::bind(&MainThread::onStop, this);
     Daemon::registerShutdownCb(shutdownCb);
-}
-
-void MainThread::beforeStart()
-{
-    daemonize();
 
     parrot::Logger* logger = parrot::Logger::instance();
     logger->setConfig(_config);
     logger->start();
 
-    auto & sid = _config->_thisServer._serverId;
+    auto& sid = _config->_thisServer._serverId;
     LOG_INFO("*************************************************************");
-    LOG_INFO("*-->  Service "<< sid <<" started.                           ");
+    LOG_INFO("*-->  Service " << sid << " started.                           ");
     LOG_INFO("*************************************************************");
 
     _notifier->create();
@@ -129,12 +124,9 @@ void MainThread::run()
     int eventNum = 0;
     IoEvent* ev  = nullptr;
 
-    LOG_INFO("MainThread::run: before run.");
-    
     while (!Daemon::isShutdown())
     {
         eventNum = _notifier->waitIoEvents(-1);
-        LOG_INFO("MainThread::run: Event num is " << eventNum << ".");
         for (int i = 0; i != eventNum; ++i)
         {
             ev = _notifier->getIoEvent(i);
@@ -158,13 +150,14 @@ void MainThread::stopThreads()
 {
     stopUserThreads();
     stopSysThreads();
+    LOG_INFO("MainThread::stopThreads: Done.");
 }
 
 void MainThread::beforeTerminate()
 {
     LOG_INFO("MainThread::beforeTerminate.");
     stopThreads();
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     parrot::Logger::instance()->stop();
     Daemon::beforeTerminate();
 }
