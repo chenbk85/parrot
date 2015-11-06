@@ -24,6 +24,7 @@ struct WsConfig;
 // WsTranslayer implements Websocket implement.
 class WsTranslayer
 {
+    friend class WsHttpResponse;
   private:
     enum eTranslayerState
     {
@@ -77,12 +78,14 @@ class WsTranslayer
     std::vector<char> _sendVec;
     std::vector<char> _sendFragmentedVec;
 
+    uint32_t _needSendLen;
     // How many bytes are left in _sendVec or _sendFragmentedVec. There
     // will be only one vector of the above two vectors contains data at
     // one time.
     uint32_t _sentLen;
 
     std::vector<char> _recvVec;
+    uint32_t _rcvdLen;
 
     std::unique_ptr<WsEncoder> _wsEncoder;
 

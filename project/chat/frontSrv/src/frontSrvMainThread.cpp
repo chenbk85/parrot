@@ -14,7 +14,6 @@ FrontSrvMainThread::FrontSrvMainThread(const FrontSrvConfig* cfg)
 
 void FrontSrvMainThread::createUserThreads()
 {
-    LOG_INFO("FrontSrvMainThread::createUserThreads.");
     _logicThreadPool.create();
     auto& threads = _logicThreadPool.getThreadPoolVec();
     std::unordered_map<void *,parrot::JobHandler*> jobHandlerMap;
@@ -26,7 +25,6 @@ void FrontSrvMainThread::createUserThreads()
         jobHandlerVec.push_back(t.get());
     }
     
-    LOG_INFO("FrontSrvMainThread::createUserThreads. Start pool.");
     _logicThreadPool.start();
 
     setFrontThreadDefaultJobHandler(jobHandlerVec);

@@ -12,6 +12,7 @@ struct http_parser;
 namespace parrot
 {
 struct WsConfig;
+struct WsTranslayer;
 
 class WsHttpResponse
 {
@@ -24,10 +25,7 @@ class WsHttpResponse
     };
 
   public:
-    WsHttpResponse(std::vector<char>& recvVec,
-                   std::vector<char>& sendVed,
-                   const std::string& remoteIp,
-                   const WsConfig& cfg);
+    explicit WsHttpResponse(WsTranslayer &tr);
 
   public:
     // work
@@ -128,7 +126,9 @@ class WsHttpResponse
   private:
     eParseState _state;
     std::vector<char>& _recvVec;
+    const uint32_t &_rcvdLen;
     std::vector<char>& _sendVec;
+    uint32_t &_needSendLen;
     const std::string& _remoteIp;
     HeaderDic _headerDic;
     std::string _lastHeader;

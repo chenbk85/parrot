@@ -1,3 +1,6 @@
+#include <iostream>
+#include <string>
+
 #include "json.h"
 #include "mtRandom.h"
 #include "logger.h"
@@ -23,19 +26,18 @@ WsTranslayer::WsTranslayer(IoEvent& io,
       _pktList(),
       _httpRsp(),
       _wsParser(),
-      _sendVec(),
+      _sendVec(_config._sendBuffLen),
       _sendFragmentedVec(),
+      _needSendLen(0),
       _sentLen(0),
-      _recvVec(),
+      _recvVec(_config._recvBuffLen),
+      _rcvdLen(0),
       _wsEncoder(),
       _onPacketCb(),
       _onErrorCb(),
       _random(nullptr),
       _config(cfg)
 {
-    _sendVec.reserve(_config._sendBuffLen);
-    _recvVec.reserve(_config._recvBuffLen);
-
     // TODO:
     _wsEncoder.reset(new WsEncoder(_sendVec, _sendFragmentedVec, _config,
                                    *_random, _needSendMasked));
@@ -57,21 +59,20 @@ void WsTranslayer::registerOnErrorCb(std::function<void(eCodes)>&& cb)
     _onErrorCb = std::move(cb);
 }
 
-
 eCodes WsTranslayer::recvData()
 {
     uint32_t rcvdLen = 0;
-    eCodes code = eCodes::ST_Ok;
+    eCodes code      = eCodes::ST_Ok;
 
     try
     {
-        if (_recvVec.capacity() == _recvVec.size())
-        {
-            PARROT_ASSERT(false);
-        }
-        
-        _io.recv(&_recvVec[_recvVec.size()],
-                   _recvVec.capacity() - _recvVec.size(), rcvdLen);
+        _io.recv(&_recvVec[_rcvdLen],
+                 _recvVec.size() - _rcvdLen, rcvdLen);
+
+        _rcvdLen += rcvdLen;
+        std::cout << "recvData: "
+                  << std::string(&_recvVec[0], _recvVec.size())
+                  << std::endl;
     }
     catch (std::system_error& e)
     {
@@ -198,11 +199,11 @@ eIoAction WsTranslayer::work(eIoAction evt)
 
             if (!_httpRsp)
             {
-                _httpRsp.reset(new WsHttpResponse(
-                    _recvVec, _sendVec, _io.getRemoteAddr(), _config));
+                _httpRsp.reset(new WsHttpResponse(*this));
             }
 
             code = _httpRsp->work();
+            std::cout << "work " << code << std::endl;
             if (code == eCodes::ST_NeedRecv)
             {
                 return eIoAction::Read;

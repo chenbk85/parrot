@@ -49,7 +49,7 @@ void MainThread::beforeStart()
 
     _notifier->create();
 
-    _wsConfig->_host = "10.24.100.202";
+    _wsConfig->_host = "10.24.100.202:9898";
     ConnFactory<WsServerConn, WsConfig>::getInstance()->setConfig(
         _wsConfig.get());
 
