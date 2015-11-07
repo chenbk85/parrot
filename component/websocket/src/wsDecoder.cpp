@@ -5,14 +5,14 @@
 #include "json.h"
 #include "wsConfig.h"
 #include "wsPacket.h"
-#include "wsParser.h"
+#include "wsDecoder.h"
 #include "macroFuncs.h"
 #include "sysHelper.h"
 #include "wsDefinition.h"
 
 namespace parrot
 {
-WsParser::WsParser(CallbackFunc &&cb,
+WsDecoder::WsDecoder(CallbackFunc &&cb,
                    std::vector<char>& recvVec,
                    const std::string& remoteIp,
                    bool needMask,
@@ -41,7 +41,7 @@ WsParser::WsParser(CallbackFunc &&cb,
 }
 
 std::unique_ptr<WsPacket>
-WsParser::createWsPacket(const std::vector<char>::iterator& begin,
+WsDecoder::createWsPacket(const std::vector<char>::iterator& begin,
                          const std::vector<char>::iterator& end)
 {
     std::vector<char> payload(end - begin);
@@ -52,7 +52,7 @@ WsParser::createWsPacket(const std::vector<char>::iterator& begin,
     return pkt;
 }
 
-void WsParser::parseHeader()
+void WsDecoder::parseHeader()
 {
     if (_payloadLen == 126)
     {
@@ -72,7 +72,7 @@ void WsParser::parseHeader()
     }
 }
 
-void WsParser::parseBody()
+void WsDecoder::parseBody()
 {
     auto pktEnd = _pktBeginIt + _headerLen + _payloadLen;
     if (_masked)
@@ -129,7 +129,7 @@ void WsParser::parseBody()
     _lastParseIt += _payloadLen;
 }
 
-eCodes WsParser::doParse()
+eCodes WsDecoder::doParse()
 {
     _parseResult = eCodes::ST_Ok;
 
@@ -149,7 +149,7 @@ eCodes WsParser::doParse()
                 (firstByte & ((uint8_t)1 << 6)) != 0 ||
                 (firstByte & ((uint8_t)1 << 5)) != 0)
             {
-                LOG_WARN("WsParser::doParse: Protocol error. "
+                LOG_WARN("WsDecoder::doParse: Protocol error. "
                          "Remote is " << _remoteIp << ".");                
                 // The 2nd, 3rd & 4th bits must be ZERO.
                 _parseResult = eCodes::WS_ProtocolError;
@@ -161,7 +161,7 @@ eCodes WsParser::doParse()
             if ((_opCode > eOpCode::Binary && _opCode < eOpCode::Close) ||
                 (_opCode > eOpCode::Pong))
             {
-                LOG_WARN("WsParser::doParse: Protocol error. "
+                LOG_WARN("WsDecoder::doParse: Protocol error. "
                          "Remote is " << _remoteIp << ".");
                 // Peer should not use reserved opcode.
                 _parseResult = eCodes::WS_ProtocolError;
@@ -171,7 +171,7 @@ eCodes WsParser::doParse()
             if (_opCode == eOpCode::Text)
             {
                 // We don't support text payload.
-                LOG_WARN("WsParser::doParse: Only binary is accepted. "
+                LOG_WARN("WsDecoder::doParse: Only binary is accepted. "
                          "Remote is " << _remoteIp << ".");
                 _parseResult = eCodes::WS_InvalidFramePayloadData;
                 return eCodes::ST_Ok;
@@ -183,7 +183,7 @@ eCodes WsParser::doParse()
                 // First fragmented data frame.
                 if (_opCode != eOpCode::Binary)
                 {
-                    LOG_WARN("WsParser::doParse: Only binary is accepted. "
+                    LOG_WARN("WsDecoder::doParse: Only binary is accepted. "
                              "Remote is " << _remoteIp << ".");
                     _parseResult = eCodes::WS_InvalidFramePayloadData;
                     return eCodes::ST_Ok;
@@ -277,7 +277,7 @@ eCodes WsParser::doParse()
     return eCodes::ERR_Fail;
 }
 
-eCodes WsParser::parse()
+eCodes WsDecoder::parse()
 {
     eCodes code;
     while (true)
@@ -305,7 +305,7 @@ eCodes WsParser::parse()
                     // Shrink buffer.
                     if (++_largePktCount % 10 == 0) // Warning every 10 times.
                     {
-                        LOG_WARN("WsParser::parse: Received "
+                        LOG_WARN("WsDecoder::parse: Received "
                                  << _largePktCount
                                  << " large packets. "
                                     "Consider set bigger receive buffer.");

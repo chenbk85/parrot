@@ -6,29 +6,35 @@
 #include <cstdint>
 
 #include "wsDefinition.h"
+#include "codes.h"
 
 namespace parrot
 {
 struct WsConfig;
 class WsPacket;
 class MtRandom;
+class wsTranslayer;
 
 class WsEncoder
 {
-  public:
-    WsEncoder(std::vector<char>& sendVec,
-              std::vector<char>& fragmentedSendVec,
-              const WsConfig& cfg,
-              MtRandom& r,
-              bool needMask);
+    enum eEncoderState
+    {
+        Idle,
+        Encoding
+    };
 
   public:
-    void encode(const WsPacket& pkt);
+    explicit WsEncoder(WsTranslayer& trans);
+
+  public:
+    eCodes loadBuff();
 
   private:
-    void encodeControlPacket(const WsPacket& pkt);
-    void encodeClosePacket(const WsPacket& pkt);
-    void encodeDataPacket(const WsPacket& pkt);
+    void encode();    
+    void encodeControlPacket();
+    void encodeClosePacket();
+    void encodeDataPacket();
+    
     uint8_t getHeaderLen(uint64_t payloadLen);
     uint8_t getRouteLen(uint64_t route);
     uint64_t getDataLen(uint64_t len);
@@ -48,8 +54,12 @@ class WsEncoder
     void getMeta(ePayloadItem item, uint64_t dataLen, std::vector<char>& meta);
 
   private:
-    std::vector<char> _sendVec;
-    std::vector<char> _fragmentedSendVec;
+    eEncoderState _state;
+    std::vector<char> &_sendVec;
+    uint32_t &_needSendLen;
+    std::list<std::unique_ptr<WsPacket>> &_pktList;;
+    std::unique_ptr<WsPacket> _currPkt;
+    std::vector<char>::iterator _lastIt;
     const WsConfig& _config;
     bool _needMask;
     MtRandom& _random;

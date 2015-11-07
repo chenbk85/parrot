@@ -9,19 +9,20 @@
 #include "wsConfig.h"
 #include "sysHelper.h"
 #include "mtRandom.h"
+#include "wsTranslayer.h"
 
 namespace parrot
 {
-WsEncoder::WsEncoder(std::vector<char>& sendVec,
-                     std::vector<char>& fragmentedVec,
-                     const WsConfig& cfg,
-                     MtRandom &r,
-                     bool needMask)
-    : _sendVec(sendVec),
-      _fragmentedSendVec(fragmentedVec),
-      _config(cfg),
-      _needMask(needMask),
-      _random(r),
+WsEncoder::WsEncoder(WsTranslayer &trans)
+    : _state(eEncoderState::Idle),
+      _sendVec(trans._sendVec),
+      _needSendLen(trans._needSendLen),
+      _pktList(trans._pktList),
+      _currPkt(),
+      _lastIt(),
+      _config(trans._config),
+      _needMask(trans._needSendMasked),
+      _random(*(trans._random)),
       _maskingKey(),
       _jsonMeta(9),
       _binaryMeta(9)
@@ -30,26 +31,52 @@ WsEncoder::WsEncoder(std::vector<char>& sendVec,
     _binaryMeta.resize(0);
 }
 
-void WsEncoder::encode(const WsPacket& pkt)
+eCodes WsEncoder::loadBuff()
 {
-    auto opCode = pkt.getOpCode();
+    // If the packet is control packet (include close packet), according
+    // to the RFC6455, it should not be fragmented. So call loadBuff one
+    // time will definitely encode the packet to buffer. If the packet is
+    // data, then it can be fragmented. If the packet needs to be fragmented,
+    // the uplayer should call loadBuff multi times to encode the packet
+    // to buffer completely.
+    
+    if (_state == eEncoderState::Idle)
+    {
+        if (_pktList.empty())
+        {
+            return eCodes::ST_Complete;
+        }
+
+        _currPkt = std::move(*_pktList.begin());
+        _pktList.pop_front();
+    }
+
+    encode();
+    return eCodes::ST_Ok;
+}
+
+void WsEncoder::encode()
+{
+    PARROT_ASSERT(_currPkt.get());
+    
+    auto opCode = _currPkt.getOpCode();
     if (opCode == eOpCode::Binary)
     {
-        encodeDataPacket(pkt);
+        encodeDataPacket();
     }
     else if (opCode == eOpCode::Close)
     {
-        encodeClosePacket(pkt);
+        encodeClosePacket();
     }
     else
     {
-        encodeControlPacket(pkt);
+        encodeControlPacket();
     }
 }
 
-void WsEncoder::encodeControlPacket(const WsPacket& pkt)
+void WsEncoder::encodeControlPacket()
 {
-    auto opCode = pkt.getOpCode();
+    auto opCode = _currPkt->getOpCode();
     auto it = _sendVec.begin();
     *it++ = static_cast<char>(0x80 | (uint8_t)opCode);
     if (_needMask)
@@ -65,13 +92,14 @@ void WsEncoder::encodeControlPacket(const WsPacket& pkt)
         *it++ = static_cast<char>(0x00);
     }
 
-    _sendVec.resize(2);
+    _needSendLen = 2;
 }
 
-void WsEncoder::encodeClosePacket(const WsPacket& pkt)
+void WsEncoder::encodeClosePacket()
 {
     const std::string & reason = pkt.getCloseReason();
     uint32_t payloadLen = 2 + reason.size();
+    bool copyReason = true;
     if (payloadLen > _config._fragmentThreshold)
     {
         LOG_WARN("WsEncoder::encodeClosePacket: Close pkt cannot be "
@@ -79,6 +107,7 @@ void WsEncoder::encodeClosePacket(const WsPacket& pkt)
                  << reason <<
                  "' is dropped.");
         payloadLen = 2;
+        copyReason = false;
     }
 
     auto it = _sendVec.begin();
@@ -116,32 +145,69 @@ void WsEncoder::encodeClosePacket(const WsPacket& pkt)
         uniHtons(static_cast<uint16_t>(pkt.getCloseCode()));
     it += 2;
 
-    std::copy_n(reason.begin(), reason.size(), it);
+    if (copyReason)
+    {
+        std::copy_n(reason.begin(), reason.size(), it);
+        it += reason.size();
+    }
+    
     if (_needMask)
     {
         maskPacket(rit, it);
     }
-    _sendVec.resize(it - _sendVec.begin());
+    _needSendLen = it - _sendVec.begin();
 }
 
-void WsEncoder::encodeDataPacket(const WsPacket& pkt)
+void WsEncoder::encodeDataPacket()
 {
-    if (pkt.isPacketUndecoded())
+    if (_currPkt->isRaw())
     {
-        auto& raw = pkt.getPayload();
-        if (raw.size() > _sendVec.capacity())
+        encodeRawPacket();
+    }
+    else
+    {
+        encodePlainPacket();
+    }
+}
+
+void WsEncoder::encodeRawPacket()
+{
+    auto& raw = _currPkt->getPayload();
+    if (raw.size() > _sendVec.capacity())
+    {
+        if (_state == eEncoderState::Idle)
         {
-           _fragmentedSendVec.reserve(raw.size());
-            std::copy(raw.begin(), raw.end(),
-                      std::back_inserter(_fragmentedSendVec));
+            _lastIt = raw.begin();
+            _state = eEncoderState::Encoding;
+        }
+
+        uint32_t copyLen = 0;
+        if (raw.end() - _lastIt > _sendVec.capacity())
+        {
+            copyLen = _sendVec.capacity();
         }
         else
         {
-            std::copy(raw.begin(), raw.end(), std::back_inserter(_sendVec));
+            // Last one.
+            copyLen = raw.end() - _lastIt;
+            _state = eEncoderState::Idle;
         }
-        return;
-    }
 
+        std::copy_n(_lastIt, copyLen, _sendVec.begin());
+        lastIt += copyLen;
+        _needSendLen = copyLen;
+    }
+    else
+    {
+        std::copy(raw.begin(), raw.end(), _sendVec.begin());
+        _needSendLen = raw.size();
+    }
+    
+    return;
+}
+
+void WsEncoder::encodePlainPacket()
+{
     uint64_t route = pkt.getRoute();
     auto jsonStr = std::move(pkt.getJson().toString());
     auto binData = pkt.getBinary();

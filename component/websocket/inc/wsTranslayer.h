@@ -11,7 +11,7 @@
 #include "codes.h"
 #include "wsEncoder.h"
 #include "wsHttpResponse.h"
-#include "wsParser.h"
+#include "wsDecoder.h"
 #include "sysDefinitions.h"
 
 namespace parrot
@@ -25,6 +25,9 @@ struct WsConfig;
 class WsTranslayer
 {
     friend class WsHttpResponse;
+    friend class WsEncoder;
+    friend class WsDecoder;
+    
   private:
     enum eTranslayerState
     {

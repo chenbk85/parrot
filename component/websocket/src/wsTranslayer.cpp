@@ -7,7 +7,7 @@
 #include "wsPacket.h"
 #include "ioEvent.h"
 #include "wsHttpResponse.h"
-#include "wsParser.h"
+#include "wsDecoder.h"
 #include "wsConfig.h"
 #include "macroFuncs.h"
 #include "wsEncoder.h"
@@ -237,7 +237,7 @@ eIoAction WsTranslayer::work(eIoAction evt)
 
                 _httpRsp.reset(nullptr);
                 _state = WsConnected;
-                _wsParser.reset(new WsParser(std::move(_onPacketCb), _recvVec,
+                _wsParser.reset(new WsDecoder(std::move(_onPacketCb), _recvVec,
                                              _io.getRemoteAddr(),
                                              _needRecvMasked, _config));
                 return work(eIoAction::Read);

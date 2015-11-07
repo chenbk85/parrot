@@ -14,9 +14,9 @@ namespace parrot
 struct WsConfig;
 class WsPacket;
 
-// WsParser is the websocket parser for both server side and
+// WsDecoder is the websocket parser for both server side and
 // client side. RPC packet parser will also use this class.
-class WsParser
+class WsDecoder
 {
   public:
     enum eParseState
@@ -31,14 +31,14 @@ class WsParser
     using CallbackFunc = std::function<void(std::unique_ptr<WsPacket>&&)>;
 
   public:
-    WsParser(CallbackFunc&& cb,
+    WsDecoder(CallbackFunc&& cb,
              std::vector<char>& recvVec,
              const std::string& remoteIp,
              bool needMask,
              const WsConfig& cfg);
-    ~WsParser() = default;
-    WsParser(const WsParser&) = delete;
-    WsParser& operator=(const WsParser&) = delete;
+    ~WsDecoder() = default;
+    WsDecoder(const WsDecoder&) = delete;
+    WsDecoder& operator=(const WsDecoder&) = delete;
 
   public:
     // getResult
