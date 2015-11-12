@@ -25,9 +25,8 @@ WsTranslayer::WsTranslayer(IoEvent& io,
       _needSendMasked(sendMasked),
       _pktList(),
       _httpRsp(),
-      _wsParser(),
+      _wsDecoder(),
       _sendVec(_config._sendBuffLen),
-      _sendFragmentedVec(),
       _needSendLen(0),
       _sentLen(0),
       _recvVec(_config._recvBuffLen),
@@ -38,9 +37,7 @@ WsTranslayer::WsTranslayer(IoEvent& io,
       _random(nullptr),
       _config(cfg)
 {
-    // TODO:
-    _wsEncoder.reset(new WsEncoder(_sendVec, _sendFragmentedVec, _config,
-                                   *_random, _needSendMasked));
+    _wsEncoder.reset(new WsEncoder(*this));
 }
 
 void WsTranslayer::setRandom(MtRandom *random)
@@ -85,31 +82,6 @@ eCodes WsTranslayer::recvData()
     return code;
 }
 
-std::vector<char>* WsTranslayer::prepareDataToSend()
-{
-    do
-    {
-        if (!_sendVec.empty())
-        {
-            return &_sendVec;
-        }
-
-        if (!_sendFragmentedVec.empty())
-        {
-            return &_sendFragmentedVec;
-        }
-
-        if (_pktList.empty())
-        {
-            return nullptr;
-        }
-
-        auto& pkt = *(_pktList.begin());
-        _wsEncoder->encode(*pkt);
-        _pktList.pop_front();
-    } while (true);
-}
-
 eCodes WsTranslayer::sendData()
 {
     uint32_t sentLen = 0;
@@ -117,18 +89,22 @@ eCodes WsTranslayer::sendData()
 
     do
     {
-        // Get data to send.
-        std::vector<char>* vp = prepareDataToSend();
-        if (!vp)
+        if (_needSendLen == 0 || _needSendLen == _sentLen)
         {
-            // All data has been sent.
-            return eCodes::ST_Complete;
+            _needSendLen = 0;
+            code = _wsEncoder->loadBuff();
+            if (code == eCodes::ST_Complete)
+            {
+                return code;
+            }
+            PARROT_ASSERT(_needSendLen > 0);
+            _sentLen = 0;
         }
 
         try
         {
             // Send data here.
-            _io.send(&((*vp)[_sentLen]), vp->size() - _sentLen, sentLen);
+            _io.send(&_sendVec[0] + _sentLen, _needSendLen - _sentLen, sentLen);
         }
         catch (std::system_error& e)
         {
@@ -141,12 +117,8 @@ eCodes WsTranslayer::sendData()
 
         // Sent data successfully.
         _sentLen += sentLen;
-        if (_sentLen == vp->size())
+        if (_sentLen == _needSendLen)
         {
-            // The packet has been sent. Reset and load next packet.
-            vp->clear();
-            sentLen = 0;
-            _sentLen = 0;
             continue;
         }
         else
@@ -175,7 +147,7 @@ void WsTranslayer::sendPacket(std::unique_ptr<WsPacket>& pkt)
 
 bool WsTranslayer::isAllSent() const
 {
-    return _sendFragmentedVec.empty() && _sendVec.empty() && _pktList.empty();
+    return _pktList.empty() && _needRecvMasked == _sentLen;
 }
 
 eIoAction WsTranslayer::work(eIoAction evt)
@@ -237,7 +209,7 @@ eIoAction WsTranslayer::work(eIoAction evt)
 
                 _httpRsp.reset(nullptr);
                 _state = WsConnected;
-                _wsParser.reset(new WsDecoder(std::move(_onPacketCb), _recvVec,
+                _wsDecoder.reset(new WsDecoder(std::move(_onPacketCb), _recvVec,
                                              _io.getRemoteAddr(),
                                              _needRecvMasked, _config));
                 return work(eIoAction::Read);
@@ -263,10 +235,10 @@ eIoAction WsTranslayer::work(eIoAction evt)
                     return eIoAction::Remove;
                 }
 
-                code = _wsParser->parse();
+                code = _wsDecoder->parse();
                 if (code == eCodes::ST_Complete)
                 {
-                    auto res = _wsParser->getResult();
+                    auto res = _wsDecoder->getResult();
                     if (res != eCodes::ST_Ok)
                     {
                         _onErrorCb(res);

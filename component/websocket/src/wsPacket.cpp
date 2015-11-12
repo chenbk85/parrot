@@ -18,9 +18,9 @@ WsPacket::WsPacket()
 {
 }
 
-bool WsPacket::isPacketUndecoded() const
+bool WsPacket::isRaw() const
 {
-    return _decoded;
+    return _payload.empty() ? false : true;
 }
 
 bool WsPacket::isControl() const
@@ -37,7 +37,6 @@ void WsPacket::setReqId(uint64_t reqId)
 {
     _reqId = reqId;
 }
-
 
 void WsPacket::setJson(std::unique_ptr<Json>&& json)
 {
@@ -97,9 +96,9 @@ const std::vector<char>& WsPacket::getBinary() const
     return _bin;
 }
 
-const Json& WsPacket::getJson() const
+const Json* WsPacket::getJson() const
 {
-    return *(_json.get());
+    return _json.get();
 }
 
 const std::vector<char>& WsPacket::getPayload() const

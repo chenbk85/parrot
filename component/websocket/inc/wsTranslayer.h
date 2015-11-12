@@ -72,14 +72,10 @@ class WsTranslayer
     std::list<std::unique_ptr<WsPacket>> _pktList;
 
     std::unique_ptr<WsHttpResponse> _httpRsp;
-    std::unique_ptr<WsParser> _wsParser;
+    std::unique_ptr<WsDecoder> _wsDecoder;
 
-    // If packet length is greater than the capacity of _sendVec, the
-    // packet will be fragmented into _sendFragmentedVec. After sent
-    // the fragmented packet, the _sendFragmentedVec will set shrink to
-    // empty. _sendVec will never shrink.
+    // Send buffer.
     std::vector<char> _sendVec;
-    std::vector<char> _sendFragmentedVec;
 
     uint32_t _needSendLen;
     // How many bytes are left in _sendVec or _sendFragmentedVec. There

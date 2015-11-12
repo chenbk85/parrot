@@ -5,7 +5,7 @@
 #include "logger.h"
 #include "json.h"
 #include "wsEncoder.h"
-#include "wsParser.h"
+//#include "wsDecoder.h"
 #include "wsHttpResponse.h"
 #include "wsTranslayer.h"
 #include "wsPacket.h"

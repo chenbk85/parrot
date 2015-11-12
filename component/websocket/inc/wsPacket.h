@@ -25,7 +25,7 @@ class WsPacket
     WsPacket& operator=(WsPacket&& pkt) = default;
 
   public:
-    bool isPacketUndecoded() const;
+    bool isRaw() const;
     bool isControl() const;
     
     void setRoute(uint64_t route);
@@ -45,7 +45,7 @@ class WsPacket
     uint64_t getReqId() const;
     uint64_t getConnId() const;
     const std::vector<char>& getBinary() const;
-    const Json& getJson() const;
+    const Json* getJson() const;
 
     const std::vector<char>& getPayload() const;
     

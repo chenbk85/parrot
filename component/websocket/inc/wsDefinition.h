@@ -15,7 +15,7 @@ enum class eOpCode
     // 0xB-F are reserved.
 };
 
-enum class ePayloadItem
+enum class ePayloadItem : uint8_t
 {
     Json = 1,
     Binary = 2
