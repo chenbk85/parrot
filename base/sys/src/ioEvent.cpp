@@ -67,6 +67,7 @@ eIoAction IoEvent::getDefaultAction() const
 
 void IoEvent::setNextAction(eIoAction act)
 {
+    PARROT_ASSERT(act != eIoAction::None);
     _nextAction = act;
 }
 
@@ -77,6 +78,7 @@ eIoAction IoEvent::getNextAction() const
 
 void IoEvent::setCurrAction(eIoAction act)
 {
+    PARROT_ASSERT(act != eIoAction::None);    
     _currAction = act;
 }
 
@@ -87,6 +89,7 @@ eIoAction IoEvent::getCurrAction() const
 
 void IoEvent::setNotifiedAction(eIoAction act)
 {
+    PARROT_ASSERT(act != eIoAction::None);    
     _notifiedAction = act;
 }
 

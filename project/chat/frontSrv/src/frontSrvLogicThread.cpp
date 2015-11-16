@@ -82,10 +82,13 @@ void FrontSrvLogicThread::handleReqBind(
 void FrontSrvLogicThread::handlePacket(
     std::list<parrot::SessionPktPair>& pktList)
 {
+    const std::vector<char>* payloadPtr;
     for (auto& sp : pktList)
     {
+        payloadPtr = &((sp.second)->getPayload());
         LOG_INFO("FrontSrvLogicThread::handlePacket: session is "
-                 << (sp.first)->toString() << ".");
+                 << (sp.first)->toString() << ". Payload is " <<
+                 std::string(&((*payloadPtr)[0]), payloadPtr->size()));
     }
 }
 
