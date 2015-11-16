@@ -32,7 +32,7 @@ WsEncoder::WsEncoder(WsTranslayer& trans)
       _needMask(trans._needSendMasked),
       _random(*(trans._random)),
       _jsonStr(),
-      _maskingKey(),
+      _maskingKey(0),
       _metaData(9)
 {
     _metaData.resize(0);
@@ -142,11 +142,10 @@ void WsEncoder::encodeClosePacket()
 
     if (_needMask)
     {
-        for (int i = 0; i != 4; ++i)
-        {
-            _maskingKey[i] = static_cast<char>(_random.random(256));
-            *it++          = _maskingKey[i];
-        }
+        _maskingKey = _random.random32();
+        // Do not treat _masking key as integer.
+        std::copy_n(reinterpret_cast<char*>(&_maskingKey), 4, it);
+        it += 4;
     }
 
     auto rit = it;
@@ -299,11 +298,8 @@ void WsEncoder::writeHeader(bool firstPkt, bool fin)
     uint8_t maskBit = 0x00;
     if (_needMask)
     {
-        for (int i = 0; i != 4; ++i)
-        {
-            _maskingKey[i] = _random.random(256);
-        }
-        maskBit = 0x80;
+        _maskingKey = _random.random32();
+        maskBit     = 0x80;
     }
 
     if (_payloadLen <= 125)
@@ -327,8 +323,7 @@ void WsEncoder::writeHeader(bool firstPkt, bool fin)
 
     if (_needMask)
     {
-        auto intBE = uniHtonl(*reinterpret_cast<uint32_t*>(&(_maskingKey[0])));
-        std::copy_n(_lastIt, 4, reinterpret_cast<char*>(&intBE));
+        std::copy_n(reinterpret_cast<char*>(&_maskingKey), 4, _lastIt);
         _lastIt += 4;
     }
 }
@@ -626,12 +621,13 @@ void WsEncoder::encodePlainPacket()
 void WsEncoder::maskPacket(std::vector<char>::iterator begin,
                            std::vector<char>::iterator end)
 {
-    uint8_t i = 0;
-    std::for_each(begin, end, [&i, this](char& c)
-                  {
-                      c ^= this->_maskingKey[i++];
-                      i %= 4;
-                  });
+    uint8_t i   = 0;
+    uint8_t* mp = reinterpret_cast<uint8_t*>(&_maskingKey);
+
+    for (auto it = begin; it != end; ++it)
+    {
+        *it ^= mp[i++ % 4];
+    }
 }
 
 void WsEncoder::getMetaData(ePayloadItem item, uint64_t dataLen)

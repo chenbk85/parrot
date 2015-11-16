@@ -131,7 +131,7 @@ class WsEncoder
 
     // Save json string.
     std::string _jsonStr;
-    std::array<char, 4> _maskingKey;
+    uint32_t _maskingKey;
     std::vector<char> _metaData;
 };
 }

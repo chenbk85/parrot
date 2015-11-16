@@ -70,6 +70,8 @@ void WsDecoder::parseHeader()
 
     if (_masked)
     {
+        // The mask key is not a integer. However, We can use a 32 bit
+        // integer to save the mask key without bother the ntohxx functions.
         _maskingKey = *reinterpret_cast<uint32_t*>(&(_recvVec[_lastParsePos]));
         _lastParsePos += 4;
     }

@@ -13,7 +13,8 @@ class MtRandom
   public:
     void setSeed(uint64_t);
     uint64_t getSeed() const;
-    uint64_t random();
+    uint64_t random64();
+    uint32_t random32();
     uint32_t random(uint32_t max);
 
   private:
