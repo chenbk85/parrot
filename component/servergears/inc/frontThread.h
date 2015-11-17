@@ -95,7 +95,6 @@ class FrontThread : public PoolThread,
     std::unordered_map<void*, std::list<SessionPktPair>> _pktMap;
 
     std::unordered_map<void*, JobHandler*> _jobHandlerMap;
-    ThreadJobMap _threadJobMap;
 
     std::unordered_map<uint64_t, std::shared_ptr<WsServerConn>> _connMap;
 

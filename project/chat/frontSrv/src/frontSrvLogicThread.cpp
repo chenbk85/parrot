@@ -45,6 +45,7 @@ void FrontSrvLogicThread::beforeStart()
 
 void FrontSrvLogicThread::addJob(std::unique_ptr<parrot::Job>&& job)
 {
+    LOG_DEBUG("FrontSrvLogicThread::AddJob.");
     _jobListLock.lock();
     _jobList.push_back(std::move(job));
     _jobListLock.unlock();
@@ -55,6 +56,8 @@ void FrontSrvLogicThread::addJob(std::unique_ptr<parrot::Job>&& job)
 void FrontSrvLogicThread::addJob(
     std::list<std::unique_ptr<parrot::Job>>& jobList)
 {
+    LOG_DEBUG("FrontSrvLogicThread::AddJob. List size is "
+              << jobList.size() << ".");    
     _jobListLock.lock();
     _jobList.splice(_jobList.end(), jobList);
     _jobListLock.unlock();
@@ -65,12 +68,14 @@ void FrontSrvLogicThread::addJob(
 void FrontSrvLogicThread::handleReqBind(
     parrot::FrontThread* thread, std::list<parrot::SessionPktPair>& pktList)
 {
+    LOG_DEBUG("FrontSrvLogicThread::handleReqBind: pktList size is "
+              << pktList.size() << ".");
     parrot::Session* session = nullptr;
     std::list<std::shared_ptr<const parrot::Session>> sessionList;
     for (auto& sp : pktList)
     {
-        session                  = const_cast<parrot::Session*>(sp.first.get());
-        session->_frontThreadPtr = this;
+        session                 = const_cast<parrot::Session*>(sp.first.get());
+        session->_backThreadPtr = this;
         sessionList.push_back(std::move(sp.first));
     }
 
@@ -140,6 +145,7 @@ void FrontSrvLogicThread::run()
     {
         ret = _notifier->waitIoEvents(-1);
 
+        LOG_DEBUG("FrontSrvLogicThread::run: ret is " << ret << ".");
         for (auto i = 0u; i < ret; ++i)
         {
             ev = _notifier->getIoEvent(i);

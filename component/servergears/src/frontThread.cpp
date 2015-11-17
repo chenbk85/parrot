@@ -31,7 +31,6 @@ FrontThread::FrontThread()
       _noRoutePktList(),
       _pktMap(),
       _jobHandlerMap(),
-      _threadJobMap(),
       _connMap(),
       _notifier(nullptr),
       _defaultJobHdrVec(),
@@ -163,6 +162,7 @@ void FrontThread::handleJob()
 
 void FrontThread::addJob(std::unique_ptr<Job>&& job)
 {
+    LOG_DEBUG("FrontThread::addJob.");
     _jobListLock.lock();
     _jobList.push_back(std::move(job));
     _jobListLock.unlock();
@@ -171,6 +171,7 @@ void FrontThread::addJob(std::unique_ptr<Job>&& job)
 
 void FrontThread::addJob(std::list<std::unique_ptr<Job>>& jobList)
 {
+    LOG_DEBUG("FrontThread::addJob: JobList size is " << jobList.size() << ".");    
     _jobListLock.lock();
     _jobList.splice(_jobList.end(), jobList);
     _jobListLock.unlock();
@@ -190,21 +191,24 @@ void FrontThread::onPacket(std::shared_ptr<const Session>&& session,
 
     if (it == _pktMap.end())
     {
+        PARROT_ASSERT(session->_backThreadPtr);
+        LOG_DEBUG("FrontThread::onPacket: First add thread packet.");        
         _pktMap[session->_backThreadPtr].emplace_back(std::move(session),
                                                       std::move(pkt));
     }
     else
     {
+        LOG_DEBUG("FrontThread::onPacket: Append packet.");
         it->second.emplace_back(std::move(session), std::move(pkt));
-    }
-
-    if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
-    {
-        // Dispatch packetes.
-        std::unique_ptr<PacketJob> pktJob(new PacketJob());
-        pktJob->bind(std::move(it->second));
-        (_jobHandlerMap[session->_backThreadPtr])->addJob(std::move(pktJob));
-        it->second.clear();
+        if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
+        {
+            // Dispatch packetes.
+            std::unique_ptr<PacketJob> pktJob(new PacketJob());
+            pktJob->bind(std::move(it->second));
+            (_jobHandlerMap[session->_backThreadPtr])
+                ->addJob(std::move(pktJob));
+            it->second.clear();
+        }
     }
 }
 
@@ -232,15 +236,15 @@ void FrontThread::onClose(WsServerConn* conn, std::unique_ptr<WsPacket>&& pkt)
     else
     {
         it->second.emplace_back(std::move(session), std::move(pkt));
-    }
-
-    if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
-    {
-        // Dispatch packetes.
-        std::unique_ptr<PacketJob> pktJob(new PacketJob());
-        pktJob->bind(std::move(it->second));
-        (_jobHandlerMap[session->_backThreadPtr])->addJob(std::move(pktJob));
-        it->second.clear();
+        if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
+        {
+            // Dispatch packetes.
+            std::unique_ptr<PacketJob> pktJob(new PacketJob());
+            pktJob->bind(std::move(it->second));
+            (_jobHandlerMap[session->_backThreadPtr])
+                ->addJob(std::move(pktJob));
+            it->second.clear();
+        }
     }
 
     removeConn(conn);
@@ -253,6 +257,8 @@ void FrontThread::dispatchPackets()
 {
     if (!_noRoutePktList.empty())
     {
+        LOG_DEBUG("FrontThread::dispatchPackets: _noRoutePktList size is " <<
+                  _noRoutePktList.size() << ".");
         std::unique_ptr<ReqBindJob> bindJob(new ReqBindJob());
         bindJob->bind(this, std::move(_noRoutePktList));
         (_defaultJobHdrVec[_lastDefaultJobIdx])->addJob(std::move(bindJob));
@@ -260,10 +266,12 @@ void FrontThread::dispatchPackets()
             (_lastDefaultJobIdx + 1) % _defaultJobHdrVec.size();
     }
 
-    for (auto& kv : _threadJobMap)
+    for (auto& kv : _pktMap)
     {
         if (!kv.second.empty())
         {
+            LOG_DEBUG("FrontThread::dispatchPackets: _pktMap List " <<
+                      "size is " << kv.second.size() << ".");            
             std::unique_ptr<PacketJob> pktJob(new PacketJob());
             pktJob->bind(std::move(kv.second));
             (_jobHandlerMap[kv.first])->addJob(std::move(pktJob));
@@ -389,6 +397,7 @@ void FrontThread::run()
             }     // for
 
             dispatchPackets();
+            handleJob();
         } // while
     }
     catch (const std::system_error& e)
