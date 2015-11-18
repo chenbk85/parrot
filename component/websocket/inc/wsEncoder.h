@@ -68,12 +68,12 @@ class WsEncoder
 
     void writeHeader(bool firstPkt, bool fin);
     void writeRoute();
-    eCodes writeBuff(const char* src, uint64_t len);
+    eCodes writeBuff(const unsigned char* src, uint64_t len);
 
     uint8_t getRouteLen(uint64_t route);
     uint64_t getDataLen(uint64_t len);
-    void maskPacket(std::vector<char>::iterator begin,
-                    std::vector<char>::iterator end);
+    void maskPacket(std::vector<unsigned char>::iterator begin,
+                    std::vector<unsigned char>::iterator end);
 
     // Meta info is for the peer to decode what data is it. The format is
     //            | type field (alwasy 1 byte) | data length field |
@@ -116,13 +116,13 @@ class WsEncoder
     // The packet is fragmented?
     bool _fragmented;
 
-    std::vector<char>& _sendVec;
+    std::vector<unsigned char>& _sendVec;
     uint32_t& _needSendLen;
     std::list<std::unique_ptr<WsPacket>>& _pktList;
 
     // The current encoding packet.
     std::unique_ptr<WsPacket> _currPkt;
-    std::vector<char>::iterator _lastIt;
+    std::vector<unsigned char>::iterator _lastIt;
     const WsConfig& _config;
 
     // The packet needs to be masked?
@@ -132,7 +132,7 @@ class WsEncoder
     // Save json string.
     std::string _jsonStr;
     uint32_t _maskingKey;
-    std::vector<char> _metaData;
+    std::vector<unsigned char> _metaData;
 };
 }
 

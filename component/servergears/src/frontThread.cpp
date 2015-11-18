@@ -18,7 +18,6 @@
 #include "timeoutManager.h"
 #include "logger.h"
 
-
 namespace parrot
 {
 FrontThread::FrontThread()
@@ -30,13 +29,14 @@ FrontThread::FrontThread()
       _connList(),
       _noRoutePktList(),
       _pktMap(),
-      _jobHandlerMap(),
+      _jobHandlerSet(),
       _connMap(),
       _notifier(nullptr),
       _defaultJobHdrVec(),
       _lastDefaultJobIdx(0),
       _rspBindHdr(),
       _updateSessionHdr(),
+      _pktJobHdr(),
       _random(),
       _timeoutMgr(),
       _config(nullptr)
@@ -45,6 +45,7 @@ FrontThread::FrontThread()
 
     _rspBindHdr       = std::bind(&FrontThread::handleRspBind, this, _1);
     _updateSessionHdr = std::bind(&FrontThread::handleUpdateSession, this, _1);
+    _pktJobHdr        = std::bind(&FrontThread::handlePacket, this, _1);
 }
 
 void FrontThread::updateByConfig(const Config* cfg)
@@ -69,9 +70,11 @@ void FrontThread::setDefaultJobHdr(std::vector<JobHandler*>& vec)
     _defaultJobHdrVec = vec;
 }
 
-void FrontThread::setJobHdr(std::unordered_map<void*, JobHandler*>& hdr)
+void FrontThread::setJobHdr(std::unordered_set<JobHandler*>& hdr)
 {
-    _jobHandlerMap = hdr;
+    LOG_DEBUG("FrontThread::setJobHdr: Handler set size is " << hdr.size()
+                                                             << ".");
+    _jobHandlerSet = hdr;
 }
 
 void FrontThread::stop()
@@ -84,7 +87,7 @@ void FrontThread::stop()
 
 void FrontThread::handleRspBind(std::list<std::shared_ptr<const Session>>& sl)
 {
-    std::unordered_map<uint64_t, std::shared_ptr<WsServerConn>>::iterator it;
+    std::unordered_map<uint64_t, std::unique_ptr<WsServerConn>>::iterator it;
     for (auto& s : sl)
     {
         it = _connMap.find(s->_connUniqueId);
@@ -119,6 +122,25 @@ void FrontThread::handleUpdateSession(std::shared_ptr<const Session>& ps)
     session->_isBound = isBound;
 }
 
+void FrontThread::handlePacket(std::list<SessionPktPair>& pktList)
+{
+    std::unordered_map<uint64_t, std::unique_ptr<WsServerConn>>::iterator it;
+    for (auto& s : pktList)
+    {
+        it = _connMap.find((s.first)->_connUniqueId);
+        if (it == _connMap.end())
+        {
+            LOG_DEBUG("FrontThread::handlePacket: Failed to find unique "
+                      << "connection id: " << (s.first)->_connUniqueId << ".");
+            continue;
+        }
+
+        LOG_DEBUG("FrontThread::handlePacket: Send packet to conn "
+                  << (s.first)->_connUniqueId);
+        it->second->sendPacket(s.second);
+    }
+}
+
 void FrontThread::handleJob()
 {
     std::list<std::unique_ptr<Job>> jobList;
@@ -143,6 +165,14 @@ void FrontThread::handleJob()
                 std::unique_ptr<UpdateSessionJob> tj(
                     static_cast<UpdateSessionJob*>(j.release()));
                 tj->call(_updateSessionHdr);
+            }
+            break;
+
+            case eJobType::Packet:
+            {
+                std::unique_ptr<PacketJob> tj(
+                    static_cast<PacketJob*>(j.release()));
+                tj->call(_pktJobHdr);
             }
             break;
 
@@ -171,7 +201,7 @@ void FrontThread::addJob(std::unique_ptr<Job>&& job)
 
 void FrontThread::addJob(std::list<std::unique_ptr<Job>>& jobList)
 {
-    LOG_DEBUG("FrontThread::addJob: JobList size is " << jobList.size() << ".");    
+    LOG_DEBUG("FrontThread::addJob: JobList size is " << jobList.size() << ".");
     _jobListLock.lock();
     _jobList.splice(_jobList.end(), jobList);
     _jobListLock.unlock();
@@ -187,13 +217,13 @@ void FrontThread::onPacket(std::shared_ptr<const Session>&& session,
         return;
     }
 
-    auto it = _pktMap.find(session->_backThreadPtr);
+    auto it = _pktMap.find(session->_jobHandlerPtr);
 
     if (it == _pktMap.end())
     {
-        PARROT_ASSERT(session->_backThreadPtr);
-        LOG_DEBUG("FrontThread::onPacket: First add thread packet.");        
-        _pktMap[session->_backThreadPtr].emplace_back(std::move(session),
+        PARROT_ASSERT(session->_jobHandlerPtr);
+        LOG_DEBUG("FrontThread::onPacket: First add thread packet.");
+        _pktMap[session->_jobHandlerPtr].emplace_back(std::move(session),
                                                       std::move(pkt));
     }
     else
@@ -205,8 +235,9 @@ void FrontThread::onPacket(std::shared_ptr<const Session>&& session,
             // Dispatch packetes.
             std::unique_ptr<PacketJob> pktJob(new PacketJob());
             pktJob->bind(std::move(it->second));
-            (_jobHandlerMap[session->_backThreadPtr])
-                ->addJob(std::move(pktJob));
+            auto sit = _jobHandlerSet.find(
+                static_cast<JobHandler*>(session->_jobHandlerPtr));
+            (*sit)->addJob(std::move(pktJob));
             it->second.clear();
         }
     }
@@ -226,11 +257,11 @@ void FrontThread::onClose(WsServerConn* conn, std::unique_ptr<WsPacket>&& pkt)
         return;
     }
 
-    auto it = _pktMap.find(session->_backThreadPtr);
+    auto it = _pktMap.find(session->_jobHandlerPtr);
 
     if (it == _pktMap.end())
     {
-        _pktMap[session->_backThreadPtr].emplace_back(std::move(session),
+        _pktMap[session->_jobHandlerPtr].emplace_back(std::move(session),
                                                       std::move(pkt));
     }
     else
@@ -241,15 +272,16 @@ void FrontThread::onClose(WsServerConn* conn, std::unique_ptr<WsPacket>&& pkt)
             // Dispatch packetes.
             std::unique_ptr<PacketJob> pktJob(new PacketJob());
             pktJob->bind(std::move(it->second));
-            (_jobHandlerMap[session->_backThreadPtr])
-                ->addJob(std::move(pktJob));
+            auto sit = _jobHandlerSet.find(
+                static_cast<JobHandler*>(session->_jobHandlerPtr));
+            (*sit)->addJob(std::move(pktJob));
             it->second.clear();
         }
     }
 
     removeConn(conn);
     LOG_INFO("FrontThread::onClose: Bound. Err is "
-             << (uint32_t)pkt->getCloseCode() << ". Session is "
+             << (uint32_t)(pkt->getCloseCode()) << ". Session is "
              << session->toString());
 }
 
@@ -257,8 +289,8 @@ void FrontThread::dispatchPackets()
 {
     if (!_noRoutePktList.empty())
     {
-        LOG_DEBUG("FrontThread::dispatchPackets: _noRoutePktList size is " <<
-                  _noRoutePktList.size() << ".");
+        LOG_DEBUG("FrontThread::dispatchPackets: _noRoutePktList size is "
+                  << _noRoutePktList.size() << ".");
         std::unique_ptr<ReqBindJob> bindJob(new ReqBindJob());
         bindJob->bind(this, std::move(_noRoutePktList));
         (_defaultJobHdrVec[_lastDefaultJobIdx])->addJob(std::move(bindJob));
@@ -270,11 +302,12 @@ void FrontThread::dispatchPackets()
     {
         if (!kv.second.empty())
         {
-            LOG_DEBUG("FrontThread::dispatchPackets: _pktMap List " <<
-                      "size is " << kv.second.size() << ".");            
+            LOG_DEBUG("FrontThread::dispatchPackets: _pktMap List "
+                      << "size is " << kv.second.size() << ".");
             std::unique_ptr<PacketJob> pktJob(new PacketJob());
             pktJob->bind(std::move(kv.second));
-            (_jobHandlerMap[kv.first])->addJob(std::move(pktJob));
+            auto sit = _jobHandlerSet.find(static_cast<JobHandler*>(kv.first));
+            (*sit)->addJob(std::move(pktJob));
             kv.second.clear();
         }
     }
@@ -319,10 +352,10 @@ void FrontThread::addConnToNotifier()
 void FrontThread::removeConn(WsServerConn* conn)
 {
     LOG_DEBUG("FrontThread::removeConn: Client " << conn->getRemoteAddr()
-              << " disconnected.");
+                                                 << " disconnected.");
     _timeoutMgr->remove(conn);
     _notifier->delEvent(conn);
-    _connMap.erase(conn->getSession()->_connUniqueId);    
+    _connMap.erase(conn->getSession()->_connUniqueId);
 }
 
 void FrontThread::updateTimeout(WsServerConn* conn, std::time_t now)
@@ -357,6 +390,10 @@ void FrontThread::run()
 
             eventNum = _notifier->waitIoEvents(5000);
 
+            // Append packet which needs to be sent to connections.            
+            handleJob();
+
+            // Here handle events.
             for (idx = 0; idx != eventNum; ++idx)
             {
                 // We are sure that the IoEvnet is WsServerConn,
@@ -396,8 +433,9 @@ void FrontThread::run()
                 } // switch
             }     // for
 
+            // Dispatch packet to back threads.
             dispatchPackets();
-            handleJob();
+
         } // while
     }
     catch (const std::system_error& e)

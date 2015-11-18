@@ -28,7 +28,7 @@ class WsDecoder
     };
 
   private:
-    using VecCharIt    = std::vector<char>::iterator;
+    using VecCharIt    = std::vector<unsigned char>::iterator;
     using CallbackFunc = std::function<void(std::unique_ptr<WsPacket>&&)>;
 
   public:
@@ -113,11 +113,11 @@ class WsDecoder
     void unmaskData();
 
     std::unique_ptr<WsPacket>
-    createWsPacket(const std::vector<char>::iterator& begin,
-                   const std::vector<char>::iterator& end);
+    createWsPacket(const std::vector<unsigned char>::iterator& begin,
+                   const std::vector<unsigned char>::iterator& end);
 
   private:
-    std::vector<char>& _recvVec;
+    std::vector<unsigned char>& _recvVec;
     uint32_t& _rcvdLen;
     const std::string& _remoteIp;
     bool _needMask;
@@ -135,7 +135,7 @@ class WsDecoder
     uint64_t _payloadLen;
     uint32_t _maskingKey;
     eCodes _parseResult;
-    std::vector<char> _packetVec;
+    std::vector<unsigned char> _packetVec;
     uint32_t _largePktCount;
 };
 }

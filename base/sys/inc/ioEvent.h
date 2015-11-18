@@ -84,15 +84,17 @@ class IoEvent
 
     void setRemoteAddr(const std::string& ip);
     void setRemoteAddr(std::string&& ip);
-    const std::string &getRemoteAddr() const;
+    const std::string& getRemoteAddr() const;
 
     void setRemotePort(uint16_t port);
     uint16_t getRemotePort() const;
 
   public:
 #if defined(__APPLE__) || defined(__linux__)
-    virtual eCodes send(const char* buff, uint32_t buffLen, uint32_t& sentLen);
-    virtual eCodes recv(char* buff, uint32_t buffLen, uint32_t& rcvdLen);
+    virtual eCodes
+    send(const unsigned char* buff, uint32_t buffLen, uint32_t& sentLen);
+    virtual eCodes
+    recv(unsigned char* buff, uint32_t buffLen, uint32_t& rcvdLen);
 #endif
   protected:
     int _fd;
@@ -106,7 +108,7 @@ class IoEvent
     bool _isError;
     bool _isEof;
     std::string _remoteIP;
-    uint16_t _remotePort;    
+    uint16_t _remotePort;
 };
 }
 

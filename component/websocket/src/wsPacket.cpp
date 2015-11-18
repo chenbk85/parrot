@@ -43,12 +43,12 @@ void WsPacket::setJson(std::unique_ptr<Json>&& json)
     _json = std::move(json);
 }
 
-void WsPacket::setBinary(std::vector<char> &&bin)
+void WsPacket::setBinary(std::vector<unsigned char> &&bin)
 {
     _bin = std::move(bin);
 }
 
-void WsPacket::setPacket(eOpCode opCode, std::vector<char> &&payload)
+void WsPacket::setPacket(eOpCode opCode, std::vector<unsigned char> &&payload)
 {
     _opCode = opCode;
     _payload = std::move(payload);
@@ -91,7 +91,7 @@ uint64_t WsPacket::getReqId() const
     return _reqId;
 }
 
-const std::vector<char>& WsPacket::getBinary() const
+const std::vector<unsigned char>& WsPacket::getBinary() const
 {
     return _bin;
 }
@@ -101,7 +101,7 @@ const Json* WsPacket::getJson() const
     return _json.get();
 }
 
-const std::vector<char>& WsPacket::getPayload() const
+const std::vector<unsigned char>& WsPacket::getPayload() const
 {
     return _payload;
 }

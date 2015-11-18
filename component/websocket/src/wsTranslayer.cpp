@@ -32,6 +32,7 @@ WsTranslayer::WsTranslayer(IoEvent& io,
       _recvVec(_config._recvBuffLen),
       _rcvdLen(0),
       _wsEncoder(),
+      _onOpenCb(),
       _onPacketCb(),
       _onErrorCb(),
       _random(nullptr),
@@ -43,6 +44,11 @@ WsTranslayer::WsTranslayer(IoEvent& io,
 void WsTranslayer::setRandom(MtRandom *random)
 {
     _random = random;
+}
+
+void WsTranslayer::registerOnOpenCb(std::function<void()>&& cb)
+{
+    _onOpenCb = std::move(cb);
 }
 
 void WsTranslayer::registerOnPacketCb(
@@ -171,7 +177,6 @@ eIoAction WsTranslayer::work(eIoAction evt)
             }
 
             code = _httpRsp->work();
-            std::cout << "work " << code << std::endl;
             if (code == eCodes::ST_NeedRecv)
             {
                 return eIoAction::Read;
@@ -207,6 +212,9 @@ eIoAction WsTranslayer::work(eIoAction evt)
                 _state = WsConnected;
                 _rcvdLen = 0;
                 _wsDecoder.reset(new WsDecoder(*this));
+                
+                // WebSocket is opened.
+                _onOpenCb();
                 return work(eIoAction::Read);
             }
             else if (code == eCodes::ST_NeedSend)

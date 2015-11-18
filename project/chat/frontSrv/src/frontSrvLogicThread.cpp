@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include "logger.h"
 #include "ioEvent.h"
 #include "epoll.h"
@@ -7,6 +9,7 @@
 #include "simpleEventNotifier.h"
 #include "frontSrvLogicThread.h"
 #include "frontThread.h"
+#include "wsPacket.h"
 #include "threadJob.h"
 
 namespace chat
@@ -56,8 +59,8 @@ void FrontSrvLogicThread::addJob(std::unique_ptr<parrot::Job>&& job)
 void FrontSrvLogicThread::addJob(
     std::list<std::unique_ptr<parrot::Job>>& jobList)
 {
-    LOG_DEBUG("FrontSrvLogicThread::AddJob. List size is "
-              << jobList.size() << ".");    
+    LOG_DEBUG("FrontSrvLogicThread::AddJob. List size is " << jobList.size()
+                                                           << ".");
     _jobListLock.lock();
     _jobList.splice(_jobList.end(), jobList);
     _jobListLock.unlock();
@@ -75,7 +78,7 @@ void FrontSrvLogicThread::handleReqBind(
     for (auto& sp : pktList)
     {
         session                 = const_cast<parrot::Session*>(sp.first.get());
-        session->_backThreadPtr = this;
+        session->_jobHandlerPtr = static_cast<JobHandler*>(this);
         sessionList.push_back(std::move(sp.first));
     }
 
@@ -87,14 +90,27 @@ void FrontSrvLogicThread::handleReqBind(
 void FrontSrvLogicThread::handlePacket(
     std::list<parrot::SessionPktPair>& pktList)
 {
-    const std::vector<char>* payloadPtr;
+    std::list<parrot::SessionPktPair> rspPktList;
+    
+    parrot::FrontThread *frontThread = nullptr;
     for (auto& sp : pktList)
     {
-        payloadPtr = &((sp.second)->getPayload());
         LOG_INFO("FrontSrvLogicThread::handlePacket: session is "
-                 << (sp.first)->toString() << ". Payload is " <<
-                 std::string(&((*payloadPtr)[0]), payloadPtr->size()));
+                 << (sp.first)->toString() << ".");
+        std::unique_ptr<parrot::WsPacket> pkt (new parrot::WsPacket());
+        pkt->setRoute(1);
+        std::unique_ptr<parrot::Json> json(new parrot::Json());
+        json->createRootObject();
+        json->setValue("/hello", "world");
+        pkt->setJson(std::move(json));
+        frontThread = static_cast<parrot::FrontThread*>(
+            (sp.first)->_frontThreadPtr);
+        rspPktList.emplace_back(std::move(sp.first), std::move(pkt));
     }
+
+    std::unique_ptr<parrot::PacketJob> job(new parrot::PacketJob());
+    job->bind(std::move(rspPktList));
+    frontThread->addJob(std::move(job));
 }
 
 void FrontSrvLogicThread::handleJob()
@@ -138,14 +154,13 @@ void FrontSrvLogicThread::run()
     parrot::IoEvent* ev = nullptr;
     uint32_t ret        = 0;
 
-    
-    LOG_INFO("FrontSrvLogicThread::run. Tid is " << std::this_thread::get_id() << ".");
-    
+    LOG_INFO("FrontSrvLogicThread::run. Tid is " << std::this_thread::get_id()
+                                                 << ".");
+
     while (!isStopping())
     {
         ret = _notifier->waitIoEvents(-1);
 
-        LOG_DEBUG("FrontSrvLogicThread::run: ret is " << ret << ".");
         for (auto i = 0u; i < ret; ++i)
         {
             ev = _notifier->getIoEvent(i);

@@ -2,6 +2,7 @@
 #define __COMPONENT_SERVERGEAR_INC_FRONTTHREAD_H__
 
 #include <unordered_map>
+#include <unordered_set>
 #include <memory>
 #include <mutex>
 #include <list>
@@ -30,10 +31,6 @@ class FrontThread : public PoolThread,
                     public ConnHandler<WsServerConn>,
                     public WsPacketHandler<Session, WsServerConn>
 {
-    // <ThreadPtr, list<unique_ptr<WsPacket>>>
-    using ThreadJobMap =
-        std::unordered_map<void*, std::list<SessionPktPair>>;
-
     enum class Constants
     {
         kPktListSize = 100
@@ -46,7 +43,7 @@ class FrontThread : public PoolThread,
   public:
     void updateByConfig(const Config* cfg);
     void setDefaultJobHdr(std::vector<JobHandler*>& hdr);
-    void setJobHdr(std::unordered_map<void*, JobHandler*> &hdr);
+    void setJobHdr(std::unordered_set<JobHandler*> &hdr);
 
   public:
     // ThreadBase
@@ -78,6 +75,7 @@ class FrontThread : public PoolThread,
   protected:
     void handleRspBind(std::list<std::shared_ptr<const Session>>& sl);
     void handleUpdateSession(std::shared_ptr<const Session>& ps);
+    void handlePacket(std::list<SessionPktPair> &pktList);    
     void dispatchPackets();
     void addConnToNotifier();
     void removeConn(WsServerConn* conn);
@@ -92,11 +90,13 @@ class FrontThread : public PoolThread,
     std::list<std::unique_ptr<WsServerConn>> _connList;
         
     std::list<SessionPktPair> _noRoutePktList;
+    // <backThreadPtr, list<pair<Session, Packet>>>
     std::unordered_map<void*, std::list<SessionPktPair>> _pktMap;
 
-    std::unordered_map<void*, JobHandler*> _jobHandlerMap;
+    std::unordered_set<JobHandler*> _jobHandlerSet;
 
-    std::unordered_map<uint64_t, std::shared_ptr<WsServerConn>> _connMap;
+    // <UniqueConnId, Conn>
+    std::unordered_map<uint64_t, std::unique_ptr<WsServerConn>> _connMap;
 
     std::unique_ptr<EventNotifier> _notifier;
 
@@ -104,6 +104,7 @@ class FrontThread : public PoolThread,
     uint32_t _lastDefaultJobIdx;
     RspBindJobHdr _rspBindHdr;
     UpdateSessionJobHdr _updateSessionHdr;
+    PacketJobHdr _pktJobHdr;
 
     MtRandom _random;
     std::unique_ptr<TimeoutManager<WsServerConn>> _timeoutMgr;

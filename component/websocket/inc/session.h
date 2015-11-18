@@ -26,7 +26,7 @@ struct Session
     // <Server type, Server Id>
     std::unordered_map<std::string, std::string> _serverMap;
 
-    void* _backThreadPtr;
+    void* _jobHandlerPtr;
     void* _frontThreadPtr;
     uint64_t _connUniqueId;
 

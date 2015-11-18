@@ -125,14 +125,14 @@ class WsHttpResponse
 
   private:
     eParseState _state;
-    std::vector<char>& _recvVec;
+    std::vector<unsigned char>& _recvVec;
     const uint32_t &_rcvdLen;
-    std::vector<char>& _sendVec;
+    std::vector<unsigned char>& _sendVec;
     uint32_t &_needSendLen;
     const std::string& _remoteIp;
     HeaderDic _headerDic;
     std::string _lastHeader;
-    std::vector<char>::iterator _lastParseIt;
+    std::vector<unsigned char>::iterator _lastParseIt;
     uint32_t _httpBodyLen;
     eCodes _httpResult;
     const WsConfig& _config;

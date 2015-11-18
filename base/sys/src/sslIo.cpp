@@ -34,7 +34,7 @@ eCodes SslIo::doSslAccept()
     return handleResult(ret, "doSslAccept");
 }
 
-eCodes SslIo::send(const char* buff, uint32_t len, uint32_t& sentLen)
+eCodes SslIo::send(const unsigned char* buff, uint32_t len, uint32_t& sentLen)
 {
     int wLen = SSL_write(_ssl, buff, (int)len);
 
@@ -46,7 +46,7 @@ eCodes SslIo::send(const char* buff, uint32_t len, uint32_t& sentLen)
     return handleResult(wLen, "sslSend");
 }
 
-eCodes SslIo::recv(char* buff, uint32_t len, uint32_t& recvLen)
+eCodes SslIo::recv(unsigned char* buff, uint32_t len, uint32_t& recvLen)
 {
     int rLen = SSL_read(_ssl, buff, (int)len);
 

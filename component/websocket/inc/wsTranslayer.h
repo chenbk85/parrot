@@ -48,6 +48,7 @@ class WsTranslayer
   public:
     void setRandom(MtRandom *random);
     // Callbacks.
+    void registerOnOpenCb(std::function<void()> &&cb);
     void registerOnPacketCb(
         std::function<void(std::unique_ptr<WsPacket>&&)>&& cb);
     void registerOnErrorCb(std::function<void(eCodes)>&& cb);
@@ -75,7 +76,7 @@ class WsTranslayer
     std::unique_ptr<WsDecoder> _wsDecoder;
 
     // Send buffer.
-    std::vector<char> _sendVec;
+    std::vector<unsigned char> _sendVec;
 
     uint32_t _needSendLen;
     // How many bytes are left in _sendVec or _sendFragmentedVec. There
@@ -83,11 +84,12 @@ class WsTranslayer
     // one time.
     uint32_t _sentLen;
 
-    std::vector<char> _recvVec;
+    std::vector<unsigned char> _recvVec;
     uint32_t _rcvdLen;
 
     std::unique_ptr<WsEncoder> _wsEncoder;
 
+    std::function<void()> _onOpenCb;
     std::function<void(std::unique_ptr<WsPacket> &&)> _onPacketCb;
     std::function<void(eCodes)> _onErrorCb;
 

@@ -28,9 +28,12 @@ WsServerConn::WsServerConn(const WsConfig& cfg)
       _sentClose(false)
 {
     using namespace std::placeholders;
-    auto onPktCb = std::bind(&WsServerConn::onPacket, this, _1);
-    auto onErrCb = std::bind(&WsServerConn::onError, this, _1);
 
+    auto onOpenCb = std::bind(&WsServerConn::onOpen, this);
+    auto onPktCb  = std::bind(&WsServerConn::onPacket, this, _1);
+    auto onErrCb  = std::bind(&WsServerConn::onError, this, _1);
+
+    _translayer->registerOnOpenCb(std::move(onOpenCb));
     _translayer->registerOnPacketCb(std::move(onPktCb));
     _translayer->registerOnErrorCb(std::move(onErrCb));
 }

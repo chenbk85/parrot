@@ -12,7 +12,7 @@ class WsHttpHandshakeData
   public:
     using HeaderDic = std::unordered_map<std::string, std::string>;
     HeaderDic _header;
-    std::vector<char> _body;
+    std::vector<unsigned char> _body;
 };
 }
 

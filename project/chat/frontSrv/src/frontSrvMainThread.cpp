@@ -1,4 +1,6 @@
+#include <iostream>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "frontSrvMainThread.h"
 #include "frontSrvConfig.h"
@@ -16,19 +18,19 @@ void FrontSrvMainThread::createUserThreads()
 {
     _logicThreadPool.create();
     auto& threads = _logicThreadPool.getThreadPoolVec();
-    std::unordered_map<void *,parrot::JobHandler*> jobHandlerMap;
+    std::unordered_set<parrot::JobHandler*> jobHandlerSet;
     std::vector<parrot::JobHandler*> jobHandlerVec;
     for (auto& t : threads)
     {
         t->setConfig(static_cast<const FrontSrvConfig*>(_config));
-        jobHandlerMap[t.get()] = t.get();
+        jobHandlerSet.insert(t.get());
         jobHandlerVec.push_back(t.get());
     }
-    
+
     _logicThreadPool.start();
 
     setFrontThreadDefaultJobHandler(jobHandlerVec);
-    setFrontThreadJobHandler(jobHandlerMap);
+    setFrontThreadJobHandler(jobHandlerSet);
     LOG_INFO("FrontSrvMainThread::createUserThreads. Done.");
 }
 

@@ -101,7 +101,7 @@ void MainThread::setFrontThreadDefaultJobHandler(std::vector<JobHandler*>& hdrs)
 }
 
 void MainThread::setFrontThreadJobHandler(
-    std::unordered_map<void*, JobHandler*>& hdrs)
+    std::unordered_set<JobHandler*>& hdrs)
 {
     auto& threadVec = _frontThreadPool->getThreadPoolVec();
     for (auto& t : threadVec)

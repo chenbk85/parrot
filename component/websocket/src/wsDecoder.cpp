@@ -39,19 +39,16 @@ WsDecoder::WsDecoder(WsTranslayer& trans)
 }
 
 std::unique_ptr<WsPacket>
-WsDecoder::createWsPacket(const std::vector<char>::iterator& begin,
-                          const std::vector<char>::iterator& end)
+WsDecoder::createWsPacket(const std::vector<unsigned char>::iterator& begin,
+                          const std::vector<unsigned char>::iterator& end)
 {
-    std::vector<char> payload;
+    std::vector<unsigned char> payload;
     payload.reserve(end - begin);
     std::copy(begin, end, std::back_inserter(payload));
 
-    std::cout << std::string(&payload[0], payload.size()) << std::endl;
-    
     std::unique_ptr<WsPacket> pkt(new WsPacket());
     pkt->setPacket(_opCode, std::move(payload));
 
-    std::cout << "createWsPacket" << std::endl;
     return pkt;
 }
 
