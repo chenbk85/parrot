@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <string>
+#include <iostream>
 
 #include "logger.h"
 #include "json.h"
@@ -9,46 +10,45 @@
 #include "macroFuncs.h"
 #include "sysHelper.h"
 #include "wsDefinition.h"
+#include "ioEvent.h"
+#include "wsTranslayer.h"
 
 namespace parrot
 {
-WsDecoder::WsDecoder(CallbackFunc &&cb,
-                   std::vector<char>& recvVec,
-                   const std::string& remoteIp,
-                   bool needMask,
-                   const WsConfig& cfg)
-    : _recvVec(recvVec),
-      _remoteIp(remoteIp),
-      _needMask(needMask),
+WsDecoder::WsDecoder(WsTranslayer& trans)
+    : _recvVec(trans._recvVec),
+      _rcvdLen(trans._rcvdLen),
+      _remoteIp(trans._io.getRemoteAddr()),
+      _needMask(trans._needRecvMasked),
+      _callbackFunc(trans._onPacketCb),
+      _config(trans._config),
       _state(eParseState::Begin),
       _fin(false),
       _masked(false),
       _opCode(eOpCode::Continue),
       _fragmentDataType(eOpCode::Binary),
-      _lastParseIt(),
-      _pktBeginIt(),
-      _callbackFunc(std::move(cb)),
+      _lastParsePos(0),
+      _pktBeginPos(0),
       _headerLen(0),
       _payloadLen(0),
       _maskingKey(),
       _parseResult(eCodes::ST_Ok),
-      _packetVec(),
-      _config(cfg)
+      _packetVec()
 {
     _recvVec.clear();
-    _lastParseIt = _recvVec.begin();
-    _pktBeginIt = _lastParseIt;
 }
 
 std::unique_ptr<WsPacket>
-WsDecoder::createWsPacket(const std::vector<char>::iterator& begin,
-                         const std::vector<char>::iterator& end)
+WsDecoder::createWsPacket(const std::vector<unsigned char>::iterator& begin,
+                          const std::vector<unsigned char>::iterator& end)
 {
-    std::vector<char> payload(end - begin);
-    std::copy(begin, end, payload.begin());
+    std::vector<unsigned char> payload;
+    payload.reserve(end - begin);
+    std::copy(begin, end, std::back_inserter(payload));
 
     std::unique_ptr<WsPacket> pkt(new WsPacket());
     pkt->setPacket(_opCode, std::move(payload));
+
     return pkt;
 }
 
@@ -56,39 +56,78 @@ void WsDecoder::parseHeader()
 {
     if (_payloadLen == 126)
     {
-        _payloadLen = uniNtohs(*(uint16_t*)&(*_lastParseIt));
-        _lastParseIt += 2;
+        _payloadLen = uniNtohs(*(uint16_t*)&(_recvVec[_lastParsePos]));
+        _lastParsePos += 2;
     }
     else if (_payloadLen == 127)
     {
-        _payloadLen = uniNtohll(*(uint64_t*)&(*_lastParseIt));
-        _lastParseIt += 8;
+        _payloadLen = uniNtohll(*(uint64_t*)&(_recvVec[_lastParsePos]));
+        _lastParsePos += 8;
     }
 
     if (_masked)
     {
-        std::copy_n(_lastParseIt, 4, _maskingKey.begin());
-        _lastParseIt += 4;
+        // The mask key is not a integer. However, We can use a 32 bit
+        // integer to save the mask key without bother the ntohxx functions.
+        _maskingKey = *reinterpret_cast<uint32_t*>(&(_recvVec[_lastParsePos]));
+        _lastParsePos += 4;
+    }
+}
+
+void WsDecoder::unmaskData()
+{
+    // Unmasking data.
+    auto* p        = reinterpret_cast<uint32_t*>(&_recvVec[_lastParsePos]);
+    uint64_t len32 = _payloadLen / 4;
+    uint64_t idx   = 0;
+
+    for (; idx < len32; ++idx)
+    {
+        *(p + idx) ^= _maskingKey;
+    }
+
+    switch (_payloadLen % 4)
+    {
+        case 3:
+        {
+            _recvVec[_lastParsePos + _payloadLen - 1] ^=
+                (reinterpret_cast<uint8_t*>(&_maskingKey))[2];
+        }
+        // No break.
+
+        case 2:
+        {
+            _recvVec[_lastParsePos + _payloadLen - 2] ^=
+                (reinterpret_cast<uint8_t*>(&_maskingKey))[1];
+        }
+        // No break.
+
+        case 1:
+        {
+            _recvVec[_lastParsePos + _payloadLen - 3] ^=
+                (reinterpret_cast<uint8_t*>(&_maskingKey))[0];
+        }
+        // No break.
+
+        case 0:
+        {
+            // Do nothing.
+        }
     }
 }
 
 void WsDecoder::parseBody()
 {
-    auto pktEnd = _pktBeginIt + _headerLen + _payloadLen;
     if (_masked)
     {
-        // Unmasking data.
-        auto i = 0u;
-        for (auto it = _lastParseIt; it != pktEnd; ++it)
-        {
-            *it = *it ^ _maskingKey[i++ % 4];
-        }
+        unmaskData();
     }
 
     if (_fin && _packetVec.size() == 0)
     {
         // Not fragmented.
-        auto pkt = createWsPacket(_lastParseIt, pktEnd);
+        auto begin = _recvVec.begin() + _lastParsePos;
+        auto pkt = createWsPacket(begin, begin + _payloadLen);
         _callbackFunc(std::move(pkt));
     }
     else if (_fin)
@@ -97,7 +136,7 @@ void WsDecoder::parseBody()
         if (_opCode == eOpCode::Continue)
         {
             // save.
-            std::copy_n(_lastParseIt, _payloadLen,
+            std::copy_n(&_recvVec[_lastParsePos], _payloadLen,
                         std::back_inserter(_packetVec));
 
             auto pkt = createWsPacket(_packetVec.begin(), _packetVec.end());
@@ -116,17 +155,19 @@ void WsDecoder::parseBody()
         else
         {
             // Control frame.
-            auto pkt = createWsPacket(_lastParseIt, pktEnd);
+            auto begin = _recvVec.begin() + _lastParsePos;
+            auto pkt = createWsPacket(begin, begin + _payloadLen);
             _callbackFunc(std::move(pkt));
         }
     }
     else
     {
         // Fragmented packet. Save to _packetVec.
-        std::copy_n(_lastParseIt, _payloadLen, std::back_inserter(_packetVec));
+        std::copy_n(&_recvVec[_lastParsePos], _payloadLen,
+                    std::back_inserter(_packetVec));
     }
 
-    _lastParseIt += _payloadLen;
+    _lastParsePos += _payloadLen;
 }
 
 eCodes WsDecoder::doParse()
@@ -137,20 +178,20 @@ eCodes WsDecoder::doParse()
     {
         case eParseState::Begin:
         {
-            if (_recvVec.end() - _pktBeginIt < 2)
+            if (_rcvdLen - _pktBeginPos < 2)
             {
                 return eCodes::ST_NeedRecv;
             }
-            break;
 
-            uint8_t firstByte = (uint8_t)*_lastParseIt++;
-            _fin = firstByte & ((uint8_t)1 << 8);
-            if ((firstByte & ((uint8_t)1 << 7)) != 0 ||
-                (firstByte & ((uint8_t)1 << 6)) != 0 ||
-                (firstByte & ((uint8_t)1 << 5)) != 0)
+            uint8_t firstByte = static_cast<uint8_t>(_recvVec[_lastParsePos++]);
+            _fin = firstByte & ((uint8_t)1 << 7);
+            if ((firstByte & ((uint8_t)1 << 6)) != 0 ||
+                (firstByte & ((uint8_t)1 << 5)) != 0 ||
+                (firstByte & ((uint8_t)1 << 4)) != 0)
             {
                 LOG_WARN("WsDecoder::doParse: Protocol error. "
-                         "Remote is " << _remoteIp << ".");                
+                         "Remote is "
+                         << _remoteIp << ".");
                 // The 2nd, 3rd & 4th bits must be ZERO.
                 _parseResult = eCodes::WS_ProtocolError;
                 return eCodes::ST_Ok;
@@ -162,7 +203,8 @@ eCodes WsDecoder::doParse()
                 (_opCode > eOpCode::Pong))
             {
                 LOG_WARN("WsDecoder::doParse: Protocol error. "
-                         "Remote is " << _remoteIp << ".");
+                         "Remote is "
+                         << _remoteIp << ".");
                 // Peer should not use reserved opcode.
                 _parseResult = eCodes::WS_ProtocolError;
                 return eCodes::ST_Ok;
@@ -172,19 +214,22 @@ eCodes WsDecoder::doParse()
             {
                 // We don't support text payload.
                 LOG_WARN("WsDecoder::doParse: Only binary is accepted. "
-                         "Remote is " << _remoteIp << ".");
+                         "Remote is "
+                         << _remoteIp << ".");
                 _parseResult = eCodes::WS_InvalidFramePayloadData;
                 return eCodes::ST_Ok;
             }
 
-            // Fragmented data should save data type.
+            // Fragmented data should save data type. The fin flag of
+            // control frame must be 1. Only data frame can be 0.
             if (!_fin && _opCode != eOpCode::Continue)
             {
                 // First fragmented data frame.
                 if (_opCode != eOpCode::Binary)
                 {
                     LOG_WARN("WsDecoder::doParse: Only binary is accepted. "
-                             "Remote is " << _remoteIp << ".");
+                             "Remote is "
+                             << _remoteIp << ".");
                     _parseResult = eCodes::WS_InvalidFramePayloadData;
                     return eCodes::ST_Ok;
                 }
@@ -192,9 +237,9 @@ eCodes WsDecoder::doParse()
                 _fragmentDataType = _opCode;
             }
 
-            uint8_t secondByte = (uint8_t)*_lastParseIt++;
-            _masked = secondByte & 0x80;
-            _payloadLen = secondByte & 0x7F;
+            uint8_t secondByte = static_cast<uint8_t>(_recvVec[_lastParsePos++]);
+            _masked            = secondByte & 0x80;
+            _payloadLen        = secondByte & 0x7F;
 
             if ((_needMask && !_masked) || (!_needMask && _masked))
             {
@@ -226,17 +271,18 @@ eCodes WsDecoder::doParse()
                     _parseResult = eCodes::WS_MessageTooBig;
                     return eCodes::ST_Ok;
                 }
+
+                _recvVec.reserve(_payloadLen + _headerLen);
             }
 
             // Pre analyzing completed, goto next step.
             _state = eParseState::ParsingHeader;
-            return doParse();
         }
-        break;
+        // No break;
 
         case eParseState::ParsingHeader:
         {
-            if (_recvVec.end() - _pktBeginIt < _headerLen)
+            if (_rcvdLen - _pktBeginPos < _headerLen)
             {
                 return eCodes::ST_NeedRecv;
             }
@@ -246,13 +292,12 @@ eCodes WsDecoder::doParse()
 
             // Next we need to parse body.
             _state = eParseState::ParsingBody;
-            return doParse();
         }
-        break;
+        // No break;
 
         case eParseState::ParsingBody:
         {
-            if ((uint32_t)(_recvVec.end() - _lastParseIt) < _payloadLen)
+            if (_rcvdLen - _lastParsePos < _payloadLen)
             {
                 return eCodes::ST_NeedRecv;
             }
@@ -280,6 +325,8 @@ eCodes WsDecoder::doParse()
 eCodes WsDecoder::parse()
 {
     eCodes code;
+    bool needMoveBuff = false;
+
     while (true)
     {
         code = doParse();
@@ -292,9 +339,11 @@ eCodes WsDecoder::parse()
             }
             else
             {
-                if (_lastParseIt != _recvVec.end())
+                if (_lastParsePos != _rcvdLen)
                 {
                     // Received more than one packet. Continue parsing.
+                    _pktBeginPos = _lastParsePos;
+                    needMoveBuff = true;
                     continue;
                 }
 
@@ -312,24 +361,26 @@ eCodes WsDecoder::parse()
                     }
                     _recvVec.resize(_config._recvBuffLen);
                     _recvVec.shrink_to_fit();
-                    _recvVec.clear();
-                    _pktBeginIt = _recvVec.begin();
                 }
 
+                _rcvdLen      = 0;
+                _pktBeginPos  = 0;
+                _lastParsePos = 0;
                 return eCodes::ST_Complete;
             }
         }
         else if (code == eCodes::ST_NeedRecv)
         {
-            if (_lastParseIt != _recvVec.end())
+            if (needMoveBuff)
             {
-                uint32_t rcvdLen = _recvVec.end() - _lastParseIt;
-                std::move(_lastParseIt, _recvVec.end(), _recvVec.begin());
-                _recvVec.resize(rcvdLen);
-                _pktBeginIt = _recvVec.begin();
+                uint64_t rcvdLen = _rcvdLen - _lastParsePos;
+                std::move(&_recvVec[_lastParsePos], &_recvVec[_rcvdLen],
+                          _recvVec.begin());
+                _rcvdLen      = rcvdLen;
+                _lastParsePos = _lastParsePos - _pktBeginPos;
+                _pktBeginPos  = 0;
             }
         }
-
         return code;
     }
 }

@@ -32,6 +32,7 @@ WsTranslayer::WsTranslayer(IoEvent& io,
       _recvVec(_config._recvBuffLen),
       _rcvdLen(0),
       _wsEncoder(),
+      _onOpenCb(),
       _onPacketCb(),
       _onErrorCb(),
       _random(nullptr),
@@ -43,6 +44,11 @@ WsTranslayer::WsTranslayer(IoEvent& io,
 void WsTranslayer::setRandom(MtRandom *random)
 {
     _random = random;
+}
+
+void WsTranslayer::registerOnOpenCb(std::function<void()>&& cb)
+{
+    _onOpenCb = std::move(cb);
 }
 
 void WsTranslayer::registerOnPacketCb(
@@ -64,12 +70,8 @@ eCodes WsTranslayer::recvData()
     try
     {
         _io.recv(&_recvVec[_rcvdLen],
-                 _recvVec.size() - _rcvdLen, rcvdLen);
-
+                 _recvVec.capacity() - _rcvdLen, rcvdLen);
         _rcvdLen += rcvdLen;
-        std::cout << "recvData: "
-                  << std::string(&_recvVec[0], _recvVec.size())
-                  << std::endl;
     }
     catch (std::system_error& e)
     {
@@ -152,8 +154,8 @@ bool WsTranslayer::isAllSent() const
 
 eIoAction WsTranslayer::work(eIoAction evt)
 {
-    eIoAction act = eIoAction::None;
     eCodes code = eCodes::ST_Init;
+    
     switch (_state)
     {
         case eTranslayerState::RecvHttpHandshake:
@@ -175,7 +177,6 @@ eIoAction WsTranslayer::work(eIoAction evt)
             }
 
             code = _httpRsp->work();
-            std::cout << "work " << code << std::endl;
             if (code == eCodes::ST_NeedRecv)
             {
                 return eIoAction::Read;
@@ -209,9 +210,11 @@ eIoAction WsTranslayer::work(eIoAction evt)
 
                 _httpRsp.reset(nullptr);
                 _state = WsConnected;
-                _wsDecoder.reset(new WsDecoder(std::move(_onPacketCb), _recvVec,
-                                             _io.getRemoteAddr(),
-                                             _needRecvMasked, _config));
+                _rcvdLen = 0;
+                _wsDecoder.reset(new WsDecoder(*this));
+                
+                // WebSocket is opened.
+                _onOpenCb();
                 return work(eIoAction::Read);
             }
             else if (code == eCodes::ST_NeedSend)
@@ -242,6 +245,15 @@ eIoAction WsTranslayer::work(eIoAction evt)
                     if (res != eCodes::ST_Ok)
                     {
                         _onErrorCb(res);
+                        return eIoAction::Write;
+                    }
+
+                    if (isAllSent())
+                    {
+                        return eIoAction::Read;
+                    }
+                    else
+                    {
                         return eIoAction::Write;
                     }
                 }
@@ -284,6 +296,7 @@ eIoAction WsTranslayer::work(eIoAction evt)
         break;
     }
 
-    return act;
+    PARROT_ASSERT(false);    
+    return eIoAction::None;
 }
 }

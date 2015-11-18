@@ -68,7 +68,7 @@ class SslIo : public IoEvent
     //  ST_RetryWhenWriteable
     //  ST_Ok
     //  ERR_Fail
-    eCodes send(const char* buff, uint32_t len, uint32_t& sentLen) override;
+    eCodes send(const unsigned char* buff, uint32_t len, uint32_t& sentLen) override;
 
     // recv
     //
@@ -84,7 +84,7 @@ class SslIo : public IoEvent
     //  ST_RetryWhenWriteable
     //  ST_Ok
     //  ERR_Fail
-    eCodes recv(char* buff, uint32_t len, uint32_t& recvLen) override;
+    eCodes recv(unsigned char* buff, uint32_t len, uint32_t& recvLen) override;
 
     // closeSsl
     //

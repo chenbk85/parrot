@@ -67,6 +67,7 @@ eIoAction IoEvent::getDefaultAction() const
 
 void IoEvent::setNextAction(eIoAction act)
 {
+    PARROT_ASSERT(act != eIoAction::None);
     _nextAction = act;
 }
 
@@ -77,6 +78,7 @@ eIoAction IoEvent::getNextAction() const
 
 void IoEvent::setCurrAction(eIoAction act)
 {
+    PARROT_ASSERT(act != eIoAction::None);    
     _currAction = act;
 }
 
@@ -87,6 +89,7 @@ eIoAction IoEvent::getCurrAction() const
 
 void IoEvent::setNotifiedAction(eIoAction act)
 {
+    PARROT_ASSERT(act != eIoAction::None);    
     _notifiedAction = act;
 }
 
@@ -191,7 +194,7 @@ uint16_t IoEvent::getRemotePort() const
 /////////////////////////////////////////////////////////////////////////
 /// Send/Recv/Read/Write
 //////////////
-eCodes IoEvent::send(const char* buff, uint32_t buffLen, uint32_t& sentLen)
+eCodes IoEvent::send(const unsigned char* buff, uint32_t buffLen, uint32_t& sentLen)
 {
     if (!buff || buffLen == 0 || _fd < 0)
     {
@@ -225,7 +228,7 @@ eCodes IoEvent::send(const char* buff, uint32_t buffLen, uint32_t& sentLen)
     return eCodes::ST_Ok;
 }
 
-eCodes IoEvent::recv(char* buff, uint32_t buffLen, uint32_t& rcvdLen)
+eCodes IoEvent::recv(unsigned char* buff, uint32_t buffLen, uint32_t& rcvdLen)
 {
     if (!buff || buffLen == 0 || _fd < 0)
     {

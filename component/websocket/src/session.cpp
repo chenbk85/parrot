@@ -8,7 +8,7 @@ Session::Session():
     _uid(),
     _frontSid(),
     _serverMap(),
-    _backThreadPtr(nullptr),
+    _jobHandlerPtr(nullptr),
     _frontThreadPtr(nullptr),
     _connUniqueId(0),
     _ip()

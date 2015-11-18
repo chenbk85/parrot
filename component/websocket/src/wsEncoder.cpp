@@ -1,5 +1,8 @@
 #include <string>
+#include <iostream>
 #include <algorithm>
+#include <sstream>
+#include <iomanip>
 
 #include "macroFuncs.h"
 #include "json.h"
@@ -32,7 +35,7 @@ WsEncoder::WsEncoder(WsTranslayer& trans)
       _needMask(trans._needSendMasked),
       _random(*(trans._random)),
       _jsonStr(),
-      _maskingKey(),
+      _maskingKey(0),
       _metaData(9)
 {
     _metaData.resize(0);
@@ -62,6 +65,17 @@ eCodes WsEncoder::loadBuff()
     }
 
     encode();
+
+    std::ostringstream ostr;
+    ostr << std::showbase << std::internal << std::setfill('0');
+    for (uint64_t i = 0; i != _needSendLen; ++i)
+    {
+        std::cout << static_cast<uint32_t>(_sendVec[i]) << std::endl;
+        ostr << std::hex << std::setw(4) << (uint32_t)_sendVec[i] << std::dec
+             << " ";
+    }
+    LOG_DEBUG("WsEncoder::loadBuff: _needSendLen is "
+              << _needSendLen << ". Send buff is " << ostr.str() << ".");
     return eCodes::ST_Ok;
 }
 
@@ -142,11 +156,10 @@ void WsEncoder::encodeClosePacket()
 
     if (_needMask)
     {
-        for (int i = 0; i != 4; ++i)
-        {
-            _maskingKey[i] = static_cast<char>(_random.random(256));
-            *it++          = _maskingKey[i];
-        }
+        _maskingKey = _random.random32();
+        // Do not treat _masking key as integer.
+        std::copy_n(reinterpret_cast<char*>(&_maskingKey), 4, it);
+        it += 4;
     }
 
     auto rit = it;
@@ -299,11 +312,8 @@ void WsEncoder::writeHeader(bool firstPkt, bool fin)
     uint8_t maskBit = 0x00;
     if (_needMask)
     {
-        for (int i = 0; i != 4; ++i)
-        {
-            _maskingKey[i] = _random.random(256);
-        }
-        maskBit = 0x80;
+        _maskingKey = _random.random32();
+        maskBit     = 0x80;
     }
 
     if (_payloadLen <= 125)
@@ -327,8 +337,7 @@ void WsEncoder::writeHeader(bool firstPkt, bool fin)
 
     if (_needMask)
     {
-        auto intBE = uniHtonl(*reinterpret_cast<uint32_t*>(&(_maskingKey[0])));
-        std::copy_n(_lastIt, 4, reinterpret_cast<char*>(&intBE));
+        std::copy_n(reinterpret_cast<char*>(&_maskingKey), 4, _lastIt);
         _lastIt += 4;
     }
 }
@@ -415,8 +424,7 @@ void WsEncoder::writeRoute()
     auto route = _currPkt->getRoute();
     if (route < 254)
     {
-        uint8_t len = static_cast<uint8_t>(route);
-        std::copy_n(&len, 1, _lastIt);
+        *_lastIt++ = static_cast<uint8_t>(route);
         _encodedLen += 1;
     }
     else if (route < 0xFFFF)
@@ -425,26 +433,29 @@ void WsEncoder::writeRoute()
         uint16_t len = uniHtons(static_cast<uint16_t>(route));
         std::copy_n(&len, 2, _lastIt);
         _encodedLen += 2;
+        _lastIt += 2;
     }
     else
     {
         *_lastIt++   = 254;
         uint64_t len = uniHtonll(route);
         std::copy_n(&len, 8, _lastIt);
-        _encodedLen += 3;
+        _encodedLen += 9;
+        _lastIt += 8;
     }
 }
 
-eCodes WsEncoder::writeBuff(const char* src, uint64_t len)
+eCodes WsEncoder::writeBuff(const unsigned char* src, uint64_t len)
 {
-    auto leftLen        = _payloadLen - (_lastIt - _sendVec.begin());
+    uint64_t leftLen    = _headerLen + _payloadLen -
+        (_lastIt - _sendVec.begin());
     uint8_t needCopyLen = len - _itemEncodedLen;
     uint8_t copyLen =
         (leftLen >= needCopyLen) ? needCopyLen : needCopyLen - leftLen;
     std::copy_n(src + _itemEncodedLen, copyLen, _lastIt);
-    _itemEncodedLen += needCopyLen;
-    _lastIt += needCopyLen;
-    _encodedLen += needCopyLen;
+    _itemEncodedLen += copyLen;
+    _lastIt += copyLen;
+    _encodedLen += copyLen;
 
     if (_itemEncodedLen == len)
     {
@@ -453,7 +464,8 @@ eCodes WsEncoder::writeBuff(const char* src, uint64_t len)
 
     if (_needMask)
     {
-        maskPacket(_sendVec.begin() + _headerLen, _sendVec.end());
+        maskPacket(_sendVec.begin() + _headerLen,
+                   _sendVec.begin() + _headerLen + _payloadLen);
     }
 
     _needSendLen = _lastIt - _sendVec.begin();
@@ -559,8 +571,8 @@ void WsEncoder::encodePlainPacket()
                     }
                 }
 
-                if (writeBuff(&_jsonStr[0], _jsonStr.size()) !=
-                    eCodes::ST_Complete)
+                if (writeBuff(reinterpret_cast<unsigned char*>(&_jsonStr[0]),
+                              _jsonStr.size()) != eCodes::ST_Complete)
                 {
                     // Buffer is full. Need to send the buffer then try again.
                     return;
@@ -623,15 +635,16 @@ void WsEncoder::encodePlainPacket()
     _state       = eEncoderState::Idle;
 }
 
-void WsEncoder::maskPacket(std::vector<char>::iterator begin,
-                           std::vector<char>::iterator end)
+void WsEncoder::maskPacket(std::vector<unsigned char>::iterator begin,
+                           std::vector<unsigned char>::iterator end)
 {
-    uint8_t i = 0;
-    std::for_each(begin, end, [&i, this](char& c)
-                  {
-                      c ^= this->_maskingKey[i++];
-                      i %= 4;
-                  });
+    uint8_t i   = 0;
+    uint8_t* mp = reinterpret_cast<uint8_t*>(&_maskingKey);
+
+    for (auto it = begin; it != end; ++it)
+    {
+        *it ^= mp[i++ % 4];
+    }
 }
 
 void WsEncoder::getMetaData(ePayloadItem item, uint64_t dataLen)
@@ -643,24 +656,26 @@ void WsEncoder::getMetaData(ePayloadItem item, uint64_t dataLen)
         return;
     }
 
-    auto it = _metaData.begin();
-
     // First byte is the item type.
-    *it++ = static_cast<char>(item);
+    _metaData.push_back(static_cast<unsigned char>(item));
 
     if (dataLen < 254)
     {
-        *it++ = static_cast<char>(dataLen);
+        _metaData.push_back(static_cast<unsigned char>(dataLen));
     }
     else if (dataLen >= 254 && dataLen < 65536)
     {
-        *it++ = 254;
-        *(uint16_t*)(&(*it)) = uniHtons(dataLen);
+        _metaData.push_back(254);
+        uint16_t len = uniHtons(dataLen);
+        std::copy_n(reinterpret_cast<unsigned char*>(&len), 2,
+                    std::back_inserter(_metaData));
     }
     else
     {
-        *it++ = 255;
-        *(uint64_t*)(&(*it)) = uniHtonll(dataLen);
+        _metaData.push_back(255);
+        dataLen = uniHtons(dataLen);
+        std::copy_n(reinterpret_cast<unsigned char*>(&dataLen), 8,
+                    std::back_inserter(_metaData));
     }
 }
 

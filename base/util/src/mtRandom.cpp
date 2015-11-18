@@ -20,9 +20,14 @@ uint64_t MtRandom::getSeed() const
     return _seed;
 }
 
-uint64_t MtRandom::random()
+uint64_t MtRandom::random64()
 {
     return _mt();
+}
+
+uint32_t MtRandom::random32()
+{
+    return static_cast<uint32_t>(_mt());
 }
 
 uint32_t MtRandom::random(uint32_t max)

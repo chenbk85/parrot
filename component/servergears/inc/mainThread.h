@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <cstdint>
+#include <unordered_set>
 
 #include "threadPool.h"
 #include "eventNotifier.h"
@@ -39,7 +40,7 @@ class MainThread
 
   public:
     void setFrontThreadDefaultJobHandler(std::vector<JobHandler*>& hdrs);
-    void setFrontThreadJobHandler(std::unordered_map<void*, JobHandler*>& hdrs);
+    void setFrontThreadJobHandler(std::unordered_set<JobHandler*>& hdrs);
 
   public:
     virtual void start();

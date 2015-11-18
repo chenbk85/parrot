@@ -13,6 +13,7 @@ namespace parrot
 {
 struct WsConfig;
 class WsPacket;
+class WsTranslayer;
 
 // WsDecoder is the websocket parser for both server side and
 // client side. RPC packet parser will also use this class.
@@ -27,15 +28,11 @@ class WsDecoder
     };
 
   private:
-    using VecCharIt = std::vector<char>::iterator;
+    using VecCharIt    = std::vector<unsigned char>::iterator;
     using CallbackFunc = std::function<void(std::unique_ptr<WsPacket>&&)>;
 
   public:
-    WsDecoder(CallbackFunc&& cb,
-             std::vector<char>& recvVec,
-             const std::string& remoteIp,
-             bool needMask,
-             const WsConfig& cfg);
+    explicit WsDecoder(WsTranslayer &trans);
     ~WsDecoder() = default;
     WsDecoder(const WsDecoder&) = delete;
     WsDecoder& operator=(const WsDecoder&) = delete;
@@ -113,29 +110,33 @@ class WsDecoder
     // fragmented, invoke the callback to notify uplayer.
     void parseBody();
 
+    void unmaskData();
+
     std::unique_ptr<WsPacket>
-    createWsPacket(const std::vector<char>::iterator& begin,
-                   const std::vector<char>::iterator& end);
+    createWsPacket(const std::vector<unsigned char>::iterator& begin,
+                   const std::vector<unsigned char>::iterator& end);
 
   private:
-    std::vector<char>& _recvVec;
+    std::vector<unsigned char>& _recvVec;
+    uint32_t& _rcvdLen;
     const std::string& _remoteIp;
     bool _needMask;
+    CallbackFunc& _callbackFunc;
+    const WsConfig& _config;
+
     eParseState _state;
     bool _fin;
     bool _masked;
     eOpCode _opCode;
     eOpCode _fragmentDataType;
-    VecCharIt _lastParseIt;
-    VecCharIt _pktBeginIt;
-    CallbackFunc _callbackFunc;
+    uint64_t _lastParsePos;
+    uint64_t _pktBeginPos;
     uint8_t _headerLen;
     uint64_t _payloadLen;
-    std::array<char, 4> _maskingKey;
+    uint32_t _maskingKey;
     eCodes _parseResult;
-    std::vector<char> _packetVec;
+    std::vector<unsigned char> _packetVec;
     uint32_t _largePktCount;
-    const WsConfig& _config;
 };
 }
 #endif
