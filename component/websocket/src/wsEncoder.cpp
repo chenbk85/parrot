@@ -66,6 +66,7 @@ eCodes WsEncoder::loadBuff()
 
     encode();
 
+    std::cout << _sendVec.capacity() << std::endl;    
     std::ostringstream ostr;
     ostr << std::showbase << std::internal << std::setfill('0');
     for (uint64_t i = 0; i != _needSendLen; ++i)
@@ -125,7 +126,7 @@ void WsEncoder::encodeClosePacket()
     const std::string& reason = _currPkt->getCloseReason();
     uint32_t payloadLen       = 2 + reason.size();
     bool copyReason = true;
-    if (payloadLen > _config._fragmentThreshold)
+    if (payloadLen > _config._sendBuffLen - 4)
     {
         LOG_WARN("WsEncoder::encodeClosePacket: Close pkt cannot be "
                  "fragemnted. Reason '"
@@ -325,14 +326,14 @@ void WsEncoder::writeHeader(bool firstPkt, bool fin)
     {
         *_lastIt++ = maskBit | 126;
         auto intBE = uniHtons(static_cast<uint16_t>(_payloadLen));
-        std::copy_n(_lastIt, 2, reinterpret_cast<char*>(&intBE));
+        std::copy_n(reinterpret_cast<char*>(&intBE), 2, _lastIt);
         _lastIt += 2;
     }
     else
     {
         *_lastIt   = maskBit | 127;
         auto intBE = uniHtonll(_payloadLen);
-        std::copy_n(_lastIt, 8, reinterpret_cast<char*>(&intBE));
+        std::copy_n(reinterpret_cast<char*>(&intBE), 8, _lastIt);
         _lastIt += 8;
     }
 
@@ -448,12 +449,12 @@ void WsEncoder::writeRoute()
 
 eCodes WsEncoder::writeBuff(const unsigned char* src, uint64_t len)
 {
-    uint64_t leftLen    = _headerLen + _payloadLen -
-        (_lastIt - _sendVec.begin());
-    uint8_t needCopyLen = len - _itemEncodedLen;
-    uint8_t copyLen =
-        (leftLen >= needCopyLen) ? needCopyLen : needCopyLen - leftLen;
+    uint64_t leftLen     = _headerLen + _payloadLen - (_lastIt - _sendVec.begin());
+    uint64_t needCopyLen = len - _itemEncodedLen;
+    uint64_t copyLen     = leftLen >= needCopyLen ? needCopyLen : leftLen;
+
     std::copy_n(src + _itemEncodedLen, copyLen, _lastIt);
+
     _itemEncodedLen += copyLen;
     _lastIt += copyLen;
     _encodedLen += copyLen;
@@ -568,6 +569,7 @@ void WsEncoder::encodePlainPacket()
                     }
                     else
                     {
+                        _encodingMeta = false;
                         _itemEncodedLen = 0;
                     }
                 }
@@ -608,6 +610,7 @@ void WsEncoder::encodePlainPacket()
                     }
                     else
                     {
+                        _encodingMeta = false;
                         _itemEncodedLen = 0;
                     }
                 }

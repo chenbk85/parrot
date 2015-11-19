@@ -120,6 +120,7 @@ class Json
     void setValue(const char* key, const double& v);
     void setValue(const char* key, const char* v);
     void setValue(const char* key, const bool& v);
+    void setValue(const char* key, const std::string &str);
     void setValue(const char* key, std::unique_ptr<Json>& v);
 
     void setValue(const char* key, const std::vector<uint32_t>& v);

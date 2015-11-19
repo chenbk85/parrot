@@ -46,6 +46,7 @@ class JsonImpl
 
     template <typename T> void setValue(const char* key, const T& v);
     void setValue(const char* key, const char* v);
+    void setValue(const char* key, const std::string &v);
     void setValue(const char* key, std::unique_ptr<Json>& v);
 
     template <typename T>

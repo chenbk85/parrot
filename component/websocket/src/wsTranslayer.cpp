@@ -39,7 +39,9 @@ WsTranslayer::WsTranslayer(IoEvent& io,
       _random(nullptr),
       _config(cfg)
 {
-    _wsEncoder.reset(new WsEncoder(*this));
+    _sendVec.clear();
+    _recvVec.clear();
+    _wsEncoder.reset(new WsEncoder(*this));    
 }
 
 void WsTranslayer::setRandom(MtRandom* random)

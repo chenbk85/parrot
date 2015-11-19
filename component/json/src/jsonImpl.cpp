@@ -224,6 +224,11 @@ void JsonImpl::setValue(const char* key, const char* v)
     Pointer(key).Set(*_root, v);
 }
 
+void JsonImpl::setValue(const char* key, const std::string& v)
+{
+    Pointer(key).Set(*_root, v);
+}
+
 void JsonImpl::setValue(const char* key, std::unique_ptr<Json>& v)
 {
     Pointer(key).Set(*_root, *(v->_impl->getObject()));

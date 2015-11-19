@@ -160,6 +160,11 @@ void Json::setValue(const char* key, const char* v)
     _impl->setValue(key, v);
 }
 
+void Json::setValue(const char* key, const std::string& v)
+{
+    _impl->setValue(key, v);
+}
+
 void Json::setValue(const char* key, const bool& v)
 {
     _impl->setValue(key, v);

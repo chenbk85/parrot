@@ -5,8 +5,6 @@
 #include "mtRandom.h"
 #include "logger.h"
 #include "json.h"
-#include "wsEncoder.h"
-//#include "wsDecoder.h"
 #include "wsHttpResponse.h"
 #include "wsTranslayer.h"
 #include "wsPacket.h"
