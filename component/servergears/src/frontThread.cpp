@@ -138,6 +138,12 @@ void FrontThread::handlePacket(std::list<SessionPktPair>& pktList)
         LOG_DEBUG("FrontThread::handlePacket: Send packet to conn "
                   << (s.first)->_connUniqueId);
         it->second->sendPacket(s.second);
+
+        if (it->second->canSwitchToSend())
+        {
+            it->second->setNextAction(eIoAction::Write);
+            _notifier->updateEventAction(it->second.get());
+        }
     }
 }
 
@@ -315,6 +321,10 @@ void FrontThread::dispatchPackets()
 
 void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn>>& connList)
 {
+    for (auto &c : connList)
+    {
+        LOG_DEBUG("FrontThread::addConn: connId is " << c->getSession()->_connUniqueId);
+    }
     _connListLock.lock();
     _connList.splice(_connList.end(), connList);
     _connListLock.unlock();
@@ -345,7 +355,7 @@ void FrontThread::addConnToNotifier()
 
         LOG_DEBUG("FrontThread::addConnToNotifier: Add client connection "
                   << c->getRemoteAddr() << ".");
-        _connMap[c->getUniqueKey()] = std::move(c);
+        _connMap[c->getSession()->_connUniqueId] = std::move(c);
     }
 }
 

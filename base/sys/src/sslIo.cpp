@@ -17,7 +17,7 @@ SslIo::~SslIo()
 
 void SslIo::setSsl(SSL* ssl)
 {
-    _ssl = ssl;
+    _ssl     = ssl;
     BIO* bio = BIO_new_socket(getFd(), BIO_NOCLOSE);
     SSL_set_bio(_ssl, bio, bio);
 }
@@ -80,20 +80,21 @@ eCodes SslIo::handleResult(int ret, const char* funcName)
 
         switch (err)
         {
-        case SSL_ERROR_WANT_READ:
-            code = eCodes::ST_RetryWhenReadable;
-            break;
+            case SSL_ERROR_WANT_READ:
+                code = eCodes::ST_RetryWhenReadable;
+                break;
 
-        case SSL_ERROR_WANT_WRITE:
-            code = eCodes::ST_RetryWhenWritable;
-            break;
+            case SSL_ERROR_WANT_WRITE:
+                code = eCodes::ST_RetryWhenWritable;
+                break;
 
-        default:
-            char errBuf[512];
-            ERR_error_string_n(err, errBuf, sizeof(errBuf));
-            LOG_ERROR("SslIo::handleResult: " << funcName << ".  Ret is " << ret
-                                              << ". Err is " << errBuf << ".");
-            break;
+            default:
+                char errBuf[512];
+                ERR_error_string_n(err, errBuf, sizeof(errBuf));
+                LOG_ERROR("SslIo::handleResult: " << funcName << ".  Ret is "
+                                                  << ret << ". Err is "
+                                                  << errBuf << ".");
+                break;
         }
     }
 

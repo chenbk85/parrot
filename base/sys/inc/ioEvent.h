@@ -79,9 +79,6 @@ class IoEvent
 
     virtual void close();
 
-    void setUniqueKey(uint64_t key);
-    uint64_t getUniqueKey() const;
-
     void setRemoteAddr(const std::string& ip);
     void setRemoteAddr(std::string&& ip);
     const std::string& getRemoteAddr() const;
@@ -98,7 +95,6 @@ class IoEvent
 #endif
   protected:
     int _fd;
-    uint64_t _uniqueKey;
     eIoAction _nextAction;
     // Kqueue read event and write event shares one IoEvent, make
     // sure only one of read & write is available, or here will

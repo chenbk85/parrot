@@ -70,10 +70,11 @@ eCodes WsEncoder::loadBuff()
     ostr << std::showbase << std::internal << std::setfill('0');
     for (uint64_t i = 0; i != _needSendLen; ++i)
     {
-        std::cout << static_cast<uint32_t>(_sendVec[i]) << std::endl;
+        std::cout << static_cast<uint32_t>(_sendVec[i]) << " ";
         ostr << std::hex << std::setw(4) << (uint32_t)_sendVec[i] << std::dec
              << " ";
     }
+    std::cout << std::endl;
     LOG_DEBUG("WsEncoder::loadBuff: _needSendLen is "
               << _needSendLen << ". Send buff is " << ostr.str() << ".");
     return eCodes::ST_Ok;

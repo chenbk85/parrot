@@ -35,13 +35,14 @@ WsTranslayer::WsTranslayer(IoEvent& io,
       _onOpenCb(),
       _onPacketCb(),
       _onErrorCb(),
+      _canSend(true),
       _random(nullptr),
       _config(cfg)
 {
     _wsEncoder.reset(new WsEncoder(*this));
 }
 
-void WsTranslayer::setRandom(MtRandom *random)
+void WsTranslayer::setRandom(MtRandom* random)
 {
     _random = random;
 }
@@ -69,8 +70,7 @@ eCodes WsTranslayer::recvData()
 
     try
     {
-        _io.recv(&_recvVec[_rcvdLen],
-                 _recvVec.capacity() - _rcvdLen, rcvdLen);
+        _io.recv(&_recvVec[_rcvdLen], _recvVec.capacity() - _rcvdLen, rcvdLen);
         _rcvdLen += rcvdLen;
     }
     catch (std::system_error& e)
@@ -87,7 +87,7 @@ eCodes WsTranslayer::recvData()
 eCodes WsTranslayer::sendData()
 {
     uint32_t sentLen = 0;
-    eCodes code = eCodes::ST_Ok;
+    eCodes code      = eCodes::ST_Ok;
 
     do
     {
@@ -147,6 +147,11 @@ void WsTranslayer::sendPacket(std::unique_ptr<WsPacket>& pkt)
     _pktList.emplace_back(std::move(pkt));
 }
 
+bool WsTranslayer::canSwitchToSend() const
+{
+    return _canSend;
+}
+
 bool WsTranslayer::isAllSent() const
 {
     return _pktList.empty() && _needRecvMasked == _sentLen;
@@ -155,7 +160,7 @@ bool WsTranslayer::isAllSent() const
 eIoAction WsTranslayer::work(eIoAction evt)
 {
     eCodes code = eCodes::ST_Init;
-    
+
     switch (_state)
     {
         case eTranslayerState::RecvHttpHandshake:
@@ -209,10 +214,10 @@ eIoAction WsTranslayer::work(eIoAction evt)
                 }
 
                 _httpRsp.reset(nullptr);
-                _state = WsConnected;
+                _state   = WsConnected;
                 _rcvdLen = 0;
                 _wsDecoder.reset(new WsDecoder(*this));
-                
+
                 // WebSocket is opened.
                 _onOpenCb();
                 return work(eIoAction::Read);
@@ -296,7 +301,7 @@ eIoAction WsTranslayer::work(eIoAction evt)
         break;
     }
 
-    PARROT_ASSERT(false);    
+    PARROT_ASSERT(false);
     return eIoAction::None;
 }
 }

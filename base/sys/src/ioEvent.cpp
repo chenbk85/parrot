@@ -29,7 +29,6 @@ namespace parrot
 {
 IoEvent::IoEvent()
     : _fd(-1),
-      _uniqueKey(0),
       _nextAction(eIoAction::None),
       _currAction(eIoAction::None),
       _notifiedAction(eIoAction::None),
@@ -121,16 +120,6 @@ void IoEvent::setEof(bool isEof)
 bool IoEvent::isEof() const
 {
     return _isEof;
-}
-
-void IoEvent::setUniqueKey(uint64_t key)
-{
-    _uniqueKey = key;
-}
-
-uint64_t IoEvent::getUniqueKey() const
-{
-    return _uniqueKey;
 }
 
 bool IoEvent::isReadAvail() const

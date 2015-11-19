@@ -11,7 +11,7 @@ Session::Session():
     _jobHandlerPtr(nullptr),
     _frontThreadPtr(nullptr),
     _connUniqueId(0),
-    _ip()
+    _clientIp()
 {
 
 }
@@ -20,7 +20,7 @@ std::string Session::toString() const
 {
     std::ostringstream ostr;
     ostr << "[ Uid: " << _uid << ", frontSid: " << _frontSid
-         << ", IP: " << _ip << " ]";
+         << ", IP: " << _clientIp << " ]";
 
     return ostr.str();
 }

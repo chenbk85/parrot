@@ -51,6 +51,7 @@ class WsServerConn : public TcpServerConn,
     // disconnect the connection.
     void closeWebSocket(std::unique_ptr<WsPacket>& pkt);
     void setRandom(MtRandom* random);
+    bool canSwitchToSend() const;
 
   private:
     void onError(eCodes c);

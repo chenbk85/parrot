@@ -36,10 +36,10 @@ class Logger
     {                                                                          \
         if (parrot::Logger::instance()->canLog(parrot::eLoggerLevel::Info))    \
         {                                                                      \
-            std::ostringstream ostr;                                           \
-            ostr << msg;                                                       \
+            std::ostringstream __ostr;                                         \
+            __ostr << msg;                                                     \
             parrot::Logger::instance()->log(parrot::eLoggerLevel::Info,        \
-                                            __LINE__, ostr.str());             \
+                                            __LINE__, __ostr.str());           \
         }                                                                      \
     } while (false)
 
@@ -48,10 +48,10 @@ class Logger
     {                                                                          \
         if (parrot::Logger::instance()->canLog(parrot::eLoggerLevel::Debug))   \
         {                                                                      \
-            std::ostringstream ostr;                                           \
-            ostr << msg;                                                       \
+            std::ostringstream __ostr;                                         \
+            __ostr << msg;                                                     \
             parrot::Logger::instance()->log(parrot::eLoggerLevel::Debug,       \
-                                            __LINE__, ostr.str());             \
+                                            __LINE__, __ostr.str());           \
         }                                                                      \
     } while (false)
 
@@ -60,10 +60,10 @@ class Logger
     {                                                                          \
         if (parrot::Logger::instance()->canLog(parrot::eLoggerLevel::Warn))    \
         {                                                                      \
-            std::ostringstream ostr;                                           \
-            ostr << msg;                                                       \
+            std::ostringstream __ostr;                                         \
+            __ostr << msg;                                                     \
             parrot::Logger::instance()->log(parrot::eLoggerLevel::Warn,        \
-                                            __LINE__, ostr.str());             \
+                                            __LINE__, __ostr.str());           \
         }                                                                      \
     } while (false)
 
@@ -72,10 +72,10 @@ class Logger
     {                                                                          \
         if (parrot::Logger::instance()->canLog(parrot::eLoggerLevel::Error))   \
         {                                                                      \
-            std::ostringstream ostr;                                           \
-            ostr << msg;                                                       \
+            std::ostringstream __ostr;                                         \
+            __ostr << msg;                                                     \
             parrot::Logger::instance()->log(parrot::eLoggerLevel::Error,       \
-                                            __LINE__, ostr.str());             \
+                                            __LINE__, __ostr.str());           \
         }                                                                      \
     } while (false)
 
@@ -84,10 +84,10 @@ class Logger
     {                                                                          \
         if (parrot::Logger::instance()->canLog(parrot::eLoggerLevel::Fatal))   \
         {                                                                      \
-            std::ostringstream ostr;                                           \
-            ostr << msg;                                                       \
+            std::ostringstream __ostr;                                         \
+            __ostr << msg;                                                     \
             parrot::Logger::instance()->log(parrot::eLoggerLevel::Fatal,       \
-                                            __LINE__, ostr.str());             \
+                                            __LINE__, __ostr.str());           \
         }                                                                      \
     } while (false)
 

@@ -29,8 +29,7 @@ struct Session
     void* _jobHandlerPtr;
     void* _frontThreadPtr;
     uint64_t _connUniqueId;
-
-    std::string _ip;
+    std::string _clientIp;
 };
 }
 

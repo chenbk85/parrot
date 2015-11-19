@@ -48,6 +48,11 @@ void WsServerConn::setRandom(MtRandom *r)
     _translayer->setRandom(r);
 }
 
+bool WsServerConn::canSwitchToSend() const
+{
+    return _translayer->canSwitchToSend();
+}
+
 std::shared_ptr<Session>& WsServerConn::getSession()
 {
     return _session;

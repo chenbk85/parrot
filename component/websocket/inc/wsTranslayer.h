@@ -27,7 +27,7 @@ class WsTranslayer
     friend class WsHttpResponse;
     friend class WsEncoder;
     friend class WsDecoder;
-    
+
   private:
     enum eTranslayerState
     {
@@ -46,11 +46,11 @@ class WsTranslayer
     WsTranslayer& operator=(const WsTranslayer&) = delete;
 
   public:
-    void setRandom(MtRandom *random);
+    void setRandom(MtRandom* random);
     // Callbacks.
-    void registerOnOpenCb(std::function<void()> &&cb);
-    void registerOnPacketCb(
-        std::function<void(std::unique_ptr<WsPacket>&&)>&& cb);
+    void registerOnOpenCb(std::function<void()>&& cb);
+    void
+    registerOnPacketCb(std::function<void(std::unique_ptr<WsPacket>&&)>&& cb);
     void registerOnErrorCb(std::function<void(eCodes)>&& cb);
 
   public:
@@ -58,6 +58,7 @@ class WsTranslayer
     void sendPacket(std::unique_ptr<WsPacket>& pkt);
     eIoAction work(eIoAction evt);
     void close();
+    bool canSwitchToSend() const;
     bool isAllSent() const;
 
   private:
@@ -90,9 +91,12 @@ class WsTranslayer
     std::unique_ptr<WsEncoder> _wsEncoder;
 
     std::function<void()> _onOpenCb;
-    std::function<void(std::unique_ptr<WsPacket> &&)> _onPacketCb;
+    std::function<void(std::unique_ptr<WsPacket>&&)> _onPacketCb;
     std::function<void(eCodes)> _onErrorCb;
 
+    // For SslIo, when send/recv of SslIo returns RetryWhenReadable, we
+    // should stop sending, and wait for read signal.
+    bool _canSend;
     MtRandom* _random;
     const WsConfig& _config;
 };
