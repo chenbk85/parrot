@@ -91,8 +91,6 @@ void FrontSrvLogicThread::handlePacket(
     std::list<parrot::SessionPktPair>& pktList)
 {
     std::list<parrot::SessionPktPair> rspPktList;
-    static int jsonStrLen = 65535;
-    
     parrot::FrontThread *frontThread = nullptr;
     for (auto& sp : pktList)
     {

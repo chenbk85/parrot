@@ -39,9 +39,6 @@ WsEncoder::WsEncoder(WsTranslayer& trans)
       _metaData(9)
 {
     _metaData.resize(0);
-
-    // Min buffer size should not less than 134.
-    PARROT_ASSERT(_sendVec.capacity() >= 134);
 }
 
 eCodes WsEncoder::loadBuff()
