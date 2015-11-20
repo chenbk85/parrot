@@ -107,10 +107,12 @@ class WsEncoder
     uint64_t _itemEncodedLen;
 
     // The member is used to record how many bytes the packet has been
-    // encoded.
+    // encoded. When the packet is encoded, the _encodedLen should be
+    // equal to _totalLen.
     uint64_t _encodedLen;
 
-    // The total length of the packet.
+    // The total length of the packet payload. If packet is fragmented,
+    // _totalLen is the sum of all fragmented packet's payload.
     uint64_t _totalLen;
 
     // The packet is fragmented?

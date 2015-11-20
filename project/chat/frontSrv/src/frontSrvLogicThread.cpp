@@ -91,6 +91,7 @@ void FrontSrvLogicThread::handlePacket(
     std::list<parrot::SessionPktPair>& pktList)
 {
     std::list<parrot::SessionPktPair> rspPktList;
+    static int jsonStrLen = 65535;
     
     parrot::FrontThread *frontThread = nullptr;
     for (auto& sp : pktList)
@@ -101,9 +102,8 @@ void FrontSrvLogicThread::handlePacket(
         pkt->setRoute(1);
         std::unique_ptr<parrot::Json> json(new parrot::Json());
         json->createRootObject();
-        std::string s = std::string(300, 'a');
+        std::string s = std::string(jsonStrLen++, 'a');
         json->setValue("/s", s);
-        std::cout << json->toString() << std::endl;
         pkt->setJson(std::move(json));
         frontThread = static_cast<parrot::FrontThread*>(
             (sp.first)->_frontThreadPtr);

@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+#include <endian.h>
 #elif defined(__APPLE__)
 #include <unistd.h>
 #include <fcntl.h>
@@ -17,6 +18,7 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+#include <endian.h>
 #elif defined(_WIN32)
 #include <Winsock2.h>
 #endif

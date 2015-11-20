@@ -155,6 +155,8 @@ void WsDecoder::parseBody()
         else
         {
             // Control frame.
+            LOG_DEBUG("WsDecoder::parseBody: OpCode is " << (uint8_t)_opCode
+                      << ".");
             auto begin = _recvVec.begin() + _lastParsePos;
             auto pkt = createWsPacket(begin, begin + _payloadLen);
             _callbackFunc(std::move(pkt));

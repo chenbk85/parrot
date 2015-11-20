@@ -10,8 +10,8 @@ struct WsConfig
 {
     WsConfig()
     {
-        static_assert(_sendBuffLen >= 134, "Send buffer is too small.");
-        static_assert(_recvBuffLen >= 134, "Recv buffer is too small.");
+        static_assert(_sendBuffLen >= 256, "Send buffer is too small.");
+        static_assert(_recvBuffLen >= 256, "Recv buffer is too small.");
     }
 
     std::string _host;
@@ -20,7 +20,7 @@ struct WsConfig
 
     //According to RFC6455, the max header size is 14 bytes.
     const static uint32_t _recvBuffLen = 256;//(1 << 14) + 14; // Payload len + max header len.
-    const static uint32_t _sendBuffLen = 256;//(1 << 14) + 14; // Payload len + max header len.
+    const static uint32_t _sendBuffLen = 65546;//(1 << 14) + 14; // Payload len + max header len.
 };
 }
 

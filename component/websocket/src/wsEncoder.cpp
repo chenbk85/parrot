@@ -65,19 +65,6 @@ eCodes WsEncoder::loadBuff()
     }
 
     encode();
-
-    std::cout << _sendVec.capacity() << std::endl;    
-    std::ostringstream ostr;
-    ostr << std::showbase << std::internal << std::setfill('0');
-    for (uint64_t i = 0; i != _needSendLen; ++i)
-    {
-        std::cout << static_cast<uint32_t>(_sendVec[i]) << " ";
-        ostr << std::hex << std::setw(4) << (uint32_t)_sendVec[i] << std::dec
-             << " ";
-    }
-    std::cout << std::endl;
-    LOG_DEBUG("WsEncoder::loadBuff: _needSendLen is "
-              << _needSendLen << ". Send buff is " << ostr.str() << ".");
     return eCodes::ST_Ok;
 }
 
@@ -228,7 +215,7 @@ void WsEncoder::computeLengthNeedMask(uint64_t pktLen)
         _payloadLen = _sendVec.capacity() - _headerLen;
     }
 
-    if (_headerLen == 4)
+    if (_headerLen == 8)
     {
         if (_payloadLen > 65535)
         {
@@ -331,7 +318,7 @@ void WsEncoder::writeHeader(bool firstPkt, bool fin)
     }
     else
     {
-        *_lastIt   = maskBit | 127;
+        *_lastIt++ = maskBit | 127;
         auto intBE = uniHtonll(_payloadLen);
         std::copy_n(reinterpret_cast<char*>(&intBE), 8, _lastIt);
         _lastIt += 8;
@@ -677,7 +664,7 @@ void WsEncoder::getMetaData(ePayloadItem item, uint64_t dataLen)
     else
     {
         _metaData.push_back(255);
-        dataLen = uniHtons(dataLen);
+        dataLen = uniHtonll(dataLen);
         std::copy_n(reinterpret_cast<unsigned char*>(&dataLen), 8,
                     std::back_inserter(_metaData));
     }

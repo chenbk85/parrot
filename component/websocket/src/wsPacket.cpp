@@ -1,5 +1,6 @@
 #include "wsPacket.h"
 #include "json.h"
+#include "sysHelper.h"
 #include "macroFuncs.h"
 
 namespace parrot
@@ -141,7 +142,25 @@ bool WsPacket::decode()
 
 bool WsPacket::decodeClose()
 {
-    return false;
+    // Close packet should contain 2 bytes error code. if greater than 2 bytes
+    // then, the remote provided the reason.
+    if (_payload.size() < 2)
+    {
+        _closeCode = eCodes::WS_ProtocolError;
+        return false;
+    }
+
+    uint16_t code = *reinterpret_cast<uint16_t*>(&_payload[0]);
+    code = uniNtohs(code);
+    _closeCode = static_cast<eCodes>(code);
+
+    if (_payload.size() > 2)
+    {
+        _reason = std::string(reinterpret_cast<char*>(&_payload[2]),
+                              _payload.size() - 2);
+    }
+    
+    return true;
 }
 
 bool WsPacket::decodeBinary()

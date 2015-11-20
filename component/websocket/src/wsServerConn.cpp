@@ -83,10 +83,15 @@ void WsServerConn::doClose()
 {
 }
 
-void WsServerConn::onClose(std::unique_ptr<WsPacket>&&p)
+void WsServerConn::onClose(std::unique_ptr<WsPacket>&& p)
 {
     _state = eWsState::Closing;
+    p->decode();
 
+    LOG_DEBUG("WsServerConn::onClose: Close code is "
+              << p->getCloseCode() << ". Reason is " << p->getCloseReason()
+              << ".");
+    
     if (_sentClose && _translayer->isAllSent())
     {
         doClose();
