@@ -1,6 +1,7 @@
 var WebSocketClient = require('websocket').client;
 
 var client = new WebSocketClient();
+var pktLenIdx = 65526;
 
 function getVariableNumber(buff, offset) {
     var len = buff.readUInt8(offset++, true);
@@ -9,7 +10,7 @@ function getVariableNumber(buff, offset) {
         numLen = 1;
     } else if (len === 254) {
         len = buff.readUInt16BE(offset, true);
-        numLen = 2;
+        numLen = 3;
     } else if (len === 255) {
         if (buff.length < 9) {
             console.log('Buff is not right. 254');
@@ -20,7 +21,7 @@ function getVariableNumber(buff, offset) {
         high <<= 32;
         var low = buff.readUInt32BE(offset, true);
         len     = high | low;
-        numLen = 8;
+        numLen = 9;
     }
 
     return {n : len, o : numLen};
@@ -51,14 +52,21 @@ function parseItem(buff, offset) {
         return;
     }
 
-    console.log('parseBinaryData len is %d. offset is %d', len, offset);    
+//    console.log('parseBinaryData len is %d. offset is %d', len, offset);    
     
     var newBuff = new Buffer(len);
     buff.copy(newBuff, 0, offset, buff.length);    
     if (type === 1) {
+        console.log(newBuff);        
         // Data is json.
         var str = newBuff.toString();
-        console.log('parseItem: json is %j', JSON.parse(str));
+        var json = JSON.parse(str);
+
+        if(json.s.length !== pktLenIdx++) {
+            throw new Error('Bad len.');
+        }
+        
+        console.log('parseItem: jsonStrLen is %d', json.s.length);
     } else if (type === 2) {
         // Data is binary.
         console.log('parseItem: Binary');
@@ -79,8 +87,6 @@ function parseBinaryData(buff) {
         return;
     }
 
-    console.log('parseBinaryData ret is %j', ret);
-    
     offset += ret.o;
     route = ret.n;
     
@@ -103,6 +109,7 @@ client.on('connect', function(connection) {
         console.log('echo-protocol Connection Closed');
     });
     connection.on('message', function(message) {
+        console.log('message');
         if (message.type === 'utf8') {
             throw new Error('Bad encoding type.');
         }
@@ -111,19 +118,24 @@ client.on('connect', function(connection) {
             console.log(message.binaryData);
             parseBinaryData(message.binaryData);
         }
+
+        process.nextTick(sendNumber, connection);
     });
 
     var i = 0;
-    function sendNumber() {
-        if (connection.connected) {
+    function sendNumber(conn) {
+        if (conn.connected) {
             var str = 'HelloWorld' + i++;
             var buff = new Buffer(str.length);            
             buff.write(str, 0, str.length, 'utf8');
-            connection.send(buff);
-            setTimeout(sendNumber, 1000);
+            conn.send(buff);
+
+            if (i < 2) {
+                setTimeout(sendNumber.bind(null, connection), 1000);
+            }
         }
     }
-    sendNumber();
+    sendNumber(connection);
 });
 
 client.connect('ws://10.24.100.202:9898/');
