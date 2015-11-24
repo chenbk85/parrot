@@ -15,14 +15,14 @@
 
 namespace parrot
 {
-WsServerConn::WsServerConn(const WsConfig& cfg)
+WsServerConn::WsServerConn(const WsConfig& cfg, bool recvMasked)
     : TcpServerConn(),
       TimeoutGuard(),
       DoubleLinkedListNode<WsServerConn>(),
       _state(eWsState::NotOpened),
       _pktHandler(nullptr),
       _session(new Session()),
-      _translayer(new WsTranslayer(*this, true, false, cfg)),
+      _translayer(new WsTranslayer(*this, recvMasked, false, cfg)),
       _sentClose(false)
 {
     using namespace std::placeholders;
@@ -36,12 +36,12 @@ WsServerConn::WsServerConn(const WsConfig& cfg)
     _translayer->registerOnErrorCb(std::move(onErrCb));
 }
 
-void WsServerConn::setPacketHandler(PacketHandler *hdr)
+void WsServerConn::setPacketHandler(PacketHandler* hdr)
 {
     _pktHandler = hdr;
 }
 
-void WsServerConn::setRandom(MtRandom *r)
+void WsServerConn::setRandom(MtRandom* r)
 {
     _translayer->setRandom(r);
 }
@@ -91,7 +91,7 @@ void WsServerConn::onClose(std::unique_ptr<WsPacket>&& p)
     LOG_DEBUG("WsServerConn::onClose: Close code is "
               << p->getCloseCode() << ". Reason is " << p->getCloseReason()
               << ".");
-    
+
     if (_sentClose && _translayer->isAllSent())
     {
         doClose();

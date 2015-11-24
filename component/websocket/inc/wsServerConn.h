@@ -36,7 +36,7 @@ class WsServerConn : public TcpServerConn,
 
   public:
     WsServerConn() = default;
-    explicit WsServerConn(const WsConfig& cfg);
+    WsServerConn(const WsConfig& cfg, bool recvMasked = true);
     virtual ~WsServerConn() = default;
     WsServerConn(const WsServerConn&) = delete;
     WsServerConn& operator=(const WsServerConn&) = delete;
