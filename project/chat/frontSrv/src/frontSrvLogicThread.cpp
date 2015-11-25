@@ -100,7 +100,7 @@ void FrontSrvLogicThread::handlePacket(
         pkt->setRoute(1);
         std::unique_ptr<parrot::Json> json(new parrot::Json());
         json->createRootObject();
-        std::string s = std::string(jsonStrLen++, 'a');
+        std::string s = "Hello world!";
         json->setValue("/s", s);
         pkt->setJson(std::move(json));
         frontThread = static_cast<parrot::FrontThread*>(

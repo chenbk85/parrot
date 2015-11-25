@@ -1,5 +1,5 @@
-#ifndef __COMPONENT_WEBSOCKET_INC_WSSERVERCONN_H__
-#define __COMPONENT_WEBSOCKET_INC_WSSERVERCONN_H__
+#ifndef __COMPONENT_WEBSOCKET_INC_WSCLIENTCONN_H__
+#define __COMPONENT_WEBSOCKET_INC_WSCLIENTCONN_H__
 
 #include <memory>
 #include <list>
@@ -18,15 +18,11 @@
 
 namespace parrot
 {
-class WsPacket;
-struct WsConfig;
-struct Session;
-
-class WsServerConn : public TcpServerConn,
+class WsClientConn : public TcpClientConn,
                      public TimeoutGuard,
-                     public DoubleLinkedListNode<WsServerConn>
+                     public DoubleLinkedListNode<WsClientConn>
 {
-    using PacketHandler = WsPacketHandler<Session, WsServerConn>;
+    using PacketHandler = WsPacketHandler<Session, WsClientConn>;
 
     enum class eWsState
     {
@@ -36,11 +32,14 @@ class WsServerConn : public TcpServerConn,
     };
 
   public:
-    WsServerConn() = default;
-    WsServerConn(const WsConfig& cfg, bool recvMasked = true);
-    virtual ~WsServerConn() = default;
-    WsServerConn(const WsServerConn&) = delete;
-    WsServerConn& operator=(const WsServerConn&) = delete;
+    WsClientConn() = default;
+    WsClientConn(const string& ip,
+                 uint16_t port,
+                 const WsConfig& cfg,
+                 bool sendMasked = true);
+    virtual ~WsClientConn() = default;
+    WsClientConn(const WsClientConn&) = delete;
+    WsClientConn& operator=(const WsClientConn&) = delete;
 
   public:
     void setPacketHandler(PacketHandler* hdr);
