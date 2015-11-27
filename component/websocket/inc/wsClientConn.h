@@ -4,6 +4,7 @@
 #include <memory>
 #include <list>
 #include <vector>
+#include <ctime>
 #include <string>
 
 #include "codes.h"
@@ -24,6 +25,15 @@ class WsClientConn : public TcpClientConn,
 {
     using PacketHandler = WsPacketHandler<Session, WsClientConn>;
 
+
+    enum class eWsConnState
+    {
+        Disconnected,
+        WaitingToConnect,
+        Connecting,
+        Connected
+    };
+    
     enum class eWsState
     {
         NotOpened,
@@ -66,11 +76,15 @@ class WsClientConn : public TcpClientConn,
     void doClose();
 
   private:
+    eWsConnState _connState;
     eWsState _state;
     PacketHandler* _pktHandler;
     std::shared_ptr<Session> _session;
     std::unique_ptr<WsTranslayer> _translayer;
     bool _sentClose;
+    uint32_t _retryTimes;
+    std::time_t _nextConnectTime;
+    
 };
 }
 

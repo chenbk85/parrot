@@ -323,7 +323,8 @@ void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn>>& connList)
 {
     for (auto &c : connList)
     {
-        LOG_DEBUG("FrontThread::addConn: connId is " << c->getSession()->_connUniqueId);
+        LOG_DEBUG("FrontThread::addConn: connId is "
+                  << c->getSession()->_connUniqueId);
     }
     _connListLock.lock();
     _connList.splice(_connList.end(), connList);

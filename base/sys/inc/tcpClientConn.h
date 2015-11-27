@@ -17,14 +17,12 @@ class TcpClientConn : public IoEvent
     TcpClientConn& operator=(const TcpClientConn&) = delete;
 
   public:
-    void connect(const std::string& srvIp, uint16_t srvPort);
+    void connect();
     void setConnected() noexcept;
     bool isConnected() const noexcept;
     void disconnect();
 
   protected:
-    std::string _srvIp;
-    uint16_t _srvPort;
     bool _connected;
 };
 }

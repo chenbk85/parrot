@@ -218,44 +218,128 @@ bool WsClientConn::canClose()
     return false;
 }
 
+void WsClientConn::onConnected()
+{
+    _connState  = eWsConnState::Connected;
+    _retryTimes = 0;
+    _state = eWsState::NotOpened;
+    setConnected();
+}
+
+void WsClientConn::getNextConnectTime()
+{
+    uint8_t sec = _retryTimes >= 5 ? 5 : _retryTimes; // Max 5 secs.
+    _nextConnectTime = std::time(nullptr) + sec;
+}
+
 eIoAction WsClientConn::handleIoEvent()
 {
-    if (isError())
+    while (true)
     {
-        // Todo: Notifier uplayer
-        return eIoAction::Remove;
-    }
-
-    if (isEof())
-    {
-        // Todo: Notifier uplayer
-        return eIoAction::Remove;
-    }
-
-    eIoAction act;
-
-    if (isReadAvail())
-    {
-        act = _translayer->work(eIoAction::Read);
-        if (canClose())
+        switch (_connState)
         {
-            return eIoAction::Remove;
-        }
-        return act;
-    }
+            case eWsConnState::Disconnected:
+            {
+                connect();
 
-    if (isWriteAvail())
-    {
-        act = _translayer->work(eIoAction::Write);
-        if (canClose())
-        {
-            return eIoAction::Remove;
-        }
-        return act;
-    }
+                if (isConnected)
+                {
+                    // Ha, connected to server so quickly.
+                    onConnected();
+                    continue;
+                }
+                else
+                {
+                    // Wait to connect to server.
+                    _connState = eWsConnState::Connecting;
+                    return eIoAction::Write;
+                }
+            }
+            break;
 
-    PARROT_ASSERT(false);
-    return eIoAction::None;
+            case eWsConnState::WaitingToConnect:
+            {
+                if (std::time(nullptr) < _nextConnectTime)
+                {
+                    // Not ready to reconnect.
+                    return eIoAction::None;
+                }
+
+                _connState = eWsConnState::Disconnected;
+                continue;
+            }
+            break;
+
+            case eWsConnState::Connecting:
+            {
+                if (isError() || isEof())
+                {
+                    Ioevent::close();
+                    ++retryTimes;
+                    getNextConnectTime();
+                    return eIoAction::None;
+                }
+
+                if (isWriteAvail())
+                {
+                    onConnected();
+                    continue;
+                }
+                else
+                {
+                    // We should never be here.
+                    PARROT_ASSERT(false);
+                }
+            }
+            break;
+
+            case eWsConnState::Connected:
+            {
+                if (isError() || isEof())
+                {
+                    Ioevent::close();
+                    _connState = eWsConnState::Disconnected;
+                    continue;
+                }
+
+                eIoAction act;
+
+                if (isReadAvail())
+                {
+                    act = _translayer->work(eIoAction::Read);
+                    if (canClose())
+                    {
+                        IoEvent::close();
+                        _connState = eWsConnState::Disconnected;
+                        continue;
+                    }
+                    return act;
+                }
+
+                if (isWriteAvail())
+                {
+                    act = _translayer->work(eIoAction::Write);
+                    if (canClose())
+                    {
+                        IoEvent::close();
+                        _connState = eWsConnState::Disconnected;
+                        continue;
+                    }
+                    return act;
+                }
+
+                PARROT_ASSERT(false);
+                return eIoAction::None;
+            }
+            break;
+
+            default:
+            {
+                PARROT_ASSERT(false);
+            }
+            break;
+        }
+    }
 }
 
 void WsClientConn::closeWebSocket(std::unique_ptr<WsPacket>& pkt)
@@ -263,38 +347,5 @@ void WsClientConn::closeWebSocket(std::unique_ptr<WsPacket>& pkt)
     sendPacket(pkt);
     _state     = eWsState::Closing;
     _sentClose = true;
-}
-
-void WsClientConn::work()
-{
-    switch (_state)
-    {
-        case eWsState::NotOpened:
-        {
-            connect(_remoteIP, _remotePort);
-
-            if (isConnected)
-            {
-                _state = eWsState::Connected;
-            }
-            else
-            {
-                _state = eWsState::Connecting;
-            }
-        }
-        break;
-
-        case eWsState::Connecting:
-        {
-
-        }
-        break;
-        
-        case eWsState::Connected:
-        {
-
-        }
-        break;
-    }
 }
 }

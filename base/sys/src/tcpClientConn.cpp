@@ -11,7 +11,7 @@
 
 namespace parrot
 {
-TcpClientConn::TcpClientConn() : IoEvent(), _srvIp(), _srvPort(0), _connected(false)
+TcpClientConn::TcpClientConn() : IoEvent(), _connected(false)
 {
 }
 
@@ -20,13 +20,10 @@ TcpClientConn::~TcpClientConn()
     disconnect();
 }
 
-void TcpClientConn::connect(const std::string& srvIp, uint16_t srvPort)
+void TcpClientConn::connect()
 {
-    _srvIp = srvIp;
-    _srvPort = srvPort;
-
     IPHelper ipHelper;
-    ipHelper.setIP(srvIp);
+    ipHelper.setIP(getRemoteAddr());
 
     int fd = -1;
 
@@ -57,7 +54,7 @@ void TcpClientConn::connect(const std::string& srvIp, uint16_t srvPort)
         addrLen = sizeof(struct sockaddr_in);
         addr = (struct sockaddr*)&addr4;
         addr4.sin_family = AF_INET;
-        addr4.sin_port = htons(_srvPort);
+        addr4.sin_port = htons(getRemotePort());
         addr4.sin_addr = ipHelper.getIPv4Bin();
         std::memset(addr4.sin_zero, 0, sizeof(addr4.sin_zero));
     }
@@ -66,7 +63,7 @@ void TcpClientConn::connect(const std::string& srvIp, uint16_t srvPort)
         addrLen = sizeof(struct sockaddr_in6);
         addr = (struct sockaddr*)&addr6;
         addr6.sin6_family = AF_INET6;
-        addr6.sin6_port = htons(_srvPort);
+        addr6.sin6_port = htons(getRemotePort());
         addr6.sin6_addr = ipHelper.getIPv6Bin();
     }
 
