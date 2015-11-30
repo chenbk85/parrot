@@ -5,8 +5,6 @@
 #include "mtRandom.h"
 #include "logger.h"
 #include "json.h"
-#include "wsHttpResponse.h"
-#include "wsTranslayer.h"
 #include "wsPacket.h"
 #include "wsServerConn.h"
 #include "macroFuncs.h"
@@ -22,7 +20,7 @@ WsServerConn::WsServerConn(const WsConfig& cfg, bool recvMasked)
       _state(eWsState::NotOpened),
       _pktHandler(nullptr),
       _session(new Session()),
-      _translayer(new WsTranslayer(*this, recvMasked, false, cfg)),
+      _translayer(new WsServerTrans(*this, recvMasked, false, cfg)),
       _sentClose(false)
 {
     using namespace std::placeholders;

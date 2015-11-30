@@ -6,7 +6,7 @@
 #include "ioEvent.h"
 #include "httpParser.h"
 #include "wsTranslayer.h"
-#include "wsHttpResponse.h"
+#include "wsServerHandshake.h"
 #include "logger.h"
 #include "stringHelper.h"
 #include "macroFuncs.h"
@@ -17,7 +17,7 @@
 
 namespace parrot
 {
-WsHttpResponse::WsHttpResponse(WsTranslayer& tr)
+WsServerHandshake::WsServerHandshake(WsTranslayer& tr)
     : _state(eParseState::Receving),
       _recvVec(tr._recvVec),
       _rcvdLen(tr._rcvdLen),
@@ -33,13 +33,13 @@ WsHttpResponse::WsHttpResponse(WsTranslayer& tr)
 {
 }
 
-int WsHttpResponse::onUrl(::http_parser*, const char* at, size_t len)
+int WsServerHandshake::onUrl(::http_parser*, const char* at, size_t len)
 {
     _headerDic["url"] = std::string(at, len);
     return 0;
 }
 
-int WsHttpResponse::onHeaderField(::http_parser*, const char* at, size_t len)
+int WsServerHandshake::onHeaderField(::http_parser*, const char* at, size_t len)
 {
     if (!_lastHeader.empty())
     {
@@ -50,14 +50,14 @@ int WsHttpResponse::onHeaderField(::http_parser*, const char* at, size_t len)
     return 0;
 }
 
-int WsHttpResponse::onHeaderValue(::http_parser*, const char* at, size_t len)
+int WsServerHandshake::onHeaderValue(::http_parser*, const char* at, size_t len)
 {
     _headerDic[_lastHeader] = std::string(at, len);
     _lastHeader             = "";
     return 0;
 }
 
-eCodes WsHttpResponse::parse()
+eCodes WsServerHandshake::parse()
 {
     if (_rcvdLen < 4) // \r\n\r\n is 4 bytes long
     {
@@ -66,7 +66,7 @@ eCodes WsHttpResponse::parse()
 
     if (_rcvdLen >= _config._maxHttpHandshake)
     {
-        LOG_WARN("WsHttpResponse::parse: Data too long. Remote is " << _remoteIp
+        LOG_WARN("WsServerHandshake::parse: Data too long. Remote is " << _remoteIp
                                                                     << ".");
         _httpResult = eCodes::HTTP_PayloadTooLarge;
         return eCodes::ST_Ok;
@@ -88,11 +88,11 @@ eCodes WsHttpResponse::parse()
     // Init settings.
     http_parser_settings settings;
     using namespace std::placeholders;
-    settings.on_url = std::bind(&WsHttpResponse::onUrl, this, _1, _2, _3);
+    settings.on_url = std::bind(&WsServerHandshake::onUrl, this, _1, _2, _3);
     settings.on_header_field =
-        std::bind(&WsHttpResponse::onHeaderField, this, _1, _2, _3);
+        std::bind(&WsServerHandshake::onHeaderField, this, _1, _2, _3);
     settings.on_header_value =
-        std::bind(&WsHttpResponse::onHeaderValue, this, _1, _2, _3);
+        std::bind(&WsServerHandshake::onHeaderValue, this, _1, _2, _3);
 
     // Init parser.
     std::unique_ptr<::http_parser> parser(new ::http_parser());
@@ -108,7 +108,7 @@ eCodes WsHttpResponse::parse()
         (parser->http_major != 1 && parser->http_major != 2) ||
         (parser->http_major == 1 && parser->http_minor != 1))
     {
-        LOG_WARN("WsHttpResponse::parse: Failed to parse "
+        LOG_WARN("WsServerHandshake::parse: Failed to parse "
                  "header: "
                  << std::string(reinterpret_cast<char*>(&_recvVec[0]), _rcvdLen)
                  << ". Remote is " << _remoteIp);
@@ -130,7 +130,7 @@ eCodes WsHttpResponse::parse()
 
     if (_httpBodyLen >= _config._maxHttpHandshake)
     {
-        LOG_WARN("WsHttpResponse::parse: Body too long. "
+        LOG_WARN("WsServerHandshake::parse: Body too long. "
                  "header: "
                  << std::string(reinterpret_cast<char*>(&_recvVec[0]), _rcvdLen)
                  << ". Remote is " << _remoteIp);
@@ -142,7 +142,7 @@ eCodes WsHttpResponse::parse()
     return eCodes::ST_NeedRecv;
 }
 
-eCodes WsHttpResponse::recevingBody()
+eCodes WsServerHandshake::recevingBody()
 {
     uint32_t rcvdLen = (_recvVec.begin() + _rcvdLen) - _lastParseIt;
     if (rcvdLen < _httpBodyLen)
@@ -151,21 +151,21 @@ eCodes WsHttpResponse::recevingBody()
     }
     else if (rcvdLen > _httpBodyLen)
     {
-        LOG_WARN("WsHttpResponse::recevingBody: Bad client. Remote is "
+        LOG_WARN("WsServerHandshake::recevingBody: Bad client. Remote is "
                  << _remoteIp);
         _httpResult = eCodes::HTTP_BadRequest;
         return eCodes::ST_Ok;
     }
 
     // Received http body.
-    LOG_WARN("WsHttpResponse::recevingBody: Remote sent http body when "
+    LOG_WARN("WsServerHandshake::recevingBody: Remote sent http body when "
              "handshaking. Remote is "
              << _remoteIp);
 
     return eCodes::ST_Ok;
 }
 
-void WsHttpResponse::verifyHeader()
+void WsServerHandshake::verifyHeader()
 {
     _httpResult = eCodes::HTTP_BadRequest;
     // Check host.
@@ -241,7 +241,7 @@ void WsHttpResponse::verifyHeader()
     return;
 }
 
-std::string WsHttpResponse::createHandshakeSHA1Key()
+std::string WsServerHandshake::createHandshakeSHA1Key()
 {
     using uchar = unsigned char;
 
@@ -264,7 +264,7 @@ std::string WsHttpResponse::createHandshakeSHA1Key()
     return &sha1Base64[0];
 }
 
-void WsHttpResponse::createHttpHandshakeRsp()
+void WsServerHandshake::createHttpHandshakeRsp()
 {
     std::ostringstream ostr;
     std::system_error e(static_cast<int>(_httpResult), ParrotCategory());
@@ -289,12 +289,12 @@ void WsHttpResponse::createHttpHandshakeRsp()
     _needSendLen = headerStr.size();
 }
 
-eCodes WsHttpResponse::getResult() const
+eCodes WsServerHandshake::getResult() const
 {
     return _httpResult;
 }
 
-eCodes WsHttpResponse::work()
+eCodes WsServerHandshake::work()
 {
     eCodes code = eCodes::ST_Init;
     switch (_state)

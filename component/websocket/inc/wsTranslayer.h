@@ -10,7 +10,7 @@
 
 #include "codes.h"
 #include "wsEncoder.h"
-#include "wsHttpResponse.h"
+#include "wsServerHandshake.h"
 #include "wsDecoder.h"
 #include "sysDefinitions.h"
 
@@ -24,11 +24,11 @@ struct WsConfig;
 // WsTranslayer implements Websocket implement.
 class WsTranslayer
 {
-    friend class WsHttpResponse;
+    friend class WsServerHandshake;
     friend class WsEncoder;
     friend class WsDecoder;
 
-  private:
+  protected:
     enum eTranslayerState
     {
         RecvHttpHandshake,
@@ -56,24 +56,25 @@ class WsTranslayer
   public:
     void sendPacket(std::list<std::unique_ptr<WsPacket>>& pktList);
     void sendPacket(std::unique_ptr<WsPacket>& pkt);
-    eIoAction work(eIoAction evt);
     void close();
     bool canSwitchToSend() const;
     bool isAllSent() const;
 
-  private:
+
+  public:
+    virtual eIoAction work(eIoAction evt) = 0;
+    
+  protected:
     std::vector<char>* prepareDataToSend();
     eCodes recvData();
     eCodes sendData();
 
-  private:
-    eTranslayerState _state;
+  protected:
     IoEvent& _io;
     bool _needRecvMasked;
     bool _needSendMasked;
     std::list<std::unique_ptr<WsPacket>> _pktList;
 
-    std::unique_ptr<WsHttpResponse> _httpRsp;
     std::unique_ptr<WsDecoder> _wsDecoder;
 
     // Send buffer.

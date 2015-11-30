@@ -6,11 +6,8 @@
 #include "logger.h"
 #include "wsPacket.h"
 #include "ioEvent.h"
-#include "wsHttpResponse.h"
-#include "wsDecoder.h"
 #include "wsConfig.h"
 #include "macroFuncs.h"
-#include "wsEncoder.h"
 #include "wsTranslayer.h"
 
 namespace parrot
@@ -19,12 +16,10 @@ WsTranslayer::WsTranslayer(IoEvent& io,
                            bool recvMasked,
                            bool sendMasked,
                            const WsConfig& cfg)
-    : _state(RecvHttpHandshake),
-      _io(io),
+    : _io(io),
       _needRecvMasked(recvMasked),
       _needSendMasked(sendMasked),
       _pktList(),
-      _httpRsp(),
       _wsDecoder(),
       _sendVec(_config._sendBuffLen),
       _needSendLen(0),
@@ -41,7 +36,7 @@ WsTranslayer::WsTranslayer(IoEvent& io,
 {
     _sendVec.clear();
     _recvVec.clear();
-    _wsEncoder.reset(new WsEncoder(*this));    
+    _wsEncoder.reset(new WsEncoder(*this));
 }
 
 void WsTranslayer::setRandom(MtRandom* random)
@@ -157,153 +152,5 @@ bool WsTranslayer::canSwitchToSend() const
 bool WsTranslayer::isAllSent() const
 {
     return _pktList.empty() && _needRecvMasked == _sentLen;
-}
-
-eIoAction WsTranslayer::work(eIoAction evt)
-{
-    eCodes code = eCodes::ST_Init;
-
-    switch (_state)
-    {
-        case eTranslayerState::RecvHttpHandshake:
-        {
-            if (evt != eIoAction::Read)
-            {
-                PARROT_ASSERT(false);
-            }
-
-            code = recvData();
-            if (code != eCodes::ST_Ok)
-            {
-                return eIoAction::Remove;
-            }
-
-            if (!_httpRsp)
-            {
-                _httpRsp.reset(new WsHttpResponse(*this));
-            }
-
-            code = _httpRsp->work();
-            if (code == eCodes::ST_NeedRecv)
-            {
-                return eIoAction::Read;
-            }
-            else if (code == eCodes::ST_Complete)
-            {
-                _state = SendHttpHandshake;
-                return work(eIoAction::Write);
-            }
-            else
-            {
-                PARROT_ASSERT(false);
-            }
-        }
-        break;
-
-        case eTranslayerState::SendHttpHandshake:
-        {
-            if (evt != eIoAction::Write)
-            {
-                PARROT_ASSERT(false);
-            }
-
-            code = sendData();
-            if (code == eCodes::ST_Complete)
-            {
-                if (_httpRsp->getResult() != eCodes::HTTP_SwitchingProtocols)
-                {
-                    return eIoAction::Remove;
-                }
-
-                _httpRsp.reset(nullptr);
-                _state   = WsConnected;
-                _rcvdLen = 0;
-                _wsDecoder.reset(new WsDecoder(*this));
-
-                // WebSocket is opened.
-                _onOpenCb();
-                return work(eIoAction::Read);
-            }
-            else if (code == eCodes::ST_NeedSend)
-            {
-                return eIoAction::Write;
-            }
-            else
-            {
-                return eIoAction::Remove;
-            }
-        }
-        break;
-
-        case eTranslayerState::WsConnected:
-        {
-            if (evt == eIoAction::Read)
-            {
-                code = recvData();
-                if (code != eCodes::ST_Ok)
-                {
-                    return eIoAction::Remove;
-                }
-
-                code = _wsDecoder->parse();
-                if (code == eCodes::ST_Complete)
-                {
-                    auto res = _wsDecoder->getResult();
-                    if (res != eCodes::ST_Ok)
-                    {
-                        _onErrorCb(res);
-                        return eIoAction::Write;
-                    }
-
-                    if (isAllSent())
-                    {
-                        return eIoAction::Read;
-                    }
-                    else
-                    {
-                        return eIoAction::Write;
-                    }
-                }
-                else if (code == eCodes::ST_NeedRecv)
-                {
-                    return eIoAction::Read;
-                }
-                else
-                {
-                    PARROT_ASSERT(false);
-                }
-            }
-            else if (evt == eIoAction::Write)
-            {
-                code = sendData();
-                if (code == eCodes::ST_Complete)
-                {
-                    return eIoAction::Read;
-                }
-                else if (code == eCodes::ST_NeedSend)
-                {
-                    return eIoAction::Write;
-                }
-                else
-                {
-                    return eIoAction::Remove;
-                }
-            }
-            else
-            {
-                PARROT_ASSERT(false);
-            }
-        }
-        break;
-
-        default:
-        {
-            PARROT_ASSERT(false);
-        }
-        break;
-    }
-
-    PARROT_ASSERT(false);
-    return eIoAction::None;
 }
 }

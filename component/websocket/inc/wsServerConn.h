@@ -14,7 +14,7 @@
 #include "wsPacketHandler.h"
 #include "wsPacket.h"
 #include "doubleLinkedListNode.h"
-#include "wsTranslayer.h"
+#include "wsServerTrans.h"
 
 namespace parrot
 {
@@ -70,7 +70,7 @@ class WsServerConn : public TcpServerConn,
     eWsState _state;
     PacketHandler* _pktHandler;
     std::shared_ptr<Session> _session;
-    std::unique_ptr<WsTranslayer> _translayer;
+    std::unique_ptr<WsServerTrans> _translayer;
     bool _sentClose;
 };
 }

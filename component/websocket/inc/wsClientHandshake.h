@@ -1,5 +1,5 @@
-#ifndef __COMPONENT_WEBSOCKET_INC_WSHTTPRESPONSE_H__
-#define __COMPONENT_WEBSOCKET_INC_WSHTTPRESPONSE_H__
+#ifndef __COMPONENT_WEBSOCKET_INC_WSCLIENTHANDSHAKE_H__
+#define __COMPONENT_WEBSOCKET_INC_WSCLIENTHANDSHAKE_H__
 
 #include <unordered_map>
 #include <string>
@@ -14,7 +14,7 @@ namespace parrot
 struct WsConfig;
 struct WsTranslayer;
 
-class WsHttpResponse
+class WsClientHandshake
 {
     using HeaderDic = std::unordered_map<std::string, std::string>;
     enum class eParseState
@@ -25,7 +25,7 @@ class WsHttpResponse
     };
 
   public:
-    explicit WsHttpResponse(WsTranslayer &tr);
+    explicit WsClientHandshake(WsTranslayer &tr);
 
   public:
     // work
@@ -51,14 +51,14 @@ class WsHttpResponse
     eCodes getResult() const;
 
   private:
-    // onUrl
+    // onStatus
     //
     // A callback function which will be called from http_parser when
-    // the parser has parsed url.
+    // the parser has parsed the status code..
     //
     // return:
     //  0 continue parsing. 1 error.
-    int onUrl(::http_parser*, const char* at, size_t len);
+    int onStatus(::http_parser*, const char* at, size_t len);
 
     // onHeaderField
     //
@@ -133,6 +133,7 @@ class WsHttpResponse
     HeaderDic _headerDic;
     std::string _lastHeader;
     std::vector<unsigned char>::iterator _lastParseIt;
+    std::string _secWebSocketKey;
     uint32_t _httpBodyLen;
     eCodes _httpResult;
     const WsConfig& _config;
