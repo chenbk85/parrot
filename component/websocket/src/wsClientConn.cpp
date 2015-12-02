@@ -1,3 +1,4 @@
+#include <list>
 #include <ctime>
 #include <iostream>
 #include <functional>
@@ -11,11 +12,11 @@
 #include "macroFuncs.h"
 #include "wsConfig.h"
 #include "wsPacketHandler.h"
+#include "ipHelper.h"
 
 namespace parrot
 {
-WsClientConn::WsClientConn(const std::string& ip,
-                           uint16_t port,
+WsClientConn::WsClientConn(const std::string &wsUrl,
                            const WsConfig& cfg,
                            bool sendMasked)
     : TcpClientConn(),
@@ -25,7 +26,10 @@ WsClientConn::WsClientConn(const std::string& ip,
       _pktHandler(nullptr),
       _session(new Session()),
       _translayer(new WsClientTrans(*this, false, sendMasked, cfg)),
-      _sentClose(false)
+      _sentClose(false),
+      _retryTimes(0),
+      _nextConnectTime(0),
+      _urlInfo()      
 {
     using namespace std::placeholders;
 
@@ -37,8 +41,33 @@ WsClientConn::WsClientConn(const std::string& ip,
     _translayer->registerOnPacketCb(std::move(onPktCb));
     _translayer->registerOnErrorCb(std::move(onErrCb));
 
-    setRemotePort(port);
-    setRemoteAddr(ip);
+    _urlInfo = std::move(UrlParser::parse(wsUrl));
+    if (!_urlInfo || _urlInfo->_host.empty())
+    {
+        PARROT_ASSERT(false);
+    }
+
+    std::list<std::string> ipv4List;
+    std::list<std::string> ipv6List;
+
+    IPHelper::getIPAddress(_urlInfo->_host, ipv4List, ipv6List);
+
+    if (ipv4List.empty() && ipv6List.empty())
+    {
+        PARROT_ASSERT(false);
+    }
+
+    setRemotePort(_urlInfo->_port);    
+    if (!ipv6List.empty())
+    {
+        setRemoteAddr(*ipv6List.begin());
+    }
+    else
+    {
+        setRemoteAddr(*ipv4List.begin());
+    }
+
+    setUrlInfo(_urlInfo.get());
 }
 
 void WsClientConn::setPacketHandler(PacketHandler* hdr)

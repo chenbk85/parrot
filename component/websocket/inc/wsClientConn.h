@@ -16,6 +16,7 @@
 #include "wsPacket.h"
 #include "doubleLinkedListNode.h"
 #include "wsClientTrans.h"
+#include "urlParser.h"
 
 namespace parrot
 {
@@ -43,8 +44,7 @@ class WsClientConn : public TcpClientConn,
 
   public:
     WsClientConn() = default;
-    WsClientConn(const std::string& ip,
-                 uint16_t port,
+    WsClientConn(const std::string& wsUrl,
                  const WsConfig& cfg,
                  bool sendMasked = true);
     virtual ~WsClientConn() = default;
@@ -86,7 +86,7 @@ class WsClientConn : public TcpClientConn,
     bool _sentClose;
     uint32_t _retryTimes;
     std::time_t _nextConnectTime;
-    
+    std::unique_ptr<UrlInfo> _urlInfo;
 };
 }
 
