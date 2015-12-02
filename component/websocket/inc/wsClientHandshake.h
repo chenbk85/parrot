@@ -11,6 +11,7 @@ struct http_parser;
 
 namespace parrot
 {
+struct UrlInfo;
 struct WsConfig;
 struct WsTranslayer;
 
@@ -19,17 +20,15 @@ class WsClientHandshake
     using HeaderDic = std::unordered_map<std::string, std::string>;
     enum class eParseState
     {
+        CreateReq,        
         Receving,
-        RecevingBody,
-        CreateRsp
+        RecevingBody
     };
 
   public:
-    explicit WsClientHandshake(WsTranslayer &tr);
+    explicit WsClientHandshake(WsTranslayer& tr);
 
   public:
-    // work
-    //
     // A simple state machine. Receive http handshake message from
     // remote, parse it and create response message.
     //
@@ -39,8 +38,6 @@ class WsClientHandshake
     //  * ST_Complete       When created response.
     eCodes work();
 
-    // getResult
-    //
     // Returns the http status code.
     //
     // return:
@@ -51,17 +48,6 @@ class WsClientHandshake
     eCodes getResult() const;
 
   private:
-    // onStatus
-    //
-    // A callback function which will be called from http_parser when
-    // the parser has parsed the status code..
-    //
-    // return:
-    //  0 continue parsing. 1 error.
-    int onStatus(::http_parser*, const char* at, size_t len);
-
-    // onHeaderField
-    //
     // A callback function which will be called from http_parser when
     // the parser has parsed one header.
     //
@@ -69,8 +55,6 @@ class WsClientHandshake
     //  0 continue parsing. 1 error.
     int onHeaderField(::http_parser*, const char* at, size_t len);
 
-    // onHeaderValue
-    //
     // A callback function which will be called from http_parser when
     // the parser has parsed header value.
     //
@@ -78,8 +62,6 @@ class WsClientHandshake
     //  0 continue parsing. 1 error.
     int onHeaderValue(::http_parser*, const char* at, size_t len);
 
-    // parse
-    //
     // Parse http handshake message.
     //
     // return:
@@ -88,8 +70,6 @@ class WsClientHandshake
     //                      handshake message.
     eCodes parse();
 
-    // recevingBody
-    //
     // RFC6455 says the client may send any valid http headers. Then,
     // the received header may contains 'content-length'. If it has,
     // we have to receive the http body.
@@ -100,35 +80,25 @@ class WsClientHandshake
     //                      handshake message.
     eCodes recevingBody();
 
-    // verifyHeader
-    //
     // Verify http header.
     void verifyHeader();
 
-    // createHandshakeSHA1Key
-    //
-    // Create Sec-WebSocket-Accept key. The server must derive it
-    // from the Sec-WebSocket-Key that the client sent. To get it,
-    // concatenate the client's Sec-WebSocket-Key and
-    // "258EAFA5-E914-47DA-95CA-C5AB0DC85B11" together (it's a
-    // "magic string"), take the SHA-1 hash of the result, and
-    // return the base64 encoding of the hash.
-    //
-    // return:
-    //  The base64 encoded string.
-    std::string createHandshakeSHA1Key();
+    // Create Sec-WebSocket-Key. Generate 16 bytes array, then encode
+    // the array to base64 string.
+    void createHandshakeKey();
 
-    // createHttpHandshakeRsp
-    //
-    // Create the http response message.
-    void createHttpHandshakeRsp();
+    // Create the http handshake message.
+    void createHttpHandshake();
+
+    // Verify Sec-WebSocket-Accept from server.
+    bool verifySecWebSocketAccept(const std::string& acceptedKey);
 
   private:
     eParseState _state;
     std::vector<unsigned char>& _recvVec;
-    const uint32_t &_rcvdLen;
+    const uint32_t& _rcvdLen;
     std::vector<unsigned char>& _sendVec;
-    uint32_t &_needSendLen;
+    uint32_t& _needSendLen;
     const std::string& _remoteIp;
     HeaderDic _headerDic;
     std::string _lastHeader;
@@ -136,6 +106,8 @@ class WsClientHandshake
     std::string _secWebSocketKey;
     uint32_t _httpBodyLen;
     eCodes _httpResult;
+    MtRandom *_random;
+    const UrlInfo * _urlInfo;
     const WsConfig& _config;
 };
 }

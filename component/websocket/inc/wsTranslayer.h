@@ -25,6 +25,7 @@ struct WsConfig;
 class WsTranslayer
 {
     friend class WsServerHandshake;
+    friend class WsClientHandshake;
     friend class WsEncoder;
     friend class WsDecoder;
 
@@ -41,7 +42,7 @@ class WsTranslayer
                  bool recvMasked,
                  bool sendMsked,
                  const WsConfig& cfg);
-    ~WsTranslayer() = default;
+    virtual ~WsTranslayer() = default;
     WsTranslayer(const WsTranslayer&) = delete;
     WsTranslayer& operator=(const WsTranslayer&) = delete;
 

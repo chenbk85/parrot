@@ -11,6 +11,7 @@ struct http_parser;
 
 namespace parrot
 {
+struct UrlInfo;
 struct WsConfig;
 struct WsTranslayer;
 
@@ -25,7 +26,7 @@ class WsServerHandshake
     };
 
   public:
-    explicit WsServerHandshake(WsTranslayer &tr);
+    explicit WsServerHandshake(WsTranslayer& tr);
 
   public:
     // work
@@ -126,15 +127,16 @@ class WsServerHandshake
   private:
     eParseState _state;
     std::vector<unsigned char>& _recvVec;
-    const uint32_t &_rcvdLen;
+    const uint32_t& _rcvdLen;
     std::vector<unsigned char>& _sendVec;
-    uint32_t &_needSendLen;
+    uint32_t& _needSendLen;
     const std::string& _remoteIp;
     HeaderDic _headerDic;
     std::string _lastHeader;
     std::vector<unsigned char>::iterator _lastParseIt;
     uint32_t _httpBodyLen;
     eCodes _httpResult;
+    const UrlInfo* _urlInfo;
     const WsConfig& _config;
 };
 }

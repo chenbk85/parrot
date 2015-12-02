@@ -122,7 +122,8 @@ std::unique_ptr<UrlInfo> UrlParser::parse(const std::string& urlStr)
         ++tail;
     }
 
-    urlInfo->_host = std::string(head, tail);
+    urlInfo->_host      = std::string(head, tail);
+    urlInfo->_authority = urlInfo->_host;
 
     if (tail == urlStr.end())
     {
@@ -144,7 +145,8 @@ std::unique_ptr<UrlInfo> UrlParser::parse(const std::string& urlStr)
         }
 
         urlInfo->_port = std::stoi(std::string(head, tail));
-        foundPort      = true;
+        foundPort = true;
+        urlInfo->_authority += ":" + std::to_string(urlInfo->_port);
     }
 
     if (*tail == '/' && !foundPort)
@@ -165,7 +167,7 @@ std::unique_ptr<UrlInfo> UrlParser::parse(const std::string& urlStr)
         ++tail;
     }
 
-    if (*tail == '/')
+    if (*(tail - 1) == '/')
     {
         urlInfo->_path = std::string(head, tail - 1);
     }

@@ -14,6 +14,7 @@
 #include "digestHelper.h"
 #include "stringHelper.h"
 #include "base64.h"
+#include "urlParser.h"
 
 namespace parrot
 {
@@ -29,6 +30,7 @@ WsServerHandshake::WsServerHandshake(WsTranslayer& tr)
       _lastParseIt(_recvVec.begin()),
       _httpBodyLen(0),
       _httpResult(eCodes::HTTP_Ok),
+      _urlInfo(tr._io.getUrlInfo()),
       _config(tr._config)
 {
 }
@@ -64,14 +66,6 @@ eCodes WsServerHandshake::parse()
         return eCodes::ST_NeedRecv;
     }
 
-    if (_rcvdLen >= _config._maxHttpHandshake)
-    {
-        LOG_WARN("WsServerHandshake::parse: Data too long. Remote is " << _remoteIp
-                                                                    << ".");
-        _httpResult = eCodes::HTTP_PayloadTooLarge;
-        return eCodes::ST_Ok;
-    }
-
     auto end         = _recvVec.begin() + _rcvdLen;
     std::string rnrn = "\r\n\r\n";
     auto ret         = std::search(_lastParseIt, end, rnrn.begin(), rnrn.end());
@@ -79,6 +73,12 @@ eCodes WsServerHandshake::parse()
     if (ret == end) // Not found.
     {
         _lastParseIt = end - 4; // Rewind 4 bytes for \r\n\r\n.
+
+        if (_rcvdLen >= _recvVec.capacity())
+        {
+            // Http header length is longer than the buffer size.
+            return eCodes::HTTP_PayloadTooLarge;
+        }
         return eCodes::ST_NeedRecv;
     }
 
@@ -168,14 +168,27 @@ eCodes WsServerHandshake::recevingBody()
 void WsServerHandshake::verifyHeader()
 {
     _httpResult = eCodes::HTTP_BadRequest;
-    // Check host.
-    auto it = _headerDic.find("host");
+
+    // Check URL.
+    auto it = _headerDic.find("url");
     if (it == _headerDic.end())
     {
         return;
     }
 
-    if (it->second != _config._host)
+    if (it->second != _urlInfo->_path)
+    {
+        return;
+    }
+
+    // Check host.
+    it = _headerDic.find("host");
+    if (it == _headerDic.end())
+    {
+        return;
+    }
+
+    if (it->second != _urlInfo->_authority)
     {
         return;
     }
@@ -272,7 +285,7 @@ void WsServerHandshake::createHttpHandshakeRsp()
     if (_httpResult != eCodes::HTTP_SwitchingProtocols)
     {
         ostr << "HTTP/1.1 " << e.code().value() << " " << e.code().message()
-             <<"\r\n";
+             << "\r\n";
         ostr << "Connection: Closed\r\n\r\n";
     }
     else

@@ -21,6 +21,7 @@ namespace parrot
 class WsPacket;
 struct WsConfig;
 struct Session;
+struct UrlInfo;
 
 class WsServerConn : public TcpServerConn,
                      public TimeoutGuard,

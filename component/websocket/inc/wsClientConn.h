@@ -10,12 +10,12 @@
 #include "codes.h"
 #include "session.h"
 #include "wsDefinition.h"
-#include "tcpServerConn.h"
+#include "tcpClientConn.h"
 #include "timeoutGuard.h"
 #include "wsPacketHandler.h"
 #include "wsPacket.h"
 #include "doubleLinkedListNode.h"
-#include "wsTranslayer.h"
+#include "wsClientTrans.h"
 
 namespace parrot
 {
@@ -43,7 +43,7 @@ class WsClientConn : public TcpClientConn,
 
   public:
     WsClientConn() = default;
-    WsClientConn(const string& ip,
+    WsClientConn(const std::string& ip,
                  uint16_t port,
                  const WsConfig& cfg,
                  bool sendMasked = true);
@@ -66,7 +66,8 @@ class WsClientConn : public TcpClientConn,
   private:
     void onError(eCodes c);
     void onPacket(std::unique_ptr<WsPacket>&& pkt);
-
+    void onConnected();
+    void getNextConnectTime();    
     void onOpen();
     void onPing();
     void onPong();
@@ -74,13 +75,14 @@ class WsClientConn : public TcpClientConn,
     void onData(std::unique_ptr<WsPacket>&& pkt);
     bool canClose();
     void doClose();
+    void onDisconnect();
 
   private:
     eWsConnState _connState;
     eWsState _state;
     PacketHandler* _pktHandler;
     std::shared_ptr<Session> _session;
-    std::unique_ptr<WsTranslayer> _translayer;
+    std::unique_ptr<WsClientTrans> _translayer;
     bool _sentClose;
     uint32_t _retryTimes;
     std::time_t _nextConnectTime;

@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "sysDefinition.h"
+#include "sysDefinitions.h"
 #include "wsTranslayer.h"
 #include "wsServerHandshake.h"
 
@@ -25,7 +25,7 @@ class WsServerTrans : public WsTranslayer
 
   private:
     eTranslayerState _state;    
-    std::unqiue_ptr<WsServerHandshake> _handshake;
+    std::unique_ptr<WsServerHandshake> _handshake;
 };
 }
 

@@ -2,8 +2,10 @@
 #define __BASE_SYS_INC_CONFIG_H__
 
 #include <map>
+#include <memory>
 #include <string>
 #include <cstdint>
+#include "urlParser.h"
 
 namespace parrot
 {
@@ -33,7 +35,9 @@ struct ServerInfo
 
     // WsURL. 
     std::string _frontWsUrl;
+    std::unique_ptr<UrlInfo> _frontWsUrlInfo;
     std::string _rpcWsUrl;
+    std::unique_ptr<UrlInfo> _rpcWsUrlInfo;
 };
 
 struct Config

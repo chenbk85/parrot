@@ -14,7 +14,6 @@ struct WsConfig
         static_assert(_recvBuffLen >= 256, "Recv buffer is too small.");
     }
 
-    std::string _host;
     const static uint32_t _maxPacketLen = (1 << 20);      // 1MB.
     const static uint32_t _maxHttpHandshake = 512; //(1 << 13);  // 8KB.
 

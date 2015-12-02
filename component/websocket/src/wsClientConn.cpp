@@ -5,7 +5,6 @@
 #include "mtRandom.h"
 #include "logger.h"
 #include "json.h"
-#include "wsHttpResponse.h"
 #include "wsTranslayer.h"
 #include "wsPacket.h"
 #include "wsClientConn.h"
@@ -15,17 +14,17 @@
 
 namespace parrot
 {
-WsClientConn::WsClientConn(const string& ip,
+WsClientConn::WsClientConn(const std::string& ip,
                            uint16_t port,
                            const WsConfig& cfg,
                            bool sendMasked)
-    : TcpServerConn(),
+    : TcpClientConn(),
       TimeoutGuard(),
       DoubleLinkedListNode<WsClientConn>(),
       _state(eWsState::NotOpened),
       _pktHandler(nullptr),
       _session(new Session()),
-      _translayer(new WsTranslayer(*this, false, sendMasked, cfg)),
+      _translayer(new WsClientTrans(*this, false, sendMasked, cfg)),
       _sentClose(false)
 {
     using namespace std::placeholders;
@@ -242,7 +241,7 @@ eIoAction WsClientConn::handleIoEvent()
             {
                 connect();
 
-                if (isConnected)
+                if (isConnected())
                 {
                     // Ha, connected to server so quickly.
                     onConnected();
@@ -274,8 +273,8 @@ eIoAction WsClientConn::handleIoEvent()
             {
                 if (isError() || isEof())
                 {
-                    Ioevent::close();
-                    ++retryTimes;
+                    IoEvent::close();
+                    ++_retryTimes;
                     getNextConnectTime();
                     return eIoAction::None;
                 }
@@ -297,7 +296,7 @@ eIoAction WsClientConn::handleIoEvent()
             {
                 if (isError() || isEof())
                 {
-                    Ioevent::close();
+                    IoEvent::close();
                     _connState = eWsConnState::Disconnected;
                     continue;
                 }
@@ -309,8 +308,7 @@ eIoAction WsClientConn::handleIoEvent()
                     act = _translayer->work(eIoAction::Read);
                     if (canClose())
                     {
-                        IoEvent::close();
-                        _connState = eWsConnState::Disconnected;
+                        onDisconnect();
                         continue;
                     }
                     return act;
@@ -321,8 +319,7 @@ eIoAction WsClientConn::handleIoEvent()
                     act = _translayer->work(eIoAction::Write);
                     if (canClose())
                     {
-                        IoEvent::close();
-                        _connState = eWsConnState::Disconnected;
+                        onDisconnect();
                         continue;
                     }
                     return act;
@@ -340,6 +337,13 @@ eIoAction WsClientConn::handleIoEvent()
             break;
         }
     }
+}
+
+void WsClientConn::onDisconnect()
+{
+    IoEvent::close();
+    _translayer->reset();
+    _connState = eWsConnState::Disconnected;
 }
 
 void WsClientConn::closeWebSocket(std::unique_ptr<WsPacket>& pkt)

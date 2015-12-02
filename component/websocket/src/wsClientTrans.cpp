@@ -1,7 +1,10 @@
 #include "codes.h"
 #include "ioEvent.h"
 #include "macroFuncs.h"
+#include "wsPacket.h"
 #include "wsClientTrans.h"
+#include "wsDecoder.h"
+#include "wsEncoder.h"
 
 namespace parrot
 {
@@ -13,6 +16,21 @@ WsClientTrans::WsClientTrans(IoEvent& io,
       _state(eTranslayerState::SendHttpHandshake),
       _handshake()
 {
+}
+
+void WsClientTrans::reset()
+{
+    _state = eTranslayerState::SendHttpHandshake;
+    _handshake.reset(new WsClientHandshake(*this));
+    _pktList.clear();
+    _wsDecoder.reset(new WsDecoder(*this));
+    _sendVec.clear();
+    _needSendLen = 0;
+    _sentLen = 0;
+    _recvVec.clear();
+    _rcvdLen = 0;    
+    _wsEncoder.reset(new WsEncoder(*this));
+    _canSend = true;
 }
 
 eIoAction WsClientTrans::work(eIoAction evt)
@@ -33,22 +51,17 @@ eIoAction WsClientTrans::work(eIoAction evt)
                 _handshake.reset(new WsClientHandshake(*this));
             }
 
+            code = _handshake->work();
+            if (code != eCodes::ST_Ok)
+            {
+                return eIoAction::Remove;
+            }
+
             code = sendData();
             if (code == eCodes::ST_Complete)
             {
-                if (_handshake->getResult() != eCodes::HTTP_SwitchingProtocols)
-                {
-                    return eIoAction::Remove;
-                }
-
-                _handshake.reset(nullptr);
-                _state   = WsConnected;
-                _rcvdLen = 0;
-                _wsDecoder.reset(new WsDecoder(*this));
-
-                // WebSocket is opened.
-                _onOpenCb();
-                return work(eIoAction::Read);
+                _state = eTranslayerState::RecvHttpHandshake;
+                return eIoAction::Read;
             }
             else if (code == eCodes::ST_NeedSend)
             {
@@ -81,7 +94,13 @@ eIoAction WsClientTrans::work(eIoAction evt)
             }
             else if (code == eCodes::ST_Complete)
             {
-                _state = SendHttpHandshake;
+                code = _handshake->getResult();
+                if (code != eCodes::HTTP_Ok)
+                {
+                    return eIoAction::Remove;
+                }
+
+                _state = eTranslayerState::WsConnected;
                 return work(eIoAction::Write);
             }
             else

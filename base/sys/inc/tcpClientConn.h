@@ -4,10 +4,10 @@
 #include <cstdint>
 #include <string>
 
+#include "ioEvent.h"
+
 namespace parrot
 {
-class IoEvent;
-
 class TcpClientConn : public IoEvent
 {
   public:

@@ -13,6 +13,7 @@ struct UrlInfo
     std::string _scheme                            = "";
     std::string _host                              = "";
     uint16_t _port                                 = 0;
+    std::string _authority                         = "";
     std::string _path                              = "";
     std::multimap<std::string, std::string> _query = {};
     std::string _hash                              = "";

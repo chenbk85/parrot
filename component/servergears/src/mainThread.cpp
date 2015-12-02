@@ -49,7 +49,6 @@ void MainThread::beforeStart()
 
     _notifier->create();
 
-    _wsConfig->_host = "10.24.100.202:9898";
     ConnFactory<WsServerConn, WsConfig>::getInstance()->setConfig(
         _wsConfig.get());
 
@@ -86,6 +85,7 @@ void MainThread::createListenerEvents()
     _connDispatcher.reset(
         new FrontConnDispatcher(thisServer._frontPort, thisServer._frontIp));
 
+    _connDispatcher->setUrlInfo(thisServer._frontWsUrlInfo.get());
     _connDispatcher->setNextAction(eIoAction::Read);
     _connDispatcher->startListen();
     _notifier->addEvent(_connDispatcher.get());

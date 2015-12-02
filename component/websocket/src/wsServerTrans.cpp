@@ -1,6 +1,7 @@
 #include "codes.h"
 #include "ioEvent.h"
 #include "macroFuncs.h"
+#include "wsPacket.h"
 #include "wsServerTrans.h"
 
 namespace parrot

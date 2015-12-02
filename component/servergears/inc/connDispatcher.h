@@ -12,6 +12,7 @@
 #include "macroFuncs.h"
 #include "connFactory.h"
 #include "connHandler.h"
+#include "urlParser.h"
 
 namespace parrot
 {
@@ -74,6 +75,7 @@ class ConnDispatcher : public Listener
             conn->setNextAction(eIoAction::Read);
             conn->setRemoteAddr(ipHelper.getIPStr());
             conn->setRemotePort(port);
+            conn->setUrlInfo(getUrlInfo());
 
             auto& session          = conn->getSession();
             session->_clientIp     = conn->getRemoteAddr();

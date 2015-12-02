@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "sysDefinition.h"
+#include "sysDefinitions.h"
 #include "wsTranslayer.h"
 #include "wsClientHandshake.h"
 
@@ -22,10 +22,11 @@ class WsClientTrans : public WsTranslayer
 
   public:
     eIoAction work(eIoAction evt) override;
+    void reset();
 
   private:
     eTranslayerState _state;    
-    std::unqiue_ptr<WsClientHandshake> _handshake;
+    std::unique_ptr<WsClientHandshake> _handshake;
 };
 }
 

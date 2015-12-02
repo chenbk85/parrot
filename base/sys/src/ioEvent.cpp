@@ -35,7 +35,8 @@ IoEvent::IoEvent()
       _isError(false),
       _isEof(false),
       _remoteIP(),
-      _remotePort()
+      _remotePort(),
+      _urlInfo(nullptr)
 {
 }
 
@@ -177,6 +178,16 @@ const std::string & IoEvent::getRemoteAddr() const
 uint16_t IoEvent::getRemotePort() const
 {
     return _remotePort;
+}
+
+void IoEvent::setUrlInfo(const UrlInfo *urlInfo)
+{
+    _urlInfo = urlInfo;
+}
+
+const UrlInfo* IoEvent::getUrlInfo() const
+{
+    return _urlInfo;
 }
 
 #if defined(__APPLE__) || defined(__linux__)
