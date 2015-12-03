@@ -16,7 +16,7 @@
 
 namespace parrot
 {
-WsClientConn::WsClientConn(const std::string &wsUrl,
+WsClientConn::WsClientConn(const std::string& wsUrl,
                            const WsConfig& cfg,
                            bool sendMasked)
     : TcpClientConn(),
@@ -29,7 +29,7 @@ WsClientConn::WsClientConn(const std::string &wsUrl,
       _sentClose(false),
       _retryTimes(0),
       _nextConnectTime(0),
-      _urlInfo()      
+      _urlInfo()
 {
     using namespace std::placeholders;
 
@@ -57,7 +57,7 @@ WsClientConn::WsClientConn(const std::string &wsUrl,
         PARROT_ASSERT(false);
     }
 
-    setRemotePort(_urlInfo->_port);    
+    setRemotePort(_urlInfo->_port);
     if (!ipv6List.empty())
     {
         setRemoteAddr(*ipv6List.begin());
@@ -109,7 +109,6 @@ void WsClientConn::onPong()
 
 void WsClientConn::onData(std::unique_ptr<WsPacket>&& pkt)
 {
-    std::cout << "WsClientConn::onData" << std::endl;
     _pktHandler->onPacket(_session, std::move(pkt));
 }
 
@@ -256,7 +255,7 @@ void WsClientConn::onConnected()
 
 void WsClientConn::getNextConnectTime()
 {
-    uint8_t sec = _retryTimes >= 5 ? 5 : _retryTimes; // Max 5 secs.
+    uint8_t sec      = _retryTimes >= 5 ? 5 : _retryTimes; // Max 5 secs.
     _nextConnectTime = std::time(nullptr) + sec;
 }
 

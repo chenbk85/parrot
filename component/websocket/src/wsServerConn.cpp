@@ -73,7 +73,6 @@ void WsServerConn::onPong()
 
 void WsServerConn::onData(std::unique_ptr<WsPacket>&& pkt)
 {
-    std::cout << "WsServerConn::onData" << std::endl;
     _pktHandler->onPacket(_session, std::move(pkt));
 }
 
