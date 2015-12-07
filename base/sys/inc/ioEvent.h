@@ -90,6 +90,12 @@ class IoEvent
     void setRemotePort(uint16_t port);
     uint16_t getRemotePort() const;
 
+    void setDerivedPtr(void *p);
+    inline void *getDerivedPtr() const
+    {
+        return _derivedPtr;
+    }
+
   public:
 #if defined(__APPLE__) || defined(__linux__)
     virtual eCodes
@@ -110,6 +116,7 @@ class IoEvent
     std::string _remoteIP;
     uint16_t _remotePort;
     const UrlInfo *_urlInfo;
+    void * _derivedPtr;
 };
 }
 

@@ -27,7 +27,9 @@ template <typename Conn, typename Cfg> class ConnFactory
     
     std::unique_ptr<Conn> create()
     {
-        return std::unique_ptr<Conn>(new Conn(*_config));
+        std::unique_ptr<Conn> c(new Conn(*_config));
+        c->setDerivedPtr(c.get());
+        return c;
     }
 
   private:

@@ -311,7 +311,7 @@ bool WsPacket::decodeSysData()
             return false;
         }
         _route = *reinterpret_cast<const uint64_t*>(&(*it));
-        _route = uniHtonll(_route);        
+        _route = uniHtonll(_route);
         it += 8;
     }
 

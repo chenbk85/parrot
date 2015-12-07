@@ -36,7 +36,8 @@ IoEvent::IoEvent()
       _isEof(false),
       _remoteIP(),
       _remotePort(),
-      _urlInfo(nullptr)
+      _urlInfo(nullptr),
+      _derivedPtr(nullptr)
 {
 }
 
@@ -178,6 +179,11 @@ const std::string & IoEvent::getRemoteAddr() const
 uint16_t IoEvent::getRemotePort() const
 {
     return _remotePort;
+}
+
+void IoEvent::setDerivedPtr(void *p)
+{
+    _derivedPtr = p;
 }
 
 void IoEvent::setUrlInfo(const UrlInfo *urlInfo)

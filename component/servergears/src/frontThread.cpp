@@ -321,7 +321,7 @@ void FrontThread::dispatchPackets()
 
 void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn>>& connList)
 {
-    for (auto &c : connList)
+    for (auto& c : connList)
     {
         LOG_DEBUG("FrontThread::addConn: connId is "
                   << c->getSession()->_connUniqueId);
@@ -401,7 +401,7 @@ void FrontThread::run()
 
             eventNum = _notifier->waitIoEvents(5000);
 
-            // Append packet which needs to be sent to connections.            
+            // Append packet which needs to be sent to connections.
             handleJob();
 
             // Here handle events.
@@ -420,7 +420,9 @@ void FrontThread::run()
                     {
                         if (ev->isConnection())
                         {
-                            updateTimeout(static_cast<WsServerConn*>(ev), now);
+                            updateTimeout(
+                                static_cast<WsServerConn*>(ev->getDerivedPtr()),
+                                now);
                         }
                     }
                     // No break;
@@ -432,7 +434,8 @@ void FrontThread::run()
 
                     case eIoAction::Remove:
                     {
-                        removeConn(static_cast<WsServerConn*>(ev));
+                        removeConn(
+                            static_cast<WsServerConn*>(ev->getDerivedPtr()));
                     }
                     break;
 
