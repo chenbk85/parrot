@@ -22,7 +22,7 @@ class JsonImpl
   public:
     void createRootObject();
     void createRootArray();
-    bool parse(const char* buff, uint32_t len);
+    bool parse(const char* buff, uint64_t len);
 
     void getValue(const char* key, uint32_t& v);
     void getValue(const char* key, int32_t& v);

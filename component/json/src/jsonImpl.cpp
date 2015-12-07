@@ -55,7 +55,7 @@ void JsonImpl::createRootArray()
     _root->SetArray();
 }
 
-bool JsonImpl::parse(const char* buff, uint32_t len)
+bool JsonImpl::parse(const char* buff, uint64_t len)
 {
     PARROT_ASSERT(!_isChild);
     if (_root)

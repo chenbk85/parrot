@@ -53,7 +53,7 @@ class Json
     //
     // Return
     //  True if succesfully parsed the buffer.
-    bool parse(const char* buff, uint32_t len);
+    bool parse(const char* buff, uint64_t len);
 
     // getValue
     //

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "wsPacket.h"
 #include "json.h"
 #include "sysHelper.h"
@@ -59,6 +60,15 @@ void WsPacket::setPacket(eOpCode opCode, std::vector<unsigned char> &&payload)
 {
     _opCode = opCode;
     _payload = std::move(payload);
+
+    if (opCode == eOpCode::Binary)
+    {
+        if (!decodeSysData())
+        {
+            _decoded = true;
+            _decodeResult = false;
+        }
+    }
 }
 
 void WsPacket::setOpCode(eOpCode opCode)
@@ -174,8 +184,158 @@ bool WsPacket::decodeClose()
     return true;
 }
 
+bool WsPacket::decodeItemMeta(std::vector<unsigned char>::const_iterator& it,
+                              ePayloadItem& item,
+                              uint64_t &itemLen)
+{
+    item = static_cast<ePayloadItem>(*it++);
+    if (it == _payload.end())
+    {
+        return false;
+    }
+
+    itemLen = reinterpret_cast<uint8_t>(*it++);
+    if (itemLen == 254)
+    {
+        if (_payload.end() - it < 2)
+        {
+            return false;
+        }
+        itemLen = *reinterpret_cast<const uint16_t*>(&(*it));
+        it += 2;
+
+        itemLen = uniNtohs(static_cast<uint16_t>(itemLen));
+    }
+    else if (itemLen == 255)
+    {
+        if (_payload.end() - it < 8)
+        {
+            return false;
+        }
+        itemLen = *reinterpret_cast<const uint64_t*>(&(*it));
+        it += 8;
+        itemLen = uniNtohll(static_cast<uint16_t>(itemLen));
+    }
+
+    if (_payload.cend() - it < static_cast<int64_t>(itemLen))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 bool WsPacket::decodeBinary()
 {
+    if (_payload.empty())
+    {
+        return false;
+    }
+
+    auto it = _payload.cbegin();    
+    if (_route < 254)
+    {
+        ++it;
+    }
+    else if (_route >= 254 && _route <= 0xFFFF)
+    {
+        it += 3;
+    }
+    else
+    {
+        it += 9;
+    }
+
+    ePayloadItem item = ePayloadItem::None;
+    uint64_t itemLen  = 0;
+
+    while (it < _payload.cend())
+    {
+        if (!decodeItemMeta(it, item, itemLen))
+        {
+            return false;
+        }
+
+        if (item == ePayloadItem::Json)
+        {
+            _json.reset(new Json());
+            if (!_sysJson->parse(reinterpret_cast<const char*>(&(*it)), itemLen))
+            {
+                return false;
+            }
+        }
+        else if (item == ePayloadItem::Binary)
+        {
+            std::copy_n(it, itemLen, std::back_inserter(_bin));
+        }
+        else if (item == ePayloadItem::SysJson)
+        {
+        }
+        else
+        {
+            // Bad packet.
+            return false;
+        }
+
+        it += itemLen;
+    }
+
+    return false;
+}
+
+bool WsPacket::decodeSysData()
+{
+    if (_payload.empty())
+    {
+        return false;
+    }
+
+    auto it = _payload.cbegin();
+    _route = reinterpret_cast<uint8_t>(*it++);
+    if (_route == 254)
+    {
+        if (_payload.size() < 3)
+        {
+            return false;
+        }
+
+        _route = *reinterpret_cast<const uint16_t*>(&(*it));
+        it += 2;
+    }
+    else if (_route == 255)
+    {
+        if (_payload.size() < 9)
+        {
+            return false;
+        }
+        _route = *reinterpret_cast<const uint64_t*>(&(*it));
+        it += 8;
+    }
+
+    ePayloadItem item = ePayloadItem::None;
+    uint64_t itemLen  = 0;
+
+    while (it < _payload.cend())
+    {
+        if (!decodeItemMeta(it, item, itemLen))
+        {
+            return false;
+        }
+
+        if (item == ePayloadItem::SysJson)
+        {
+            _sysJson.reset(new Json());
+            if (_sysJson->parse(reinterpret_cast<const char*>(&(*it)), itemLen))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        it += itemLen;
+    }
+
     return false;
 }
 }

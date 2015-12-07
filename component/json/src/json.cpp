@@ -30,7 +30,7 @@ void Json::createRootArray()
     _impl->createRootArray();
 }
 
-bool Json::parse(const char* buff, uint32_t len)
+bool Json::parse(const char* buff, uint64_t len)
 {
     return _impl->parse(buff, len);
 }
