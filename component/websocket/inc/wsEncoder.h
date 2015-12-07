@@ -30,6 +30,7 @@ class WsEncoder
     {
         None,
         Route,
+        SysJson,
         Json,
         Binary
     };
@@ -69,6 +70,9 @@ class WsEncoder
     void writeHeader(bool firstPkt, bool fin);
     void writeRoute();
     eCodes writeBuff(const unsigned char* src, uint64_t len);
+    eCodes writePacketItem(ePayloadItem item,
+                           const unsigned char* buff,
+                           uint64_t buffSize);
 
     uint8_t getRouteLen(uint64_t route);
     uint64_t getDataLen(uint64_t len);
@@ -131,6 +135,8 @@ class WsEncoder
     bool _needMask;
     MtRandom& _random;
 
+    // Save sys json string.
+    std::string _sysJsonStr;
     // Save json string.
     std::string _jsonStr;
     uint32_t _maskingKey;

@@ -34,6 +34,7 @@ WsEncoder::WsEncoder(WsTranslayer& trans)
       _config(trans._config),
       _needMask(trans._needSendMasked),
       _random(*(trans._random)),
+      _sysJsonStr(),
       _jsonStr(),
       _maskingKey(0),
       _metaData(9)
@@ -458,9 +459,62 @@ eCodes WsEncoder::writeBuff(const unsigned char* src, uint64_t len)
     return eCodes::ST_RetryLater;
 }
 
+eCodes WsEncoder::writePacketItem(ePayloadItem item,
+                                  const unsigned char* buff,
+                                  uint64_t buffSize)
+{
+    if (_encodingMeta)
+    {
+        if (_metaData.empty())
+        {
+            getMetaData(item, buffSize);
+            _itemEncodedLen = 0;
+        }
+
+        if (writeBuff(&_metaData[0], _metaData.size()) != eCodes::ST_Complete)
+        {
+            // Buffer is full. Need to send the buffer then
+            // try again.
+            return eCodes::ST_RetryLater;
+        }
+        else
+        {
+            _encodingMeta   = false;
+            _itemEncodedLen = 0;
+        }
+    }
+
+    if (writeBuff(buff, buffSize) != eCodes::ST_Complete)
+    {
+        // Buffer is full. Need to send the buffer then try again.
+        return eCodes::ST_RetryLater;
+    }
+    else
+    {
+        _encodingMeta = true;
+    }
+
+    return eCodes::ST_Complete;
+}
+
 void WsEncoder::computeLength()
 {
+    // Route.
     _totalLen    = getRouteLen(_currPkt->getRoute());
+
+    // System json.
+    auto sysJsonPtr = _currPkt->getSysJson();
+    if (sysJsonPtr)
+    {
+        _sysJsonStr = std::move(sysJsonPtr->toString());
+        _totalLen += getDataLen(_sysJsonStr.size());
+    }
+    else
+    {
+        _sysJsonStr.clear();
+    }
+
+    // User's json.
     auto jsonPtr = _currPkt->getJson();
     if (jsonPtr)
     {
@@ -472,6 +526,7 @@ void WsEncoder::computeLength()
         _jsonStr.clear();
     }
 
+    // Binary.
     _totalLen += getDataLen(_currPkt->getBinary().size());
 
     if (_needMask)
@@ -526,48 +581,42 @@ void WsEncoder::encodePlainPacket()
         case eWriteState::Route:
         {
             writeRoute();
-            _writeState   = eWriteState::Json;
+            _writeState   = eWriteState::SysJson;
             _encodingMeta = true;
             _metaData.clear();
         }
         // No break;
 
+        case eWriteState::SysJson:
+        {
+            if (!_sysJsonStr.empty())
+            {
+                if (writePacketItem(
+                        ePayloadItem::SysJson,
+                        reinterpret_cast<unsigned char*>(&_sysJsonStr[0]),
+                        _sysJsonStr.size()) != eCodes::ST_Complete)
+                {
+                    return;
+                }
+
+                _writeState = eWriteState::Json;
+            }
+        }
+        // No break;        
+
         case eWriteState::Json:
         {
             if (!_jsonStr.empty())
             {
-                if (_encodingMeta)
+                if (writePacketItem(
+                        ePayloadItem::Json,
+                        reinterpret_cast<unsigned char*>(&_jsonStr[0]),
+                        _jsonStr.size()) != eCodes::ST_Complete)
                 {
-                    if (_metaData.empty())
-                    {
-                        getMetaData(ePayloadItem::Json, _jsonStr.size());
-                        _itemEncodedLen = 0;
-                    }
-
-                    if (writeBuff(&_metaData[0], _metaData.size()) !=
-                        eCodes::ST_Complete)
-                    {
-                        // Buffer is full. Need to send the buffer then
-                        // try again.
-                        return;
-                    }
-                    else
-                    {
-                        _encodingMeta = false;
-                        _itemEncodedLen = 0;
-                    }
-                }
-
-                if (writeBuff(reinterpret_cast<unsigned char*>(&_jsonStr[0]),
-                              _jsonStr.size()) != eCodes::ST_Complete)
-                {
-                    // Buffer is full. Need to send the buffer then try again.
                     return;
                 }
-                else
-                {
-                    _encodingMeta = true;
-                }
+
+                _writeState = eWriteState::Binary;
             }
         }
         // No break;
@@ -577,37 +626,13 @@ void WsEncoder::encodePlainPacket()
             auto& bin = _currPkt->getBinary();
             if (!bin.empty())
             {
-                if (_encodingMeta)
+                if (writePacketItem(ePayloadItem::Binary, &bin[0],
+                                    bin.size()) != eCodes::ST_Complete)
                 {
-                    if (_metaData.empty())
-                    {
-                        getMetaData(ePayloadItem::Json, bin.size());
-                        _itemEncodedLen = 0;
-                    }
-
-                    if (writeBuff(&_metaData[0], _metaData.size()) !=
-                        eCodes::ST_Complete)
-                    {
-                        // Buffer is full. Need to send the buffer then
-                        // try again.
-                        return;
-                    }
-                    else
-                    {
-                        _encodingMeta = false;
-                        _itemEncodedLen = 0;
-                    }
-                }
-
-                if (writeBuff(&bin[0], bin.size()) != eCodes::ST_Complete)
-                {
-                    // Buffer is full. Need to send the buffer then try again.
                     return;
                 }
-                else
-                {
-                    _encodingMeta = true;
-                }
+
+                // _writeState = eWriteState::None;
             }
         }
         break;
@@ -619,6 +644,7 @@ void WsEncoder::encodePlainPacket()
         break;
     }
 
+    _writeState  = eWriteState::None;
     _needSendLen = _lastIt - _sendVec.begin();
     _state       = eEncoderState::Idle;
 }

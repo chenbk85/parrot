@@ -33,7 +33,8 @@ WsDecoder::WsDecoder(WsTranslayer& trans)
       _payloadLen(0),
       _maskingKey(),
       _parseResult(eCodes::ST_Ok),
-      _packetVec()
+      _packetVec(),
+      _largePktCount(0)
 {
     _recvVec.clear();
 }

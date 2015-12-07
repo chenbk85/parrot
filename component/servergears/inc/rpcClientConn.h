@@ -12,6 +12,9 @@ class RpcClientConn : public WsClientConn
 {
   public:
     RpcClientConn(const std::string& wsUrl, const WsConfig& cfg);
+
+  private:
+    uint64_t _reqId;
 };
 }
 

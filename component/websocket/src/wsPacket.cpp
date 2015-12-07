@@ -10,6 +10,7 @@ WsPacket::WsPacket()
       _closeCode(eCodes::WS_NormalClosure),
       _reason(),
       _json(),
+      _sysJson(),
       _bin(),
       _payload(),
       _route(0),
@@ -42,6 +43,11 @@ void WsPacket::setReqId(uint64_t reqId)
 void WsPacket::setJson(std::unique_ptr<Json>&& json)
 {
     _json = std::move(json);
+}
+
+void WsPacket::setSysJson(std::unique_ptr<Json>&& json)
+{
+    _sysJson = std::move(json);
 }
 
 void WsPacket::setBinary(std::vector<unsigned char> &&bin)
@@ -100,6 +106,11 @@ const std::vector<unsigned char>& WsPacket::getBinary() const
 const Json* WsPacket::getJson() const
 {
     return _json.get();
+}
+
+const Json* WsPacket::getSysJson() const
+{
+    return _sysJson.get();
 }
 
 const std::vector<unsigned char>& WsPacket::getPayload() const

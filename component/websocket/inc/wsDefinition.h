@@ -17,8 +17,9 @@ enum class eOpCode
 
 enum class ePayloadItem : uint8_t
 {
-    Json = 1,
-    Binary = 2
+    SysJson = 1,
+    Json = 2,
+    Binary = 3
 };
 }
 
