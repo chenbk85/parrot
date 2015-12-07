@@ -51,21 +51,21 @@ void WsPacket::setSysJson(std::unique_ptr<Json>&& json)
     _sysJson = std::move(json);
 }
 
-void WsPacket::setBinary(std::vector<unsigned char> &&bin)
+void WsPacket::setBinary(std::vector<unsigned char>&& bin)
 {
     _bin = std::move(bin);
 }
 
-void WsPacket::setPacket(eOpCode opCode, std::vector<unsigned char> &&payload)
+void WsPacket::setPacket(eOpCode opCode, std::vector<unsigned char>&& payload)
 {
-    _opCode = opCode;
+    _opCode  = opCode;
     _payload = std::move(payload);
 
     if (opCode == eOpCode::Binary)
     {
         if (!decodeSysData())
         {
-            _decoded = true;
+            _decoded      = true;
             _decodeResult = false;
         }
     }
@@ -78,9 +78,9 @@ void WsPacket::setOpCode(eOpCode opCode)
 
 void WsPacket::setClose(eCodes code, std::string&& reason)
 {
-    _opCode = eOpCode::Close;
+    _opCode    = eOpCode::Close;
     _closeCode = code;
-    _reason = std::move(reason);
+    _reason    = std::move(reason);
 }
 
 eOpCode WsPacket::getOpCode() const
@@ -172,21 +172,21 @@ bool WsPacket::decodeClose()
     }
 
     uint16_t code = *reinterpret_cast<uint16_t*>(&_payload[0]);
-    code = uniNtohs(code);
-    _closeCode = static_cast<eCodes>(code);
+    code          = uniNtohs(code);
+    _closeCode    = static_cast<eCodes>(code);
 
     if (_payload.size() > 2)
     {
         _reason = std::string(reinterpret_cast<char*>(&_payload[2]),
                               _payload.size() - 2);
     }
-    
+
     return true;
 }
 
 bool WsPacket::decodeItemMeta(std::vector<unsigned char>::const_iterator& it,
                               ePayloadItem& item,
-                              uint64_t &itemLen)
+                              uint64_t& itemLen)
 {
     item = static_cast<ePayloadItem>(*it++);
     if (it == _payload.end())
@@ -232,7 +232,7 @@ bool WsPacket::decodeBinary()
         return false;
     }
 
-    auto it = _payload.cbegin();    
+    auto it = _payload.cbegin();
     if (_route < 254)
     {
         ++it;
@@ -259,7 +259,8 @@ bool WsPacket::decodeBinary()
         if (item == ePayloadItem::Json)
         {
             _json.reset(new Json());
-            if (!_sysJson->parse(reinterpret_cast<const char*>(&(*it)), itemLen))
+            if (!_sysJson->parse(reinterpret_cast<const char*>(&(*it)),
+                                 itemLen))
             {
                 return false;
             }
@@ -300,6 +301,7 @@ bool WsPacket::decodeSysData()
         }
 
         _route = *reinterpret_cast<const uint16_t*>(&(*it));
+        _route = uniHtons(_route);
         it += 2;
     }
     else if (_route == 255)
@@ -309,6 +311,7 @@ bool WsPacket::decodeSysData()
             return false;
         }
         _route = *reinterpret_cast<const uint64_t*>(&(*it));
+        _route = uniHtonll(_route);        
         it += 8;
     }
 
