@@ -266,6 +266,60 @@ rapidjson::Value* JsonImpl::getObject()
     return _isChild ? _child : _root;
 }
 
+bool JsonImpl::isUint32(const char* key)
+{
+    return (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))
+        ->IsUint();
+}
+
+bool JsonImpl::isUint64(const char* key)
+{
+    return (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))
+        ->IsUint64();
+}
+
+bool JsonImpl::isInt32(const char* key)
+{
+    return (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))
+        ->IsInt();
+}
+
+bool JsonImpl::isInt64(const char* key)
+{
+    return (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))
+        ->IsInt64();
+}
+
+bool JsonImpl::isDouble(const char* key)
+{
+    return (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))
+        ->IsDouble();
+}
+
+bool JsonImpl::isNumber(const char* key)
+{
+    return (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))
+        ->IsNumber();
+}
+
+bool JsonImpl::isString(const char* key)
+{
+    return (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))
+        ->IsString();
+}
+
+bool JsonImpl::isObject(const char* key)
+{
+    return (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))
+        ->IsObject();
+}
+
+bool JsonImpl::isArray(const char* key)
+{
+    return (_isChild ? Pointer(key).Get(*_child) : Pointer(key).Get(*_root))
+        ->IsArray();
+}
+
 bool JsonImpl::containsKey(const char* key)
 {
     return Pointer(key).Get(*getObject()) == nullptr ? false : true;

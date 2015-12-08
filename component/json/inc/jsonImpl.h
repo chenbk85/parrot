@@ -55,6 +55,28 @@ class JsonImpl
     void setValue(const char* key, const std::vector<std::unique_ptr<Json>>& v);
 
     rapidjson::Value* getObject();
+
+    // From: http://rapidjson.org/md_doc_tutorial.html
+    //
+    // Note that, an integer value may be obtained in various ways without
+    // conversion. For example, A value x containing 123 will make
+    // x.IsInt() == x.IsUint() == x.IsInt64() == x.IsUint64() == true.
+    // But a value y containing -3000000000 will only makes x.IsInt64() == true.
+    // 
+    // When obtaining the numeric values, GetDouble() will convert internal
+    // integer representation to a double. Note that, int and unsigned can be
+    // safely convert to double, but int64_t and uint64_t may lose precision
+    // (since mantissa of double is only 52-bits).
+    bool isUint32(const char* key);
+    bool isUint64(const char* key);
+    bool isInt32(const char* key);
+    bool isInt64(const char* key);
+    bool isDouble(const char* key);
+    bool isNumber(const char* key);
+    bool isString(const char* key);
+    bool isObject(const char* key);
+    bool isArray(const char* key);
+    
     bool containsKey(const char* key);
 
     std::string toString();

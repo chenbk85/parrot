@@ -3,12 +3,14 @@
 #include "json.h"
 #include "sysHelper.h"
 #include "macroFuncs.h"
+#include "logger.h"
 
 namespace parrot
 {
 WsPacket::WsPacket()
     : _opCode(eOpCode::Binary),
       _closeCode(eCodes::WS_NormalClosure),
+      _reqType(eReqType::Request),
       _reason(),
       _json(),
       _sysJson(),
@@ -229,23 +231,11 @@ bool WsPacket::decodeBinary()
 {
     if (_payload.empty())
     {
+        LOG_WARN("WsPacket::decodeBinary: Payload is empty.");
         return false;
     }
 
-    auto it = _payload.cbegin();
-    if (_route < 254)
-    {
-        ++it;
-    }
-    else if (_route >= 254 && _route <= 0xFFFF)
-    {
-        it += 3;
-    }
-    else
-    {
-        it += 9;
-    }
-
+    auto it           = _payload.cbegin();
     ePayloadItem item = ePayloadItem::None;
     uint64_t itemLen  = 0;
 
@@ -253,15 +243,16 @@ bool WsPacket::decodeBinary()
     {
         if (!decodeItemMeta(it, item, itemLen))
         {
+            LOG_WARN("WsPacket::decodeBinary: Failed to decode item meta.");
             return false;
         }
 
         if (item == ePayloadItem::Json)
         {
             _json.reset(new Json());
-            if (!_sysJson->parse(reinterpret_cast<const char*>(&(*it)),
-                                 itemLen))
+            if (!_json->parse(reinterpret_cast<const char*>(&(*it)), itemLen))
             {
+                LOG_WARN("WsPacket::decodeBinary: Failed to parse json.");
                 return false;
             }
         }
@@ -274,6 +265,8 @@ bool WsPacket::decodeBinary()
         }
         else
         {
+            LOG_WARN("WsPacket::decodeBinary: Unknown item type "
+                     << (uint16_t)item << ".");
             // Bad packet.
             return false;
         }
@@ -281,40 +274,18 @@ bool WsPacket::decodeBinary()
         it += itemLen;
     }
 
-    return false;
+    return true;
 }
 
 bool WsPacket::decodeSysData()
 {
     if (_payload.empty())
     {
+        LOG_WARN("WsPacket::decodeSysData: Payload is empty.");
         return false;
     }
 
-    auto it = _payload.cbegin();
-    _route = reinterpret_cast<uint8_t>(*it++);
-    if (_route == 254)
-    {
-        if (_payload.size() < 3)
-        {
-            return false;
-        }
-
-        _route = *reinterpret_cast<const uint16_t*>(&(*it));
-        _route = uniHtons(_route);
-        it += 2;
-    }
-    else if (_route == 255)
-    {
-        if (_payload.size() < 9)
-        {
-            return false;
-        }
-        _route = *reinterpret_cast<const uint64_t*>(&(*it));
-        _route = uniHtonll(_route);
-        it += 8;
-    }
-
+    auto it           = _payload.cbegin();
     ePayloadItem item = ePayloadItem::None;
     uint64_t itemLen  = 0;
 
@@ -330,15 +301,52 @@ bool WsPacket::decodeSysData()
             _sysJson.reset(new Json());
             if (_sysJson->parse(reinterpret_cast<const char*>(&(*it)), itemLen))
             {
-                return true;
+                return loadSysInfo();
             }
-
+            LOG_WARN("WsPacket::decodeSysData: Failed to parse sys json.");
             return false;
         }
 
         it += itemLen;
     }
 
+    LOG_WARN("WsPacket::decodeSysData: Failed to find sys json in payload.");
     return false;
+}
+
+bool WsPacket::loadSysInfo()
+{
+    if (!_sysJson->containsKey("/route") || !_sysJson->isUint64("/route") ||
+        !_sysJson->containsKey("/type") || !_sysJson->isUint32("/type") ||
+        !_sysJson->containsKey("/reqId") || !_sysJson->isUint64("/reqId"))
+    {
+        LOG_WARN("WsPacket::loadSysInfo: Bad sys json: " << _sysJson->toString()
+                                                         << ".");
+        return false;
+    }
+
+    uint32_t reqTypeTmp = 0;
+
+    _sysJson->getValue("/route", _route);
+    _sysJson->getValue("/type", reqTypeTmp);
+    _sysJson->getValue("/reqId", _reqId);
+
+    _reqType = static_cast<eReqType>(reqTypeTmp);
+
+    if (_reqType != eReqType::Request && _reqType != eReqType::Notify)
+    {
+        LOG_WARN("WsPacket::loadSysInfo: Bad sys json: " << _sysJson->toString()
+                                                         << ".");
+        return false;
+    }
+
+    return true;
+}
+
+std::unique_ptr<WsPacket> WsPacket::toResponsePkt()
+{
+    std::unique_ptr<WsPacket> pkt(new WsPacket());
+    pkt->setSysJson(std::move(_sysJson));
+    return pkt;
 }
 }

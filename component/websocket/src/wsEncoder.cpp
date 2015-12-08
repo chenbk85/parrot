@@ -406,32 +406,6 @@ void WsEncoder::encodeRawPacket()
     return;
 }
 
-void WsEncoder::writeRoute()
-{
-    auto route = _currPkt->getRoute();
-    if (route < 254)
-    {
-        *_lastIt++ = static_cast<uint8_t>(route);
-        _encodedLen += 1;
-    }
-    else if (route < 0xFFFF)
-    {
-        *_lastIt++   = 254;
-        uint16_t len = uniHtons(static_cast<uint16_t>(route));
-        std::copy_n(&len, 2, _lastIt);
-        _encodedLen += 2;
-        _lastIt += 2;
-    }
-    else
-    {
-        *_lastIt++   = 254;
-        uint64_t len = uniHtonll(route);
-        std::copy_n(&len, 8, _lastIt);
-        _encodedLen += 9;
-        _lastIt += 8;
-    }
-}
-
 eCodes WsEncoder::writeBuff(const unsigned char* src, uint64_t len)
 {
     uint64_t leftLen     = _headerLen + _payloadLen - (_lastIt - _sendVec.begin());
@@ -499,8 +473,7 @@ eCodes WsEncoder::writePacketItem(ePayloadItem item,
 
 void WsEncoder::computeLength()
 {
-    // Route.
-    _totalLen    = getRouteLen(_currPkt->getRoute());
+    _totalLen = 0;
 
     // System json.
     auto sysJsonPtr = _currPkt->getSysJson();
@@ -547,9 +520,11 @@ void WsEncoder::encodePlainPacket()
     if (_state == eEncoderState::Idle)
     {
         _state          = eEncoderState::Encoding;
-        _writeState     = eWriteState::Route;
+        _writeState     = eWriteState::SysJson;
         _encodedLen     = 0;
         _itemEncodedLen = 0;
+        _encodingMeta = true;
+        _metaData.clear();
 
         computeLength();
 
@@ -578,15 +553,6 @@ void WsEncoder::encodePlainPacket()
 
     switch (_writeState)
     {
-        case eWriteState::Route:
-        {
-            writeRoute();
-            _writeState   = eWriteState::SysJson;
-            _encodingMeta = true;
-            _metaData.clear();
-        }
-        // No break;
-
         case eWriteState::SysJson:
         {
             if (!_sysJsonStr.empty())
@@ -602,7 +568,7 @@ void WsEncoder::encodePlainPacket()
                 _writeState = eWriteState::Json;
             }
         }
-        // No break;        
+        // No break;
 
         case eWriteState::Json:
         {
@@ -644,7 +610,6 @@ void WsEncoder::encodePlainPacket()
         break;
     }
 
-    _writeState  = eWriteState::None;
     _needSendLen = _lastIt - _sendVec.begin();
     _state       = eEncoderState::Idle;
 }
@@ -690,22 +655,6 @@ void WsEncoder::getMetaData(ePayloadItem item, uint64_t dataLen)
         dataLen = uniHtonll(dataLen);
         std::copy_n(reinterpret_cast<unsigned char*>(&dataLen), 8,
                     std::back_inserter(_metaData));
-    }
-}
-
-uint8_t WsEncoder::getRouteLen(uint64_t route)
-{
-    if (route < 254)
-    {
-        return (uint8_t)1;
-    }
-    else if (route >= 254 && route < 65536)
-    {
-        return (uint8_t)3; // 1 + 2 bytes.
-    }
-    else
-    {
-        return (uint8_t)9; // 1 + 8 bytes.
     }
 }
 

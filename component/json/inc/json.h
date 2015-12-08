@@ -133,6 +133,16 @@ class Json
     void setValue(const char* key, const std::vector<bool>& v);
     void setValue(const char* key, std::vector<std::unique_ptr<Json>>& v);
 
+    bool isUint32(const char* key);
+    bool isUint64(const char* key);
+    bool isInt32(const char* key);
+    bool isInt64(const char* key);
+    bool isDouble(const char* key);
+    bool isNumber(const char* key);
+    bool isString(const char* key);
+    bool isObject(const char* key);
+    bool isArray(const char* key);
+    
     // containsKey
     //
     // Checks wether the json contains key.

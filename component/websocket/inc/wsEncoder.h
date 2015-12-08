@@ -29,7 +29,6 @@ class WsEncoder
     enum class eWriteState
     {
         None,
-        Route,
         SysJson,
         Json,
         Binary
@@ -68,13 +67,11 @@ class WsEncoder
     void computeLength();
 
     void writeHeader(bool firstPkt, bool fin);
-    void writeRoute();
     eCodes writeBuff(const unsigned char* src, uint64_t len);
     eCodes writePacketItem(ePayloadItem item,
                            const unsigned char* buff,
                            uint64_t buffSize);
 
-    uint8_t getRouteLen(uint64_t route);
     uint64_t getDataLen(uint64_t len);
     void maskPacket(std::vector<unsigned char>::iterator begin,
                     std::vector<unsigned char>::iterator end);

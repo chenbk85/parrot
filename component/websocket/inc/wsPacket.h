@@ -32,7 +32,6 @@ class WsPacket
     void setReqId(uint64_t reqId);
     void setConnId(uint64_t connId);
     void setJson(std::unique_ptr<Json>&& json);
-    void setSysJson(std::unique_ptr<Json>&& json);
     void setBinary(std::vector<unsigned char>&& bin);
     void setPacket(eOpCode opCode, std::vector<unsigned char>&& payload);
     void setOpCode(eOpCode opCode);
@@ -52,17 +51,22 @@ class WsPacket
     const std::vector<unsigned char>& getPayload() const;
 
     bool decode();
+    std::unique_ptr<WsPacket> toResponsePkt();
 
   private:
+    void setSysJson(std::unique_ptr<Json>&& json);
+    bool loadSysInfo();
     bool decodeSysData();
     bool decodeBinary();
     bool decodeClose();
     bool decodeItemMeta(std::vector<unsigned char>::const_iterator& it,
                         ePayloadItem& item,
                         uint64_t& itemLen);
+
   private:
     eOpCode _opCode;
     eCodes _closeCode;
+    eReqType _reqType;
     std::string _reason;
     std::unique_ptr<Json> _json;
     std::unique_ptr<Json> _sysJson;
