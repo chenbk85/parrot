@@ -66,7 +66,7 @@ class WsPacket
   private:
     eOpCode _opCode;
     eCodes _closeCode;
-    eReqType _reqType;
+    ePacketType _pktType;
     std::string _reason;
     std::unique_ptr<Json> _json;
     std::unique_ptr<Json> _sysJson;

@@ -10,7 +10,7 @@ namespace parrot
 WsPacket::WsPacket()
     : _opCode(eOpCode::Binary),
       _closeCode(eCodes::WS_NormalClosure),
-      _reqType(eReqType::Request),
+      _pktType(ePacketType::Push),
       _reason(),
       _json(),
       _sysJson(),
@@ -325,15 +325,15 @@ bool WsPacket::loadSysInfo()
         return false;
     }
 
-    uint32_t reqTypeTmp = 0;
+    uint32_t pktTypeTmp = 0;
 
     _sysJson->getValue("/route", _route);
-    _sysJson->getValue("/type", reqTypeTmp);
+    _sysJson->getValue("/type", pktTypeTmp);
     _sysJson->getValue("/reqId", _reqId);
 
-    _reqType = static_cast<eReqType>(reqTypeTmp);
+    _pktType = static_cast<ePacketType>(pktTypeTmp);
 
-    if (_reqType != eReqType::Request && _reqType != eReqType::Notify)
+    if (_pktType != ePacketType::Request && _pktType != ePacketType::Notify)
     {
         LOG_WARN("WsPacket::loadSysInfo: Bad sys json: " << _sysJson->toString()
                                                          << ".");

@@ -23,10 +23,11 @@ enum class ePayloadItem : uint8_t
     Binary  = 3
 };
 
-enum class eReqType : uint8_t
+enum class ePacketType : uint8_t
 {
     Notify  = 0,
-    Request = 1
+    Request = 1,
+    Push    = 2
 };
 }
 
