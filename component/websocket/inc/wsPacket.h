@@ -18,7 +18,7 @@ class WsPacket
 {
   public:
     WsPacket();
-    ~WsPacket() = default;
+    virtual ~WsPacket() = default;
     WsPacket(const WsPacket& pkt) = delete;
     WsPacket& operator=(const WsPacket& pkt) = delete;
     WsPacket(WsPacket&& pkt) = default;
@@ -43,27 +43,29 @@ class WsPacket
 
     uint64_t getRoute() const;
     uint64_t getReqId() const;
+
     uint64_t getConnId() const;
     const std::vector<unsigned char>& getBinary() const;
-    const Json* getJson() const;
-    const Json* getSysJson() const;
+    Json* getJson() const;
+    Json* getSysJson() const;
 
     const std::vector<unsigned char>& getPayload() const;
 
     bool decode();
     std::unique_ptr<WsPacket> toResponsePkt();
 
-  private:
+  protected:
     void setSysJson(std::unique_ptr<Json>&& json);
     bool loadSysInfo();
-    bool decodeSysData();
     bool decodeBinary();
     bool decodeClose();
     bool decodeItemMeta(std::vector<unsigned char>::const_iterator& it,
                         ePayloadItem& item,
                         uint64_t& itemLen);
-
-  private:
+  protected:
+    virtual bool decodeSysData();
+    
+  protected:
     eOpCode _opCode;
     eCodes _closeCode;
     ePacketType _pktType;

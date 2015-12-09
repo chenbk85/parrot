@@ -1,10 +1,76 @@
+#include "logger.h"
+#include "json.h"
 #include "rpcClientConn.h"
+#include "config.h"
 #include "wsConfig.h"
 
 namespace parrot
 {
-RpcClientConn::RpcClientConn(const std::string& wsUrl, const WsConfig& cfg):
-    WsClientConn(wsUrl, cfg, false)
+RpcClientConn::RpcClientConn(const Config& cfg,
+                             const std::string& wsUrl,
+                             const WsConfig& wscfg)
+    : WsClientConn(wsUrl, wscfg, false),
+      _timeoutMgr(new TimeoutManager<RpcRequest>(this, cfg._rpcReqTimeout)),
+      _reqMap(),
+      _reqId(0),
+      _config(cfg)
 {
+}
+
+void RpcClientConn::addJob(std::unique_ptr<RpcRequest>&& req)
+{
+    req->setReqId(_reqId);
+    _timeoutMgr->add(req.get(), std::time(nullptr));
+    _reqMap.emplace(_reqId, std::move(req));
+    ++_reqId;
+}
+
+void RpcClientConn::addJob(std::list<std::unique_ptr<RpcRequest>>& reqList)
+{
+    auto now = std::time(nullptr);
+    for (auto& req : reqList)
+    {
+        req->setReqId(_reqId);
+        _timeoutMgr->add(req.get(), now);
+        _reqMap.emplace(_reqId, std::move(req));
+        ++_reqId;
+    }
+}
+
+void RpcClientConn::checkReqTimeout(std::time_t now)
+{
+    _timeoutMgr->checkTimeout(now);
+}
+
+void RpcClientConn::onTimeout(RpcRequest* req)
+{
+    LOG_WARN("RpcClientConn::onTimeout: Request timeout. Request is "
+              << req->toString() << ".");
+}
+
+void RpcClientConn::onResponse(std::unique_ptr<WsPacket>&& pkt)
+{
+    uint64_t rpcReqId = 0;
+    auto sysJson      = pkt->getSysJson();
+
+    if (!sysJson->containsKey("/rpcReqId") || !sysJson->isUint64("/rpcReqId"))
+    {
+        LOG_WARN("RpcClientConn::onResponse: Bad sys json: "
+                 << sysJson->toString() << ".");
+        return;
+    }
+    sysJson->getValue("/rpcReqId", rpcReqId);
+
+    auto it = _reqMap.find(rpcReqId);
+    if (it == _reqMap.end())
+    {
+        LOG_WARN("RpcClientConn::onPacket: Failed to find reqId: " << rpcReqId
+                                                                   << ".");
+        return;
+    }
+
+    it->second->onResponse(std::move(pkt));
+    _timeoutMgr->remove(it->second.get());
+    _reqMap.erase(it);
 }
 }

@@ -115,12 +115,12 @@ const std::vector<unsigned char>& WsPacket::getBinary() const
     return _bin;
 }
 
-const Json* WsPacket::getJson() const
+Json* WsPacket::getJson() const
 {
     return _json.get();
 }
 
-const Json* WsPacket::getSysJson() const
+Json* WsPacket::getSysJson() const
 {
     return _sysJson.get();
 }
