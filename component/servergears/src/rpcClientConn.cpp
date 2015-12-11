@@ -9,7 +9,7 @@ namespace parrot
 RpcClientConn::RpcClientConn(const Config& cfg,
                              const std::string& wsUrl,
                              const WsConfig& wscfg)
-    : WsClientConn(wsUrl, wscfg, false),
+    : WsClientConn<RpcSession>(wsUrl, wscfg, false),
       _timeoutMgr(new TimeoutManager<RpcRequest>(this, cfg._rpcReqTimeout)),
       _reqMap(),
       _reqId(0),
@@ -19,10 +19,15 @@ RpcClientConn::RpcClientConn(const Config& cfg,
 
 void RpcClientConn::addJob(std::unique_ptr<RpcRequest>&& req)
 {
-    req->setReqId(_reqId);
-    _timeoutMgr->add(req.get(), std::time(nullptr));
-    _reqMap.emplace(_reqId, std::move(req));
-    ++_reqId;
+    if (req->getPacketType() == ePacketType::Request)
+    {
+        req->setReqId(_reqId);
+        _timeoutMgr->add(req.get(), std::time(nullptr));
+        _reqMap.emplace(_reqId, std::move(req));
+        ++_reqId;
+    }
+
+    sendPacket(req->getPacket());
 }
 
 void RpcClientConn::addJob(std::list<std::unique_ptr<RpcRequest>>& reqList)
@@ -30,10 +35,14 @@ void RpcClientConn::addJob(std::list<std::unique_ptr<RpcRequest>>& reqList)
     auto now = std::time(nullptr);
     for (auto& req : reqList)
     {
-        req->setReqId(_reqId);
-        _timeoutMgr->add(req.get(), now);
-        _reqMap.emplace(_reqId, std::move(req));
-        ++_reqId;
+        if (req->getPacketType() == ePacketType::Request)
+        {
+            req->setReqId(_reqId);
+            _timeoutMgr->add(req.get(), now);
+            _reqMap.emplace(_reqId, std::move(req));
+            ++_reqId;
+        }
+        sendPacket(req->getPacket());
     }
 }
 
@@ -45,7 +54,7 @@ void RpcClientConn::checkReqTimeout(std::time_t now)
 void RpcClientConn::onTimeout(RpcRequest* req)
 {
     LOG_WARN("RpcClientConn::onTimeout: Request timeout. Request is "
-              << req->toString() << ".");
+             << req->toString() << ".");
 }
 
 void RpcClientConn::onResponse(std::unique_ptr<WsPacket>&& pkt)

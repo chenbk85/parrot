@@ -25,9 +25,9 @@ enum class ePayloadItem : uint8_t
 
 enum class ePacketType : uint8_t
 {
-    Notify  = 0,
-    Request = 1,
-    Push    = 2
+    Notify  = 1,
+    Request = 2,
+    Push    = 3
 };
 }
 

@@ -43,8 +43,9 @@ class WsPacket
 
     uint64_t getRoute() const;
     uint64_t getReqId() const;
-
     uint64_t getConnId() const;
+    ePacketType getPacketType() const;
+    
     const std::vector<unsigned char>& getBinary() const;
     Json* getJson() const;
     Json* getSysJson() const;

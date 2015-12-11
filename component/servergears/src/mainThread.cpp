@@ -49,7 +49,7 @@ void MainThread::beforeStart()
 
     _notifier->create();
 
-    ConnFactory<WsServerConn, WsConfig>::getInstance()->setConfig(
+    ConnFactory<WsServerConn<Session>, WsConfig>::getInstance()->setConfig(
         _wsConfig.get());
 
     createListenerEvents();
@@ -69,7 +69,7 @@ void MainThread::createSysThreads()
     _frontThreadPool->setCount(_config->_frontThreadPoolSize);
     _frontThreadPool->create();
 
-    std::vector<ConnHandler<WsServerConn>*> vec;
+    std::vector<ConnHandler<WsServerConn<Session>>*> vec;
     auto& threadVec = _frontThreadPool->getThreadPoolVec();
     for (auto& t : threadVec)
     {

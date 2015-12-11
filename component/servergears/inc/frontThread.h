@@ -26,10 +26,10 @@ namespace parrot
 struct Config;
 
 class FrontThread : public PoolThread,
-                    public TimeoutHandler<WsServerConn>,
+                    public TimeoutHandler<WsServerConn<Session>>,
                     public JobHandler,
-                    public ConnHandler<WsServerConn>,
-                    public WsPacketHandler<Session, WsServerConn>
+                    public ConnHandler<WsServerConn<Session>>,
+                    public WsPacketHandler<Session, WsServerConn<Session>>
 {
     enum class Constants
     {
@@ -54,14 +54,14 @@ class FrontThread : public PoolThread,
     void addJob(std::list<std::unique_ptr<Job>>& jobList) override;
 
     // ConnHandler<WsServerConn>
-    void addConn(std::list<std::unique_ptr<WsServerConn>>& ) override;
+    void addConn(std::list<std::unique_ptr<WsServerConn<Session>>>& ) override;
 
   protected:
     // ThreadBase
     void run() override;
     
     // TimeoutHandler
-    void onTimeout(WsServerConn*) override;
+    void onTimeout(WsServerConn<Session>*) override;
 
     // JobHandler
     void handleJob() override;
@@ -70,7 +70,7 @@ class FrontThread : public PoolThread,
     // WsPacketHandler
     void onPacket(std::shared_ptr<const Session>&&,
                   std::unique_ptr<WsPacket>&&) override;
-    void onClose(WsServerConn* conn, std::unique_ptr<WsPacket> &&) override;
+    void onClose(WsServerConn<Session>* conn, std::unique_ptr<WsPacket> &&) override;
 
   protected:
     void handleRspBind(std::list<std::shared_ptr<const Session>>& sl);
@@ -78,8 +78,8 @@ class FrontThread : public PoolThread,
     void handlePacket(std::list<SessionPktPair> &pktList);    
     void dispatchPackets();
     void addConnToNotifier();
-    void removeConn(WsServerConn* conn);
-    void updateTimeout(WsServerConn* conn, std::time_t now);
+    void removeConn(WsServerConn<Session>* conn);
+    void updateTimeout(WsServerConn<Session>* conn, std::time_t now);
 
   private:
 
@@ -87,7 +87,7 @@ class FrontThread : public PoolThread,
     std::list<std::unique_ptr<Job>> _jobList;
 
     std::mutex _connListLock;
-    std::list<std::unique_ptr<WsServerConn>> _connList;
+    std::list<std::unique_ptr<WsServerConn<Session>>> _connList;
         
     std::list<SessionPktPair> _noRoutePktList;
     // <backThreadPtr, list<pair<Session, Packet>>>
@@ -96,7 +96,7 @@ class FrontThread : public PoolThread,
     std::unordered_set<JobHandler*> _jobHandlerSet;
 
     // <UniqueConnId, Conn>
-    std::unordered_map<uint64_t, std::unique_ptr<WsServerConn>> _connMap;
+    std::unordered_map<uint64_t, std::unique_ptr<WsServerConn<Session>>> _connMap;
 
     std::unique_ptr<EventNotifier> _notifier;
 
@@ -107,7 +107,7 @@ class FrontThread : public PoolThread,
     PacketJobHdr _pktJobHdr;
 
     MtRandom _random;
-    std::unique_ptr<TimeoutManager<WsServerConn>> _timeoutMgr;
+    std::unique_ptr<TimeoutManager<WsServerConn<Session>>> _timeoutMgr;
     const Config* _config;
 };
 }

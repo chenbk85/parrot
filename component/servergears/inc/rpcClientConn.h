@@ -8,6 +8,7 @@
 #include <cstdint>
 
 #include "rpcRequest.h"
+#include "rpcSession.h"
 #include "wsPacket.h"
 #include "wsClientConn.h"
 #include "timeoutManager.h"
@@ -18,7 +19,8 @@ namespace parrot
 struct Config;
 struct WsConfig;
 
-class RpcClientConn : public WsClientConn, public TimeoutHandler<RpcRequest>
+class RpcClientConn : public WsClientConn<RpcSession>,
+                      public TimeoutHandler<RpcRequest>
 {
   public:
     RpcClientConn(const Config& cfg,

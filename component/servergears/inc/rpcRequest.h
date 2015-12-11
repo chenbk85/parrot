@@ -5,8 +5,10 @@
 #include <memory>
 #include <cstdint>
 
-#include "rpcRequester.h"
+#include "wsDefinition.h"
 #include "wsPacket.h"
+
+#include "rpcRequester.h"
 #include "timeoutGuard.h"
 #include "doubleLinkedListNode.h"
 
@@ -15,14 +17,16 @@ namespace parrot
 class RpcRequest : public TimeoutGuard, public DoubleLinkedListNode<RpcRequest>
 {
   public:
-    RpcRequest(std::unique_ptr<RpcRequester> &&requester,
-               std::unique_ptr<WsPacket> &&msg);
+    RpcRequest(std::unique_ptr<RpcRequester>&& requester,
+               std::unique_ptr<WsPacket>&& msg);
     RpcRequest() = default;
 
   public:
     void onResponse(std::unique_ptr<WsPacket>&& rsp);
     void setReqId(uint64_t reqId);
     uint64_t getReqId() const;
+    ePacketType getPacketType() const;
+    std::unique_ptr<WsPacket>& getPacket();
     std::string toString();
 
   private:

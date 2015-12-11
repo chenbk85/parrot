@@ -5,17 +5,13 @@
 
 namespace parrot
 {
-RpcRequester::RpcRequester(JobHandler* hdr,
-                           const std::string& uid,
-                           const std::string& sid)
-    : _rspHandler(hdr), _uid(uid), _sid(sid)
+RpcRequester::RpcRequester(JobHandler* hdr, const std::string& sessionStr)
+    : _rspHandler(hdr), _session(sessionStr)
 {
 }
 
 std::string RpcRequester::toString()
 {
-    std::ostringstream ostr;
-    ostr << "Uid is " << _uid << ". Sid is " << _sid;
-    return std::move(ostr.str());
+    return _session;
 }
 }

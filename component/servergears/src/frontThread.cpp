@@ -52,7 +52,7 @@ void FrontThread::updateByConfig(const Config* cfg)
 {
     _config = cfg;
     _timeoutMgr.reset(
-        new TimeoutManager<WsServerConn>(this, _config->_frontThreadTimeout));
+        new TimeoutManager<WsServerConn<Session>>(this, _config->_frontThreadTimeout));
 
 #if defined(__linux__)
     _notifier.reset(new Epoll(_config->_frontThreadMaxConnCount));
@@ -87,7 +87,7 @@ void FrontThread::stop()
 
 void FrontThread::handleRspBind(std::list<std::shared_ptr<const Session>>& sl)
 {
-    std::unordered_map<uint64_t, std::unique_ptr<WsServerConn>>::iterator it;
+    std::unordered_map<uint64_t, std::unique_ptr<WsServerConn<Session>>>::iterator it;
     for (auto& s : sl)
     {
         it = _connMap.find(s->_connUniqueId);
@@ -124,7 +124,7 @@ void FrontThread::handleUpdateSession(std::shared_ptr<const Session>& ps)
 
 void FrontThread::handlePacket(std::list<SessionPktPair>& pktList)
 {
-    std::unordered_map<uint64_t, std::unique_ptr<WsServerConn>>::iterator it;
+    std::unordered_map<uint64_t, std::unique_ptr<WsServerConn<Session>>>::iterator it;
     for (auto& s : pktList)
     {
         it = _connMap.find((s.first)->_connUniqueId);
@@ -249,7 +249,8 @@ void FrontThread::onPacket(std::shared_ptr<const Session>&& session,
     }
 }
 
-void FrontThread::onClose(WsServerConn* conn, std::unique_ptr<WsPacket>&& pkt)
+void FrontThread::onClose(WsServerConn<Session>* conn,
+                          std::unique_ptr<WsPacket>&& pkt)
 {
     std::shared_ptr<const Session> session = conn->getSession();
 
@@ -319,7 +320,7 @@ void FrontThread::dispatchPackets()
     }
 }
 
-void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn>>& connList)
+void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn<Session>>>& connList)
 {
     for (auto& c : connList)
     {
@@ -334,7 +335,7 @@ void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn>>& connList)
 
 void FrontThread::addConnToNotifier()
 {
-    std::list<std::unique_ptr<WsServerConn>> tmpList;
+    std::list<std::unique_ptr<WsServerConn<Session>>> tmpList;
 
     _connListLock.lock();
     tmpList = std::move(_connList);
@@ -360,7 +361,7 @@ void FrontThread::addConnToNotifier()
     }
 }
 
-void FrontThread::removeConn(WsServerConn* conn)
+void FrontThread::removeConn(WsServerConn<Session>* conn)
 {
     LOG_DEBUG("FrontThread::removeConn: Client " << conn->getRemoteAddr()
                                                  << " disconnected.");
@@ -369,12 +370,12 @@ void FrontThread::removeConn(WsServerConn* conn)
     _connMap.erase(conn->getSession()->_connUniqueId);
 }
 
-void FrontThread::updateTimeout(WsServerConn* conn, std::time_t now)
+void FrontThread::updateTimeout(WsServerConn<Session>* conn, std::time_t now)
 {
     _timeoutMgr->update(conn, now);
 }
 
-void FrontThread::onTimeout(WsServerConn* conn)
+void FrontThread::onTimeout(WsServerConn<Session>* conn)
 {
     std::unique_ptr<WsPacket> pkt(new WsPacket());
     pkt->setOpCode(eOpCode::Close);
@@ -421,7 +422,7 @@ void FrontThread::run()
                         if (ev->isConnection())
                         {
                             updateTimeout(
-                                static_cast<WsServerConn*>(ev->getDerivedPtr()),
+                                static_cast<WsServerConn<Session>*>(ev->getDerivedPtr()),
                                 now);
                         }
                     }
@@ -435,7 +436,7 @@ void FrontThread::run()
                     case eIoAction::Remove:
                     {
                         removeConn(
-                            static_cast<WsServerConn*>(ev->getDerivedPtr()));
+                            static_cast<WsServerConn<Session>*>(ev->getDerivedPtr()));
                     }
                     break;
 

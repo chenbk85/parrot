@@ -3,7 +3,8 @@
 
 namespace parrot
 {
-RpcServerConn::RpcServerConn(const WsConfig& cfg) : WsServerConn(cfg, false)
+RpcServerConn::RpcServerConn(const WsConfig& cfg)
+    : WsServerConn<RpcSession>(cfg, false)
 {
 }
 }

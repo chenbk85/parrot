@@ -15,10 +15,10 @@
 namespace parrot
 {
 class RpcClientThread : public ThreadBase,
-                        public TimeoutHandler<WsClientConn>,
+                        public TimeoutHandler<RpcClientConn>,
                         public JobHandler,
-                        public ConnHandler<WsClientConn>,
-                        public WsPacketHandler<Session, WsClientConn>
+                        public ConnHandler<RpcClientConn>,
+                        public WsPacketHandler<RpcSession, RpcClientConn>
 {
 };
 }

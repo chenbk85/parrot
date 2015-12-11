@@ -125,6 +125,11 @@ Json* WsPacket::getSysJson() const
     return _sysJson.get();
 }
 
+ePacketType WsPacket::getPacketType() const
+{
+    return _pktType;
+}
+
 const std::vector<unsigned char>& WsPacket::getPayload() const
 {
     return _payload;

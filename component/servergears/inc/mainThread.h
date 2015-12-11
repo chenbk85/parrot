@@ -13,18 +13,19 @@
 #include "connHandler.h"
 #include "connDispatcher.h"
 #include "frontThread.h"
+#include "wsServerConn.h"
+#include "session.h"
 #include "wsConfig.h"
 
 namespace parrot
 {
 struct Config;
-class WsServerConn;
 
 class MainThread
 {
   public:
     using FrontConnDispatcher =
-        ConnDispatcher<WsServerConn, WsConfig, ConnFactory, ConnHandler>;
+        ConnDispatcher<WsServerConn<Session>, WsConfig, ConnFactory, ConnHandler>;
     using FrontThreadPool = ThreadPool<FrontThread>;
 
   public:
