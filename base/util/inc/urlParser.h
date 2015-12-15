@@ -34,6 +34,7 @@ class UrlParser
     // Here are some limitations:
     // * It doesn't escape the URL.
     // * It will NOT parse URL like this: urn:example:animal:ferret:nose.
+    // * It will NOT parse URL like this: ftp://username:password@hostname.
     static std::unique_ptr<UrlInfo> parse(const std::string& urlStr);
 
   private:

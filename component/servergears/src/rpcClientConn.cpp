@@ -17,6 +17,11 @@ RpcClientConn::RpcClientConn(const Config& cfg,
 {
 }
 
+eIoAction RpcClientConn::getDefaultAction() const
+{
+    return eIoAction::Write;
+}
+
 void RpcClientConn::addJob(std::unique_ptr<RpcRequest>&& req)
 {
     if (req->getPacketType() == ePacketType::Request)

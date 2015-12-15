@@ -34,6 +34,7 @@ class RpcClientConn : public WsClientConn<RpcSession>,
     void checkReqTimeout(std::time_t now);
 
   private:
+    eIoAction setDefaultAction() const override;
     void onTimeout(RpcRequest* req) override;
     void onResponse(std::unique_ptr<WsPacket>&& pkt);
 

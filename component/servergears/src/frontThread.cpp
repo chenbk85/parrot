@@ -350,7 +350,7 @@ void FrontThread::addConnToNotifier()
         c->setRandom(&_random);
 
         // Set front thread pointer in session.
-        c->getSession()->_frontThreadPtr = this;
+        // c->getSession()->_frontThreadPtr = this;
 
         _timeoutMgr->add(c.get(), now);
         _notifier->addEvent(c.get());
