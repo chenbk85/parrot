@@ -38,30 +38,69 @@ template <eJobType JOBTYPE, typename... Ts> class ThreadJob : public Job
     std::tuple<Ts...> _args;
 };
 
-struct Session;
 class WsPacket;
 class FrontThread;
 
+//
+//
+//
+template <typename Sess>
 using SessionPktPair =
-    std::pair<std::shared_ptr<const Session>, std::unique_ptr<WsPacket>>;
+    std::pair<std::shared_ptr<const Sess>, std::unique_ptr<WsPacket>>;
 
-using PacketJob    = ThreadJob<eJobType::Packet, std::list<SessionPktPair>>;
-using PacketJobHdr = std::function<void(std::list<SessionPktPair>&)>;
+//
+//
+//
+template <typename Sess>
+using PacketJob = ThreadJob<eJobType::Packet, std::list<SessionPktPair<Sess>>>;
 
-using ReqBindJob =
-    ThreadJob<eJobType::ReqBind, FrontThread*, std::list<SessionPktPair>>;
+//
+//
+//
+template <typename Sess>
+using PacketJobHdr = std::function<void(std::list<SessionPktPair<Sess>>&)>;
+
+//
+//
+//
+template <typename Sess>
+using ReqBindJob = ThreadJob<eJobType::ReqBind,
+                             FrontThread<Sess>*,
+                             std::list<SessionPktPair<Sess>>>;
+
+//
+//
+//
+template <typename Sess>
 using ReqBindJobHdr =
-    std::function<void(FrontThread*, std::list<SessionPktPair>&)>;
+    std::function<void(FrontThread<Sess>*, std::list<SessionPktPair<Sess>>&)>;
 
+//
+//
+//
+template <typename Sess>
 using RspBindJob =
-    ThreadJob<eJobType::RspBind, std::list<std::shared_ptr<const Session>>>;
-using RspBindJobHdr =
-    std::function<void(std::list<std::shared_ptr<const Session>>&)>;
+    ThreadJob<eJobType::RspBind, std::list<std::shared_ptr<const Sess>>>;
 
+//
+//
+//
+template <typename Sess>
+using RspBindJobHdr =
+    std::function<void(std::list<std::shared_ptr<const Sess>>&)>;
+
+//
+//
+//
+template <typename Sess>
 using UpdateSessionJob =
-    ThreadJob<eJobType::UpdateSession, std::shared_ptr<const Session>>;
-using UpdateSessionJobHdr =
-    std::function<void(std::shared_ptr<const Session>&)>;
+    ThreadJob<eJobType::UpdateSession, std::shared_ptr<const Sess>>;
+
+//
+//
+//
+template <typename Sess>
+using UpdateSessionJobHdr = std::function<void(std::shared_ptr<const Sess>&)>;
 }
 
 #endif

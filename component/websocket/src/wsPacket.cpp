@@ -38,6 +38,11 @@ void WsPacket::setRoute(uint64_t route)
     _route = route;
 }
 
+void WsPacket::setPacketType(ePacketType type)
+{
+    _pktType = type;
+}
+
 void WsPacket::setReqId(uint64_t reqId)
 {
     _reqId = reqId;
@@ -83,6 +88,15 @@ void WsPacket::setClose(eCodes code, std::string&& reason)
     _opCode    = eOpCode::Close;
     _closeCode = code;
     _reason    = std::move(reason);
+}
+
+Json* WsPacket::generateSysJson()
+{
+    _sysJson.reset(new Json());
+    _sysJson->setValue("/route", _route);
+    _sysJson->setValue("/type", static_cast<uint8_t>(_pktType));
+    _sysJson->setValue("/reqId", _reqId);    
+    return _sysJson.get();
 }
 
 eOpCode WsPacket::getOpCode() const

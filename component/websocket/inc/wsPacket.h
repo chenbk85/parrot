@@ -18,7 +18,6 @@ class WsPacket
 {
   public:
     WsPacket();
-    virtual ~WsPacket() = default;
     WsPacket(const WsPacket& pkt) = delete;
     WsPacket& operator=(const WsPacket& pkt) = delete;
     WsPacket(WsPacket&& pkt) = default;
@@ -29,6 +28,7 @@ class WsPacket
     bool isControl() const;
 
     void setRoute(uint64_t route);
+    void setPacketType(ePacketType type);
     void setReqId(uint64_t reqId);
     void setConnId(uint64_t connId);
     void setJson(std::unique_ptr<Json>&& json);
@@ -36,7 +36,7 @@ class WsPacket
     void setPacket(eOpCode opCode, std::vector<unsigned char>&& payload);
     void setOpCode(eOpCode opCode);
     void setClose(eCodes code, std::string&& reason = "");
-
+    
     eOpCode getOpCode() const;
     eCodes getCloseCode() const;
     const std::string& getCloseReason() const;
@@ -49,24 +49,22 @@ class WsPacket
     const std::vector<unsigned char>& getBinary() const;
     Json* getJson() const;
     Json* getSysJson() const;
+    Json* generateSysJson();    
 
     const std::vector<unsigned char>& getPayload() const;
 
     bool decode();
     std::unique_ptr<WsPacket> toResponsePkt();
 
-  protected:
-    void setSysJson(std::unique_ptr<Json>&& json);
+  private:
+    bool decodeSysData();    
     bool loadSysInfo();
     bool decodeBinary();
     bool decodeClose();
     bool decodeItemMeta(std::vector<unsigned char>::const_iterator& it,
                         ePayloadItem& item,
                         uint64_t& itemLen);
-  protected:
-    virtual bool decodeSysData();
-    
-  protected:
+  private:
     eOpCode _opCode;
     eCodes _closeCode;
     ePacketType _pktType;

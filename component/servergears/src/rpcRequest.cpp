@@ -5,15 +5,32 @@
 
 namespace parrot
 {
-RpcRequest::RpcRequest(std::unique_ptr<RpcRequester>&& requester,
+RpcRequest::RpcRequest(const std::string& sid,
+                       std::shared_ptr<Sess>&& session,
                        std::unique_ptr<WsPacket>&& msg)
-    : _requester(std::move(requester)), _packet(std::move(msg)), _rpcReqId(0)
+    : _remoteSrvId(sid),
+      _session(session),
+      _packet(std::move(msg)),
+      _rpcReqId(0)
 {
-    _packet->getSysJson()->setValue("/session", _requester->_session);
+    // Inject session to sys json. So the remote knows who the identity of
+    // requester.
+    auto json = _packet->getSysJson();
+    if (!json)
+    {
+        json = _packet->generateSysJson();
+    }
+
+    json->setValue("/session", _session->getJsonStr());
 }
 
-void RpcRequest::onResponse(std::unique_ptr<WsPacket>&&)
+void RpcRequest::onResponse(std::unique_ptr<WsPacket>&& pkt)
 {
+    std::list<SessionPktPair> pktList;
+    pktList.emplace_back(std::move(_session), std::move(pkt));
+    std::unique_ptr<PacketJob> job(new PacketJob());
+    job->bind(std::move(pktList));
+    _session->getRpcRspHdr(this)->addJob(job);
 }
 
 void RpcRequest::setReqId(uint64_t reqId)
@@ -24,6 +41,11 @@ void RpcRequest::setReqId(uint64_t reqId)
 uint64_t RpcRequest::getReqId() const
 {
     return _rpcReqId;
+}
+
+const std::string& RpcRequest::getDestSrvId() const
+{
+    return _remoteSrvId;
 }
 
 ePacketType RpcRequest::getPacketType() const

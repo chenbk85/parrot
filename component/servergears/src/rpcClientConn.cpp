@@ -17,11 +17,6 @@ RpcClientConn::RpcClientConn(const Config& cfg,
 {
 }
 
-eIoAction RpcClientConn::getDefaultAction() const
-{
-    return eIoAction::Write;
-}
-
 void RpcClientConn::addJob(std::unique_ptr<RpcRequest>&& req)
 {
     if (req->getPacketType() == ePacketType::Request)
@@ -56,10 +51,31 @@ void RpcClientConn::checkReqTimeout(std::time_t now)
     _timeoutMgr->checkTimeout(now);
 }
 
+void RpcClientConn::heartbeat()
+{
+    std::unique_ptr<WsPacket> pkt(new WsPacket());
+    pkt->setOpCode(eOpCode::Ping);
+    sendPacket(pkt);
+
+    LOG_INFO("RpcClientConn::heartbeat: Sending heartbeat.");
+}
+
+void RpcClientConn::onPacket(std::shared_ptr<const RpcSession>&&,
+                             std::unique_ptr<WsPacket>&& pkt)
+{
+    onResponse(std::move(pkt));
+}
+
+void RpcClientConn::onClose(RpcClientConn*, std::unique_ptr<WsPacket>&&)
+{
+    // Empty callback function.
+}
+
 void RpcClientConn::onTimeout(RpcRequest* req)
 {
     LOG_WARN("RpcClientConn::onTimeout: Request timeout. Request is "
              << req->toString() << ".");
+    _reqMap.erase(req->getReqId());
 }
 
 void RpcClientConn::onResponse(std::unique_ptr<WsPacket>&& pkt)

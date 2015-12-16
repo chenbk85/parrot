@@ -51,8 +51,8 @@ FrontThread::FrontThread()
 void FrontThread::updateByConfig(const Config* cfg)
 {
     _config = cfg;
-    _timeoutMgr.reset(
-        new TimeoutManager<WsServerConn<Session>>(this, _config->_frontThreadTimeout));
+    _timeoutMgr.reset(new TimeoutManager<WsServerConn<Session>>(
+        this, _config->_frontThreadTimeout));
 
 #if defined(__linux__)
     _notifier.reset(new Epoll(_config->_frontThreadMaxConnCount));
@@ -87,7 +87,8 @@ void FrontThread::stop()
 
 void FrontThread::handleRspBind(std::list<std::shared_ptr<const Session>>& sl)
 {
-    std::unordered_map<uint64_t, std::unique_ptr<WsServerConn<Session>>>::iterator it;
+    std::unordered_map<uint64_t,
+                       std::unique_ptr<WsServerConn<Session>>>::iterator it;
     for (auto& s : sl)
     {
         it = _connMap.find(s->_connUniqueId);
@@ -124,7 +125,8 @@ void FrontThread::handleUpdateSession(std::shared_ptr<const Session>& ps)
 
 void FrontThread::handlePacket(std::list<SessionPktPair>& pktList)
 {
-    std::unordered_map<uint64_t, std::unique_ptr<WsServerConn<Session>>>::iterator it;
+    std::unordered_map<uint64_t,
+                       std::unique_ptr<WsServerConn<Session>>>::iterator it;
     for (auto& s : pktList)
     {
         it = _connMap.find((s.first)->_connUniqueId);
@@ -320,7 +322,8 @@ void FrontThread::dispatchPackets()
     }
 }
 
-void FrontThread::addConn(std::list<std::unique_ptr<WsServerConn<Session>>>& connList)
+void FrontThread::addConn(
+    std::list<std::unique_ptr<WsServerConn<Session>>>& connList)
 {
     for (auto& c : connList)
     {
@@ -421,9 +424,9 @@ void FrontThread::run()
                     {
                         if (ev->isConnection())
                         {
-                            updateTimeout(
-                                static_cast<WsServerConn<Session>*>(ev->getDerivedPtr()),
-                                now);
+                            updateTimeout(static_cast<WsServerConn<Session>*>(
+                                              ev->getDerivedPtr()),
+                                          now);
                         }
                     }
                     // No break;
@@ -435,8 +438,8 @@ void FrontThread::run()
 
                     case eIoAction::Remove:
                     {
-                        removeConn(
-                            static_cast<WsServerConn<Session>*>(ev->getDerivedPtr()));
+                        removeConn(static_cast<WsServerConn<Session>*>(
+                            ev->getDerivedPtr()));
                     }
                     break;
 

@@ -7,14 +7,12 @@ namespace parrot
 {
 class JobHandler;
 
+template <typename Sess>
 struct RpcRequester
 {
     RpcRequester(JobHandler* hdr, const std::string& sessionStr = "");
-
     JobHandler* _rspHandler = nullptr;
-    // Json to string. {"uid":"user1","sid":"front-srv-1"}
-    // This string will be transferred to other servers.
-    std::string _session;
+    std::shared_ptr<Sess> _session;
     std::string toString();
 };
 }

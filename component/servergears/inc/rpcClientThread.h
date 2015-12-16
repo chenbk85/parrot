@@ -19,18 +19,17 @@ namespace parrot
 {
 class RpcClientThread : public ThreadBase,
                         public TimeoutHandler<RpcClientConn>,
-                        public JobHandler,
-                        public ConnHandler<RpcClientConn>,
-                        public WsPacketHandler<RpcSession, RpcClientConn>
+                        public JobHandler
 {
   public:
     RpcClientThread(const Config& cfg, const WsConfig& wsCfg);
 
+  public:
     void addJob(std::unique_ptr<Job>&& job);
     void addJob(std::list<std::unique_ptr<Job>>& jobList);
 
-
   private:
+    void init();    
     void doConnect();
     
   private:

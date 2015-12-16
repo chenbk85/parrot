@@ -8,13 +8,12 @@ namespace parrot
 template <typename T> class DoubleLinkedList
 {
   public:
-    DoubleLinkedList() : _count(0), _head(new T()), _tail(_head)
+    DoubleLinkedList() : _count(0), _head(nullptr), _tail(nullptr)
     {
     }
 
     virtual ~DoubleLinkedList()
     {
-        delete _head;
         _head = _tail = nullptr;
     }
 
@@ -25,6 +24,14 @@ template <typename T> class DoubleLinkedList
     void add(T* n) noexcept
     {
         PARROT_ASSERT(n != nullptr);
+
+        if (!_head)
+        {
+            _head = _tail = n;
+            ++_count;
+            return;
+        }
+
         n->setPrev(_tail);
         n->setNext(_tail->getNext());
         _tail->setNext(n);
@@ -34,7 +41,7 @@ template <typename T> class DoubleLinkedList
 
     T* front() noexcept
     {
-        return _head->getNext();
+        return _head;
     }
 
     uint32_t count() const noexcept
@@ -46,18 +53,33 @@ template <typename T> class DoubleLinkedList
     {
         PARROT_ASSERT(n != nullptr && n->getPrev() != nullptr);
 
-        n->getPrev()->setNext(n->getNext());
-
-        if (n->getNext() != nullptr)
+        if (_count == 1)
         {
-            n->getNext()->setPrev(n->getPrev());
+            _head = _tail = nullptr;
+            --_count;
+            n->setPrev(nullptr);
+            n->setNext(nullptr);
+            return;
+        }
+
+        if (n == _head)
+        {
+            _head = n->next();
+            _head->setPrev(nullptr);
+        }
+        else if (n == _tail)
+        {
+            _tail = n->prev();
+            _tail->setNext(nullptr);
         }
         else
         {
-            // Here, n is the tail.
-            _tail = n->getPrev();
+            n->getPrev()->setNext(n->getNext());
+            n->getNext()->setPrev(n->getPrev());            
         }
 
+        n->setPrev(nullptr);
+        n->setNext(nullptr);
         --_count;
     }
 

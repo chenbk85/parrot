@@ -19,8 +19,10 @@ namespace parrot
 struct Config;
 struct WsConfig;
 
-class RpcClientConn : public WsClientConn<RpcSession>,
-                      public TimeoutHandler<RpcRequest>
+class RpcClientConn
+    : public WsClientConn<RpcSession>,
+      public TimeoutHandler<RpcRequest>,
+      public WsPacketHandler<RpcSession, RpcClientConn<RpcSession>>
 {
   public:
     RpcClientConn(const Config& cfg,
@@ -32,9 +34,12 @@ class RpcClientConn : public WsClientConn<RpcSession>,
     void addJob(std::unique_ptr<RpcRequest>&& req);
     void addJob(std::list<std::unique_ptr<RpcRequest>>& reqList);
     void checkReqTimeout(std::time_t now);
+    void heartbeat();
 
   private:
-    eIoAction setDefaultAction() const override;
+    void onPacket(std::shared_ptr<const RpcSession>&&,
+                  std::unique_ptr<WsPacket>&&) override;
+    void onClose(RpcClientConn* conn, std::unique_ptr<WsPacket>&&) override;
     void onTimeout(RpcRequest* req) override;
     void onResponse(std::unique_ptr<WsPacket>&& pkt);
 

@@ -56,7 +56,6 @@ class WsClientConn : public TcpClientConn,
     };
 
   public:
-    WsClientConn() = default;
     WsClientConn(const std::string& wsUrl,
                  const WsConfig& cfg,
                  bool sendMasked = true);
@@ -66,8 +65,7 @@ class WsClientConn : public TcpClientConn,
 
   public:
     void setPacketHandler(PacketHandler* hdr);
-    std::shared_ptr<Sess>& getSession();
-    void bindSession(std::shared_ptr<Sess>&);
+    void updateSession(std::shared_ptr<Sess>&);
     void sendPacket(std::unique_ptr<WsPacket>& pkt);
     void sendPacket(std::list<std::unique_ptr<WsPacket>>& pkt);
     eIoAction handleIoEvent() override;
@@ -76,6 +74,7 @@ class WsClientConn : public TcpClientConn,
     void closeWebSocket(std::unique_ptr<WsPacket>& pkt);
     void setRandom(MtRandom* random);
     bool canSwitchToSend() const;
+    bool canConnect() const;
 
   private:
     void onError(eCodes c);
@@ -112,7 +111,7 @@ WsClientConn<Sess>::WsClientConn(const std::string& wsUrl,
       DoubleLinkedListNode<WsClientConn>(),
       _state(eWsState::NotOpened),
       _pktHandler(nullptr),
-      _session(),
+      _session(new Sess()),
       _translayer(new WsClientTrans(*this, false, sendMasked, cfg)),
       _sentClose(false),
       _retryTimes(0),
@@ -174,15 +173,15 @@ template <class Sess> bool WsClientConn<Sess>::canSwitchToSend() const
     return _translayer->canSwitchToSend();
 }
 
-template <class Sess> std::shared_ptr<Sess>& WsClientConn<Sess>::getSession()
+template <class Sess> const Sess* WsClientConn<Sess>::getSession()
 {
-    return _session;
+    return _session.get();
 }
 
 template <class Sess>
-void WsClientConn<Sess>::bindSession(std::shared_ptr<Sess>& s)
+void WsClientConn<Sess>::updateSession(std::shared_ptr<Sess>& s)
 {
-    _session = s;
+    *_session = *s;
 }
 
 template <class Sess> void WsClientConn<Sess>::onOpen()
@@ -354,6 +353,7 @@ template <class Sess> void WsClientConn<Sess>::onConnected()
 {
     _connState  = eWsConnState::Connected;
     _retryTimes = 0;
+    _nextConnectTime = 0;
     _state = eWsState::NotOpened;
     setConnected();
 }
@@ -362,6 +362,16 @@ template <class Sess> void WsClientConn<Sess>::getNextConnectTime()
 {
     uint8_t sec      = _retryTimes >= 5 ? 5 : _retryTimes; // Max 5 secs.
     _nextConnectTime = std::time(nullptr) + sec;
+}
+
+template <class Sess> bool WsClientConn<Sess>::canConnect()
+{
+    if (std::time(nullptr) >= _nextConnectTime)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 template <class Sess> eIoAction WsClientConn<Sess>::handleIoEvent()
@@ -409,7 +419,7 @@ template <class Sess> eIoAction WsClientConn<Sess>::handleIoEvent()
                     IoEvent::close();
                     ++_retryTimes;
                     getNextConnectTime();
-                    return eIoAction::None;
+                    return eIoAction::Remove;
                 }
 
                 if (isWriteAvail())
