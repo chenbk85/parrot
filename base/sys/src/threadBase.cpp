@@ -10,7 +10,7 @@ namespace parrot
 {
 
 ThreadBase::ThreadBase()
-    : _threadPtr(), _state(ThreadState::Init), _lock(), _condVar()
+    : _threadPtr(), _state(ThreadState::Init), _lock(), _condVar(), tid()
 {
 }
 
@@ -97,6 +97,15 @@ void ThreadBase::sleep(int64_t ms)
 std::thread::id ThreadBase::getThreadId() const
 {
     return _threadPtr->get_id();
+}
+
+const std::string& ThreadBase::getThreadIdStr()
+{
+    if (_tid.empty())
+    {
+        _tid = std::to_string(std::hash<std::thread::id>(getThreadId()));
+    }
+    return _tid;
 }
 
 void ThreadBase::wakeUp()

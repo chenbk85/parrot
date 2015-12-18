@@ -52,8 +52,9 @@ class WsServerConn : public TcpServerConn,
 
   public:
     void setPacketHandler(PacketHandler* hdr);
-    void bindSession(std::shared_ptr<Sess>&);
-    std::shared_ptr<Sess>& getSession();
+    void setSession(std::shared_ptr<Sess>&& sess);
+    std::shared_ptr<Sess>& getSession() const;
+    void updateSession(std::shared_ptr<const Sess>&);
     void sendPacket(std::unique_ptr<WsPacket>& pkt);
     void sendPacket(std::list<std::unique_ptr<WsPacket>>& pkt);
     eIoAction handleIoEvent() override;
@@ -111,6 +112,12 @@ void WsServerConn<Sess>::setPacketHandler(PacketHandler* hdr)
     _pktHandler = hdr;
 }
 
+template <class Sess>
+std::shared_ptr<Sess> WsServerConn<Sess>::getSession() const
+{
+    return _session.get();
+}
+
 template <class Sess> void WsServerConn<Sess>::setRandom(MtRandom* r)
 {
     _translayer->setRandom(r);
@@ -121,15 +128,16 @@ template <class Sess> bool WsServerConn<Sess>::canSwitchToSend() const
     return _translayer->canSwitchToSend();
 }
 
-template <class Sess> std::shared_ptr<Sess>& WsServerConn<Sess>::getSession()
+template <class Sess>
+void WsServerConn<Sess>::updateSession(std::shared_ptr<const Sess>& sess)
 {
-    return _session;
+    _session.reset(new Session(sess));
 }
 
 template <class Sess>
-void WsServerConn<Sess>::bindSession(std::shared_ptr<Sess>& sess)
+void WsServerConn::setSession(std::shared_ptr<Sess>&& sess)
 {
-    _session = sess;
+    _session = std::move(sess);
 }
 
 template <class Sess> void WsServerConn<Sess>::onOpen()

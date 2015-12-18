@@ -62,6 +62,8 @@ class ThreadBase
 
     std::thread::id getThreadId() const;
 
+    const std::string& getThreadIdStr();
+
     // Join the thread. Synchronize.
     void join();
 
@@ -99,6 +101,7 @@ class ThreadBase
     std::atomic<ThreadState> _state;
     std::mutex _lock;
     std::condition_variable _condVar;
+    std::string _tid;
 };
 }
 #endif

@@ -84,14 +84,14 @@ class IoEvent
     void setRemoteAddr(std::string&& ip);
     const std::string& getRemoteAddr() const;
 
-    void setUrlInfo(const UrlInfo *urlInfo);
+    void setUrlInfo(const UrlInfo* urlInfo);
     const UrlInfo* getUrlInfo() const;
 
     void setRemotePort(uint16_t port);
     uint16_t getRemotePort() const;
 
-    void setDerivedPtr(void *p);
-    inline void *getDerivedPtr() const
+    void setDerivedPtr(void* p);
+    inline void* getDerivedPtr() const
     {
         return _derivedPtr;
     }
@@ -115,8 +115,8 @@ class IoEvent
     bool _isEof;
     std::string _remoteIP;
     uint16_t _remotePort;
-    const UrlInfo *_urlInfo;
-    void * _derivedPtr;
+    const UrlInfo* _urlInfo;
+    void* _derivedPtr;
 };
 }
 

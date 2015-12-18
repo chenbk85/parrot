@@ -36,12 +36,9 @@ class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
     void handleJob() override;
 
   protected:
-    void handleReqBind(parrot::FrontThread* thread,
-                       std::list<parrot::SessionPktPair>& pktList);
     void handlePacket(std::list<parrot::SessionPktPair>& pktList);
 
   protected:
-    parrot::ReqBindJobHdr _reqBindJobHdr;
     parrot::PacketJobHdr _packetJobHdr;
     std::mutex _jobListLock;
     std::list<std::unique_ptr<parrot::Job>> _jobList;

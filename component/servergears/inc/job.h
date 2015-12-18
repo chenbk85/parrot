@@ -1,23 +1,22 @@
 #ifndef __COMPONENT_SERVERGEAR_INC_JOB_H__
 #define __COMPONENT_SERVERGEAR_INC_JOB_H__
 
+#include <cstdint>
+
 namespace parrot
 {
-enum class eJobType
-{
-    None,
-    Packet,
-    ReqBind,
-    RspBind,
-    UpdateSession,
-    DisconnectSession,
-    Kick
-};
+
+#define JOB_PACKET 1
+#define JOB_REQ_BIND 2
+#define JOB_RSP_BIND 3
+#define JOB_UPDATE_SESSION 4
+#define JOB_DEL_SESSION 5
+#define JOB_KICK 6
 
 class Job
 {
   public:
-    Job(eJobType jobType);
+    Job(uint32_t jobType);
     virtual ~Job() = default;
     Job(const Job&) = delete;
     Job& operator=(const Job&) = delete;
@@ -25,11 +24,11 @@ class Job
     Job& operator=(Job&&) = default;
 
   public:
-    eJobType getJobType() const;
-    void setJobType(eJobType type);
+    uint32_t getJobType() const;
+    void setJobType(uint32_t type);
 
   private:
-    eJobType _jobType;
+    uint32_t _jobType;
 };
 }
 

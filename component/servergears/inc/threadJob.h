@@ -7,10 +7,11 @@
 
 #include "seqGenHelper.h"
 #include "job.h"
+#include "frontThread.h"
 
 namespace parrot
 {
-template <eJobType JOBTYPE, typename... Ts> class ThreadJob : public Job
+template <uint32_t JOBTYPE, typename... Ts> class ThreadJob : public Job
 {
   public:
     ThreadJob() : Job(JOBTYPE), _args()
@@ -39,7 +40,6 @@ template <eJobType JOBTYPE, typename... Ts> class ThreadJob : public Job
 };
 
 class WsPacket;
-class FrontThread;
 
 //
 //
@@ -52,7 +52,7 @@ using SessionPktPair =
 //
 //
 template <typename Sess>
-using PacketJob = ThreadJob<eJobType::Packet, std::list<SessionPktPair<Sess>>>;
+using PacketJob = ThreadJob<JOB_PACKET, std::list<SessionPktPair<Sess>>>;
 
 //
 //
@@ -64,7 +64,7 @@ using PacketJobHdr = std::function<void(std::list<SessionPktPair<Sess>>&)>;
 //
 //
 template <typename Sess>
-using ReqBindJob = ThreadJob<eJobType::ReqBind,
+using ReqBindJob = ThreadJob<JOB_REQ_BIND,
                              FrontThread<Sess>*,
                              std::list<SessionPktPair<Sess>>>;
 
@@ -80,7 +80,7 @@ using ReqBindJobHdr =
 //
 template <typename Sess>
 using RspBindJob =
-    ThreadJob<eJobType::RspBind, std::list<std::shared_ptr<const Sess>>>;
+    ThreadJob<JOB_RSP_BIND, std::list<std::shared_ptr<const Sess>>>;
 
 //
 //
@@ -94,7 +94,7 @@ using RspBindJobHdr =
 //
 template <typename Sess>
 using UpdateSessionJob =
-    ThreadJob<eJobType::UpdateSession, std::shared_ptr<const Sess>>;
+    ThreadJob<JOB_UPDATE_SESSION, std::shared_ptr<const Sess>>;
 
 //
 //

@@ -21,8 +21,9 @@ class RpcRequest : public TimeoutGuard,
   public:
     RpcRequest(const std::string& sid,
                std::shared_ptr<Sess>&& sess,
-               std::unique_ptr<WsPacket>&& msg);
-    
+               std::unique_ptr<WsPacket>&& msg,
+               JobHandler* rspHandler);
+
   public:
     void onResponse(std::unique_ptr<WsPacket>&& rsp);
     void setReqId(uint64_t reqId);
@@ -37,16 +38,19 @@ class RpcRequest : public TimeoutGuard,
     std::shared_ptr<Sess> _session;
     std::unique_ptr<WsPacket> _packet;
     uint64_t _rpcReqId;
+    JobHandler* _rspHandler;
 };
 
 template <typename Sess>
 RpcRequest<Sess>::RpcRequest(const std::string& sid,
-                       std::shared_ptr<Sess>&& session,
-                       std::unique_ptr<WsPacket>&& msg)
+                             std::shared_ptr<Sess>&& session,
+                             std::unique_ptr<WsPacket>&& msg,
+                             JobHandler* rspHandler)
     : _remoteSrvId(sid),
       _session(session),
       _packet(std::move(msg)),
-      _rpcReqId(0)
+      _rpcReqId(0),
+      _rspHandler(rspHandler)
 {
     // Inject session to sys json. So the remote knows who the identity of
     // requester.
@@ -69,38 +73,32 @@ void RpcRequest::onResponse(std::unique_ptr<WsPacket>&& pkt)
     _session->getRpcRspHdr(this)->addJob(job);
 }
 
-template <typename Sess>
-void RpcRequest::setReqId(uint64_t reqId)
+template <typename Sess> void RpcRequest::setReqId(uint64_t reqId)
 {
     _rpcReqId = reqId;
 }
 
-template <typename Sess>
-uint64_t RpcRequest::getReqId() const
+template <typename Sess> uint64_t RpcRequest::getReqId() const
 {
     return _rpcReqId;
 }
 
-template <typename Sess>
-const std::string& RpcRequest::getDestSrvId() const
+template <typename Sess> const std::string& RpcRequest::getDestSrvId() const
 {
     return _remoteSrvId;
 }
 
-template <typename Sess>
-ePacketType RpcRequest::getPacketType() const
+template <typename Sess> ePacketType RpcRequest::getPacketType() const
 {
     return _packet->getPacketType();
 }
 
-template <typename Sess>
-std::unique_ptr<WsPacket>& RpcRequest::getPacket()
+template <typename Sess> std::unique_ptr<WsPacket>& RpcRequest::getPacket()
 {
     return _packet;
 }
 
-template <typename Sess>
-std::string RpcRequest::toString()
+template <typename Sess> std::string RpcRequest::toString()
 {
     std::ostringstream ostr;
     ostr << "ReqId is " << _rpcReqId << ". Packet Type is "

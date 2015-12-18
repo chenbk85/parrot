@@ -65,7 +65,7 @@ class WsClientConn : public TcpClientConn,
 
   public:
     void setPacketHandler(PacketHandler* hdr);
-    void updateSession(std::shared_ptr<Sess>&);
+    void updateSession(std::shared_ptr<const Sess>&);
     void sendPacket(std::unique_ptr<WsPacket>& pkt);
     void sendPacket(std::list<std::unique_ptr<WsPacket>>& pkt);
     eIoAction handleIoEvent() override;
@@ -173,13 +173,8 @@ template <class Sess> bool WsClientConn<Sess>::canSwitchToSend() const
     return _translayer->canSwitchToSend();
 }
 
-template <class Sess> const Sess* WsClientConn<Sess>::getSession()
-{
-    return _session.get();
-}
-
 template <class Sess>
-void WsClientConn<Sess>::updateSession(std::shared_ptr<Sess>& s)
+void WsClientConn<Sess>::updateSession(std::shared_ptr<const Sess>& s)
 {
     *_session = *s;
 }

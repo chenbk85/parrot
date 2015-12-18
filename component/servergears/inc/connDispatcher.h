@@ -72,15 +72,9 @@ class ConnDispatcher : public Listener
 
             conn = std::move(ConnFactory<Conn, Cfg>::getInstance()->create());
             conn->setFd(fd);
-            conn->setNextAction(eIoAction::Read);
             conn->setRemoteAddr(ipHelper.getIPStr());
             conn->setRemotePort(port);
             conn->setUrlInfo(getUrlInfo());
-
-            auto& session          = conn->getSession();
-            session->_clientIp     = conn->getRemoteAddr();
-            session->_connUniqueId = _connUniqueIdIdx++;
-            
             connList.push_back(std::move(conn));
         } while (code == eCodes::ST_Ok);
 

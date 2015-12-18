@@ -5,14 +5,18 @@
 #include <cstdint>
 #include "jobHandler.h"
 
-
 namespace parrot
 {
-template <typename Sess>
-class Scheduler
+template <typename Sess> class Scheduler
 {
+  private:
+    virutal ~Scheduler() = default;
+
   public:
-    JobHandler * getHandler(uint64_t route, std::unique_ptr<Sess> &s) = 0;
+    static Scheduler* getInstance();
+    virtual JobHandler* getHandler(uint64_t route,
+                                   std::shared_ptr<const Sess>&) = 0;
+    virtual JobHandler* getOnCloseHandler(std::shared_ptr<const Sess>&) = 0;
 };
 }
 

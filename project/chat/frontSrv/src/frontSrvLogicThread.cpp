@@ -17,7 +17,6 @@ namespace chat
 FrontSrvLogicThread::FrontSrvLogicThread()
     : PoolThread(),
       JobHandler(),
-      _reqBindJobHdr(),
       _packetJobHdr(),
       _jobListLock(),
       _jobList(),
@@ -26,13 +25,11 @@ FrontSrvLogicThread::FrontSrvLogicThread()
 #elif defined(__APPLE__)
       _notifier(new parrot::Kqueue(1)),
 #elif defined(_WIN32)
-      _notifier(new parrot::SimpleEventNotifier()),
+//      _notifier(new parrot::SimpleEventNotifier()),
 #endif
       _config(nullptr)
 {
     using namespace std::placeholders;
-    _reqBindJobHdr =
-        std::bind(&FrontSrvLogicThread::handleReqBind, this, _1, _2);
     _packetJobHdr = std::bind(&FrontSrvLogicThread::handlePacket, this, _1);
 }
 
@@ -68,49 +65,34 @@ void FrontSrvLogicThread::addJob(
     _notifier->stopWaiting();
 }
 
-void FrontSrvLogicThread::handleReqBind(
-    parrot::FrontThread* thread, std::list<parrot::SessionPktPair>& pktList)
-{
-    LOG_DEBUG("FrontSrvLogicThread::handleReqBind: pktList size is "
-              << pktList.size() << ".");
-    parrot::Session* session = nullptr;
-    std::list<std::shared_ptr<const parrot::Session>> sessionList;
-    for (auto& sp : pktList)
-    {
-        session                 = const_cast<parrot::Session*>(sp.first.get());
-        session->_jobHandlerPtr = static_cast<JobHandler*>(this);
-        sessionList.push_back(std::move(sp.first));
-    }
-
-    std::unique_ptr<parrot::RspBindJob> rbJob(new parrot::RspBindJob());
-    rbJob->bind(std::move(sessionList));
-    thread->addJob(std::move(rbJob));
-}
-
 void FrontSrvLogicThread::handlePacket(
     std::list<parrot::SessionPktPair>& pktList)
 {
-    std::list<parrot::SessionPktPair> rspPktList;
-    parrot::FrontThread *frontThread = nullptr;
+    std::unordered_map<parrot::JobHandler, std::list<parrot::SessionPktPair>>
+        rspMap;
+
     for (auto& sp : pktList)
     {
         LOG_INFO("FrontSrvLogicThread::handlePacket: session is "
                  << (sp.first)->toString() << ".");
-        std::unique_ptr<parrot::WsPacket> pkt (new parrot::WsPacket());
+        std::unique_ptr<parrot::WsPacket> pkt(new parrot::WsPacket());
         pkt->setRoute(1);
         std::unique_ptr<parrot::Json> json(new parrot::Json());
         json->createRootObject();
         std::string s = "Hello world!";
         json->setValue("/s", s);
         pkt->setJson(std::move(json));
-        frontThread = static_cast<parrot::FrontThread*>(
-            (sp.first)->_frontThreadPtr);
-        rspPktList.emplace_back(std::move(sp.first), std::move(pkt));
+
+        rspMap[(sp.first)->getFrontJobHdr()].emplace_back(std::move(sp.first),
+                                                          std::move(pkt));
     }
 
-    std::unique_ptr<parrot::PacketJob> job(new parrot::PacketJob());
-    job->bind(std::move(rspPktList));
-    frontThread->addJob(std::move(job));
+    for (auto& kv : rspMap)
+    {
+        std::unique_ptr<parrot::PacketJob> job(new parrot::PacketJob());
+        job->bind(std::move(kv.second));
+        (kv.first)->addJob(std::move(job));
+    }
 }
 
 void FrontSrvLogicThread::handleJob()
@@ -124,15 +106,7 @@ void FrontSrvLogicThread::handleJob()
     {
         switch (j->getJobType())
         {
-            case parrot::eJobType::ReqBind:
-            {
-                std::unique_ptr<parrot::ReqBindJob> tj(
-                    static_cast<parrot::ReqBindJob*>(j.release()));
-                tj->call(_reqBindJobHdr);
-            }
-            break;
-
-            case parrot::eJobType::Packet:
+            case parrot::JOB_PACKET:
             {
                 std::unique_ptr<parrot::PacketJob> tj(
                     static_cast<parrot::PacketJob*>(j.release()));
