@@ -13,19 +13,22 @@
 #include "wsClientConn.h"
 #include "timeoutManager.h"
 #include "timeoutHandler.h"
+#include "rpcClientThread.h"
 
 namespace parrot
 {
 struct Config;
 struct WsConfig;
 
+template <typename Sess>
 class RpcClientConn
     : public WsClientConn<RpcSession>,
       public TimeoutHandler<RpcRequest>,
       public WsPacketHandler<RpcSession, RpcClientConn<RpcSession>>
 {
   public:
-    RpcClientConn(const Config& cfg,
+    RpcClientConn(RpcClientThread<Sess>* thread,
+                  const Config& cfg,
                   const std::string& wsUrl,
                   const WsConfig& wsCfg);
     RpcClientConn() = default;
@@ -44,11 +47,124 @@ class RpcClientConn
     void onResponse(std::unique_ptr<WsPacket>&& pkt);
 
   private:
+    RpcClientThread<Sess>* _rpcClientThread;
     std::unique_ptr<TimeoutManager<RpcRequest>> _timeoutMgr;
     std::unordered_map<uint64_t, std::unique_ptr<RpcRequest>> _reqMap;
     uint64_t _reqId;
     const Config& _config;
 };
+
+template <typename Sess>
+RpcClientConn<Sess>::RpcClientConn(RpcClientThread<Sess>* thread,
+                                   const Config& cfg,
+                                   const std::string& wsUrl,
+                                   const WsConfig& wscfg)
+    : WsClientConn<RpcSession>(wsUrl, wscfg, false),
+      _rpcClientThread(thread),
+      _timeoutMgr(new TimeoutManager<RpcRequest>(this, cfg._rpcReqTimeout)),
+      _reqMap(),
+      _reqId(0),
+      _config(cfg)
+{
+}
+
+template <typename Sess>
+void RpcClientConn<Sess>::addJob(std::unique_ptr<RpcRequest>&& req)
+{
+    if (req->getPacketType() == ePacketType::Request)
+    {
+        req->setReqId(_reqId);
+        _timeoutMgr->add(req.get(), std::time(nullptr));
+        _reqMap.emplace(_reqId, std::move(req));
+        ++_reqId;
+    }
+
+    sendPacket(req->getPacket());
+}
+
+template <typename Sess>
+void RpcClientConn<Sess>::addJob(
+    std::list<std::unique_ptr<RpcRequest>>& reqList)
+{
+    auto now = std::time(nullptr);
+    for (auto& req : reqList)
+    {
+        if (req->getPacketType() == ePacketType::Request)
+        {
+            req->setReqId(_reqId);
+            _timeoutMgr->add(req.get(), now);
+            _reqMap.emplace(_reqId, std::move(req));
+            ++_reqId;
+        }
+        sendPacket(req->getPacket());
+    }
+}
+
+template <typename Sess>
+void RpcClientConn<Sess>::checkReqTimeout(std::time_t now)
+{
+    _timeoutMgr->checkTimeout(now);
+}
+
+template <typename Sess> void RpcClientConn<Sess>::heartbeat()
+{
+    std::unique_ptr<WsPacket> pkt(new WsPacket());
+    pkt->setOpCode(eOpCode::Ping);
+    sendPacket(pkt);
+
+    LOG_INFO("RpcClientConn::heartbeat: Sending heartbeat.");
+}
+
+template <typename Sess>
+void RpcClientConn<Sess>::onPacket(std::shared_ptr<const RpcSession>&&,
+                                   std::unique_ptr<WsPacket>&& pkt)
+{
+    onResponse(std::move(pkt));
+}
+
+template <typename Sess>
+void RpcClientConn<Sess>::onClose(RpcClientConn*, std::unique_ptr<WsPacket>&&)
+{
+    // Empty callback function.
+}
+
+template <typename Sess> void RpcClientConn<Sess>::onTimeout(RpcRequest* req)
+{
+    LOG_WARN("RpcClientConn::onTimeout: Request timeout. Request is "
+             << req->toString() << ".");
+    _reqMap.erase(req->getReqId());
+}
+
+template <typename Sess>
+void RpcClientConn<Sess>::onResponse(std::unique_ptr<WsPacket>&& pkt)
+{
+    uint64_t rpcReqId = 0;
+    auto sysJson      = pkt->getSysJson();
+
+    if (!sysJson->containsKey("/rpcReqId") || !sysJson->isUint64("/rpcReqId"))
+    {
+        LOG_WARN("RpcClientConn::onResponse: Bad sys json: "
+                 << sysJson->toString() << ".");
+        return;
+    }
+    sysJson->getValue("/rpcReqId", rpcReqId);
+
+    auto it = _reqMap.find(rpcReqId);
+    if (it == _reqMap.end())
+    {
+        LOG_WARN("RpcClientConn::onResponse: Failed to find reqId: " << rpcReqId
+                                                                     << ".");
+        return;
+    }
+
+    LOG_INFO("RpcClientConn::onResponse: Received response for rpc request: "
+             << it->second()->toString() << ".");
+
+    _rpcClientThread->addResponse(it->second->getRspHandler(),
+                                  it->second->getSession(), std::move(pkt));
+    _timeoutMgr->remove(it->second.get());
+    _reqMap.erase(it);
+}
 }
 
 #endif

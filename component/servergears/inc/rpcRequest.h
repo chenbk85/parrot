@@ -20,18 +20,19 @@ class RpcRequest : public TimeoutGuard,
 {
   public:
     RpcRequest(const std::string& sid,
-               std::shared_ptr<Sess>&& sess,
+               std::shared_ptr<Sess>& sess,
                std::unique_ptr<WsPacket>&& msg,
                JobHandler* rspHandler);
 
   public:
-    void onResponse(std::unique_ptr<WsPacket>&& rsp);
     void setReqId(uint64_t reqId);
     const std::string& getDestSrvId() const;
     uint64_t getReqId() const;
     ePacketType getPacketType() const;
     std::unique_ptr<WsPacket>& getPacket();
     std::string toString();
+    JobHandler* getRspHandler() const;
+    std::shared_ptr<Sess>& getSession() const;
 
   private:
     std::string _remoteSrvId;
@@ -43,7 +44,7 @@ class RpcRequest : public TimeoutGuard,
 
 template <typename Sess>
 RpcRequest<Sess>::RpcRequest(const std::string& sid,
-                             std::shared_ptr<Sess>&& session,
+                             std::shared_ptr<Sess>& session,
                              std::unique_ptr<WsPacket>&& msg,
                              JobHandler* rspHandler)
     : _remoteSrvId(sid),
@@ -61,16 +62,6 @@ RpcRequest<Sess>::RpcRequest(const std::string& sid,
     }
 
     json->setValue("/session", _session->getJsonStr());
-}
-
-template <typename Sess>
-void RpcRequest::onResponse(std::unique_ptr<WsPacket>&& pkt)
-{
-    std::list<SessionPktPair<Sess>> pktList;
-    pktList.emplace_back(std::move(_session), std::move(pkt));
-    std::unique_ptr<PacketJob<Sess>> job(new PacketJob<Sess>());
-    job->bind(std::move(pktList));
-    _session->getRpcRspHdr(this)->addJob(job);
 }
 
 template <typename Sess> void RpcRequest::setReqId(uint64_t reqId)
@@ -96,6 +87,17 @@ template <typename Sess> ePacketType RpcRequest::getPacketType() const
 template <typename Sess> std::unique_ptr<WsPacket>& RpcRequest::getPacket()
 {
     return _packet;
+}
+
+template <typename Sess> JobHandler* RpcRequest::getRspHandler() const
+{
+    return _rspHandler;
+}
+
+template <typename Sess>
+std::shared_ptr<Sess>& RpcRequest::getSession() const
+{
+    return _session;
 }
 
 template <typename Sess> std::string RpcRequest::toString()

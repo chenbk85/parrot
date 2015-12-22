@@ -15,4 +15,14 @@ void Job::setJobType(eJobType type)
 {
     _jobType = type;
 }
+
+void* Job::getDerivedPtr() const
+{
+    return _derivedPtr;
+}
+
+void Job::setDerivedPtr(void* p)
+{
+    _derivedPtr = p
+}
 }

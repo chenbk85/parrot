@@ -16,7 +16,6 @@
 #include "connDispatcher.h"
 #include "frontThread.h"
 #include "wsServerConn.h"
-#include "session.h"
 #include "wsConfig.h"
 #include "config.h"
 #include "threadBase.h"

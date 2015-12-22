@@ -7,7 +7,6 @@
 
 #include "seqGenHelper.h"
 #include "job.h"
-#include "frontThread.h"
 
 namespace parrot
 {
@@ -16,6 +15,7 @@ template <uint32_t JOBTYPE, typename... Ts> class ThreadJob : public Job
   public:
     ThreadJob() : Job(JOBTYPE), _args()
     {
+        setDerivedPtr(this);
     }
 
     template <typename... RfTs> void bind(RfTs&&... args)
@@ -59,21 +59,6 @@ using PacketJob = ThreadJob<JOB_PACKET, std::list<SessionPktPair<Sess>>>;
 //
 template <typename Sess>
 using PacketJobHdr = std::function<void(std::list<SessionPktPair<Sess>>&)>;
-
-//
-//
-//
-template <typename Sess>
-using ReqBindJob = ThreadJob<JOB_REQ_BIND,
-                             FrontThread<Sess>*,
-                             std::list<SessionPktPair<Sess>>>;
-
-//
-//
-//
-template <typename Sess>
-using ReqBindJobHdr =
-    std::function<void(FrontThread<Sess>*, std::list<SessionPktPair<Sess>>&)>;
 
 //
 //

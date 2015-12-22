@@ -220,15 +220,15 @@ template <typename Sess> void FrontThread<Sess>::handleJob()
             case JOB_RSP_BIND:
             {
                 std::unique_ptr<RspBindJob> tj(
-                    static_cast<RspBindJob*>(j.release()));
+                    static_cast<RspBindJob*>((j.release())->getDerivedPtr()));
                 tj->call(_rspBindHdr);
             }
             break;
 
             case JOB_UPDATE_SESSION:
             {
-                std::unique_ptr<UpdateSessJob> tj(
-                    static_cast<UpdateSessJob*>(j.release()));
+                std::unique_ptr<UpdateSessJob> tj(static_cast<UpdateSessJob*>(
+                    (j.release())->getDerivedPtr()));
                 tj->call(_updateSessHdr);
             }
             break;
@@ -236,7 +236,7 @@ template <typename Sess> void FrontThread<Sess>::handleJob()
             case JOB_PACKET:
             {
                 std::unique_ptr<PacketJob> tj(
-                    static_cast<PacketJob*>(j.release()));
+                    static_cast<PacketJob*>((j.release())->getDerivedPtr()));
                 tj->call(_pktJobHdr);
             }
             break;

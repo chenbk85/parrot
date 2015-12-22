@@ -25,9 +25,14 @@ class Job
 
   public:
     uint32_t getJobType() const;
-    void setJobType(uint32_t type);
+    void* getDerivedPtr() const;
+
+  protected:
+    void setJobType(uint32_t type);    
+    void setDerivedPtr(void* ptr);
 
   private:
+    void* _derivedPtr;
     uint32_t _jobType;
 };
 }
