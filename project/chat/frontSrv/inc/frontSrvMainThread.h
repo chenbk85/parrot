@@ -3,6 +3,7 @@
 
 #include "mainThread.h"
 #include "threadPool.h"
+#include "chatSession.h"
 #include "frontSrvLogicThread.h"
 
 namespace chat

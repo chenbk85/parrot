@@ -10,26 +10,30 @@
 #include "threadJob.h"
 #include "timeoutHandler.h"
 #include "timeoutManager.h"
-#include "wsClientConn.h"
+#include "rpcClientConn.h"
 #include "eventNotifier.h"
 #include "wsPacket.h"
 #include "connHandler.h"
+#include "epoll.h"
+#include "kqueue.h"
 
 namespace parrot
 {
 
 template <typename Sess>
 class RpcClientThread : public ThreadBase,
-                        public TimeoutHandler<RpcClientConn>,
+                        public TimeoutHandler<RpcClientConn<Sess>>,
                         public JobHandler
 {
+    using ConnMap =
+        std::unordered_map<std::string, std::shared_ptr<RpcClientConn<Sess>>>;
+
   public:
     RpcClientThread(const Config& cfg, const WsConfig& wsCfg);
 
   public:
     void addJob(std::unique_ptr<Job>&& job);
     void addJob(std::list<std::unique_ptr<Job>>& jobList);
-
     void addRsp(JobHandler* hdr,
                 std::shared_ptr<Sess>&,
                 std::std::unique_ptr<WsPacket>&& pkt);
@@ -37,7 +41,7 @@ class RpcClientThread : public ThreadBase,
   private:
     void init();
     void doConnect();
-    void handleRsp();    
+    void handleRsp();
 
   private:
     void onTimeout() override;
@@ -48,15 +52,15 @@ class RpcClientThread : public ThreadBase,
     std::mutex _jobListLock;
     std::unordered_map<std::string, std::unique_ptr<job>> _jobList;
 
-    std::list<std::unique_ptr<RpcClientConn>> _disconnectedConnList;
+    std::list<std::unique_ptr<RpcClientConn<Sess>>> _disconnectedConnList;
 
     // Save connected client to this map.
-    std::unordered_map<std::string, std::shared_ptr<RpcClientConn>> _connMap;
+    ConnMap _connMap;
 
     std::unordered_map<JobHandler*, std::list<SessionPktPair>> _rspMap;
 
     std::unique_ptr<EventNotifier> _notifier;
-    std::unique_ptr<TimeoutManager<RpcClientConn<RpcSession>>> _timeoutMgr;
+    std::unique_ptr<TimeoutManager<RpcClientConn<Sess>>> _timeoutMgr;
     MtRandom _random;
     const Config& _config;
     const WsConfig& _wsConfig;
@@ -65,7 +69,7 @@ class RpcClientThread : public ThreadBase,
 template <typename Sess>
 RpcClientThread<Sess>::RpcClientThread(const Config& cfg, const WsConfig& wsCfg)
     : ThreadBase(),
-      TimeoutHandler<RpcClientConn>(),
+      TimeoutHandler<RpcClientConn<Sess>>(),
       JobHandler(),
       _jobListLock(),
       _jobList(),
@@ -80,9 +84,9 @@ RpcClientThread<Sess>::RpcClientThread(const Config& cfg, const WsConfig& wsCfg)
     init();
 }
 
-template <typename Sess> void RpcClientConn::init()
+template <typename Sess> void RpcClientConn<Sess>::init()
 {
-    _timeoutMgr.reset(new TimeoutManager<RpcClientConn<RpcSession>>(
+    _timeoutMgr.reset(new TimeoutManager<RpcClientConn<Sess>>(
         this, _config._rpcThreadTimeout));
 
 #if defined(__linux__)
@@ -176,14 +180,14 @@ template <typename Sess> void RpcClientThread<Sess>::handleRsp()
 }
 
 template <typename Sess>
-void RpcClientThread<Sess>::updateTimeout(RpcClientConn<RpcSession>* conn,
+void RpcClientThread<Sess>::updateTimeout(RpcClientConn<Sess>* conn,
                                           std::time_t now)
 {
     _timeoutMgr->update(conn, now);
 }
 
 template <typename Sess>
-void RpcClientThread<Sess>::onTimeout(RpcClientConn<RpcSession>* conn)
+void RpcClientThread<Sess>::onTimeout(RpcClientConn<Sess>* conn)
 {
     conn->heartbeat();
 }
@@ -194,8 +198,8 @@ template <typename Sess> void RpcClientThread<Sess>::beforeStart()
 
     for (const auto& s : _config._neighborSrvMap)
     {
-        std::unique_ptr<RpcClientConn> conn(
-            new RpcClientConn(this, _config, s._thisServer.rpcWsUrl, _wsConfig));
+        std::unique_ptr<RpcClientConn<Sess>> conn(new RpcClientConn<Sess>(
+            this, _config, s._thisServer.rpcWsUrl, _wsConfig));
 
         conn->setDerivedPtr(conn.get());
         conn->setNextAction(conn->getDefaultAction());

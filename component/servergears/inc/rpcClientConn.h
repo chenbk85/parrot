@@ -31,7 +31,6 @@ class RpcClientConn
                   const Config& cfg,
                   const std::string& wsUrl,
                   const WsConfig& wsCfg);
-    RpcClientConn() = default;
 
   public:
     void addJob(std::unique_ptr<RpcRequest>&& req);
@@ -66,6 +65,7 @@ RpcClientConn<Sess>::RpcClientConn(RpcClientThread<Sess>* thread,
       _reqId(0),
       _config(cfg)
 {
+    setPacketHandler(this);
 }
 
 template <typename Sess>
@@ -123,7 +123,8 @@ void RpcClientConn<Sess>::onPacket(std::shared_ptr<const RpcSession>&&,
 }
 
 template <typename Sess>
-void RpcClientConn<Sess>::onClose(RpcClientConn*, std::unique_ptr<WsPacket>&&)
+void RpcClientConn<Sess>::onClose(RpcClientConn<Sess>*,
+                                  std::unique_ptr<WsPacket>&&)
 {
     // Empty callback function.
 }
