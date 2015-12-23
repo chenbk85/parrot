@@ -52,12 +52,12 @@ clean:
 	@find $(PRJ_ROOT) -name '*~' -exec $(RM) {} \;
 	@$(RM) $(PRJ_ROOT)/lib/* $(PRJ_ROOT)/bin/* $(PRJ_ROOT)/project/*/lib/* $(PRJ_ROOT)/project/*/bin/*
 
-.PHONY: tarball
-tarball:
-	@echo tarball
+.PHONY: dist
+dist:
+	@echo Currently not supported.
 
 .PHONY: help
 help:
 	@echo "make all       - Build all projects."
 	@echo "make clean     - Remove object files, generated libraries, binaries and emacs tmp files."
-	@echo "make tarball   - To create a release tarball."
+	@echo "make dist      - To create a distribution file."
