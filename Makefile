@@ -38,11 +38,8 @@ SED                  := sed
 MV                   := mv
 AR                   := ar
 
-help:
-	@echo "make all       - Build all projects."
-	@echo "make <proj>    - Build project 'proj' which is the directory name in projects directory."
-	@echo "make clean     - Remove object files, generated libraries, binaries and emacs tmp files."
-	@echo "make tarball   - To create a release tarball."
+# Set the default goal, or the included makefile will change it.
+.DEFAULT_GOAL        := all
 
 include Platform.mk $(SUB_MAKEFILES)
 
@@ -58,3 +55,9 @@ clean:
 .PHONY: tarball
 tarball:
 	@echo tarball
+
+.PHONY: help
+help:
+	@echo "make all       - Build all projects."
+	@echo "make clean     - Remove object files, generated libraries, binaries and emacs tmp files."
+	@echo "make tarball   - To create a release tarball."
