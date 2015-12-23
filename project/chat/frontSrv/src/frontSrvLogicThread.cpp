@@ -66,10 +66,10 @@ void FrontSrvLogicThread::addJob(
 }
 
 void FrontSrvLogicThread::handlePacket(
-    std::list<parrot::SessionPktPair>& pktList)
+    std::list<parrot::SessionPktPair<ChatSession>>& pktList)
 {
-    std::unordered_map<parrot::JobHandler, std::list<parrot::SessionPktPair>>
-        rspMap;
+    std::unordered_map<parrot::JobHandler*,
+                       std::list<parrot::SessionPktPair<ChatSession>>> rspMap;
 
     for (auto& sp : pktList)
     {
@@ -89,7 +89,7 @@ void FrontSrvLogicThread::handlePacket(
 
     for (auto& kv : rspMap)
     {
-        std::unique_ptr<parrot::PacketJob> job(new parrot::PacketJob());
+        std::unique_ptr<parrot::PacketJob<ChatSession>> job(new parrot::PacketJob<ChatSession>());
         job->bind(std::move(kv.second));
         (kv.first)->addJob(std::move(job));
     }
@@ -108,8 +108,8 @@ void FrontSrvLogicThread::handleJob()
         {
             case parrot::JOB_PACKET:
             {
-                std::unique_ptr<parrot::PacketJob> tj(
-                    static_cast<parrot::PacketJob*>(j.release()));
+                std::unique_ptr<parrot::PacketJob<ChatSession>> tj(
+                    static_cast<parrot::PacketJob<ChatSession> *>((j.release())->getDerivedPtr()));
                 tj->call(_packetJobHdr);
             }
             break;

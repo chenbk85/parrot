@@ -64,20 +64,6 @@ using PacketJobHdr = std::function<void(std::list<SessionPktPair<Sess>>&)>;
 //
 //
 template <typename Sess>
-using RspBindJob =
-    ThreadJob<JOB_RSP_BIND, std::list<std::shared_ptr<const Sess>>>;
-
-//
-//
-//
-template <typename Sess>
-using RspBindJobHdr =
-    std::function<void(std::list<std::shared_ptr<const Sess>>&)>;
-
-//
-//
-//
-template <typename Sess>
 using UpdateSessionJob =
     ThreadJob<JOB_UPDATE_SESSION, std::shared_ptr<const Sess>>;
 

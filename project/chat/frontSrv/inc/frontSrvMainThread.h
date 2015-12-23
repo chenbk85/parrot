@@ -16,6 +16,7 @@ class FrontSrvMainThread : public parrot::MainThread<ChatSession>
     explicit FrontSrvMainThread(const FrontSrvConfig* cfg);
 
   protected:
+    void beforeStart() override;
     void createUserThreads() override;
     void stopUserThreads() override;
 

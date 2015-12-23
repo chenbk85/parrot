@@ -34,7 +34,7 @@ class MainThread
   public:
     using FrontConnDispatcher =
         ConnDispatcher<WsServerConn<Sess>, WsConfig, ConnFactory, ConnHandler>;
-    using FrontThreadPool = ThreadPool<FrontThread>;
+    using FrontThreadPool = ThreadPool<FrontThread<Sess>>;
 
   public:
     explicit MainThread(const Config* cfg);

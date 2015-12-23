@@ -6,12 +6,15 @@
 namespace parrot
 {
 
-#define JOB_PACKET 1
-#define JOB_REQ_BIND 2
-#define JOB_RSP_BIND 3
-#define JOB_UPDATE_SESSION 4
-#define JOB_DEL_SESSION 5
-#define JOB_KICK 6
+//\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*
+//
+// JOB_XXX < 1000 are reserved for system jobs.
+//
+//\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*
+const uint32_t JOB_PACKET         = 1;
+const uint32_t JOB_UPDATE_SESSION = 2;
+const uint32_t JOB_DEL_SESSION    = 3;
+const uint32_t JOB_KICK           = 4;
 
 class Job
 {
@@ -28,7 +31,7 @@ class Job
     void* getDerivedPtr() const;
 
   protected:
-    void setJobType(uint32_t type);    
+    void setJobType(uint32_t type);
     void setDerivedPtr(void* ptr);
 
   private:

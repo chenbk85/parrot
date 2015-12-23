@@ -10,6 +10,7 @@
 #include "job.h"
 #include "threadJob.h"
 #include "jobHandler.h"
+#include "chatSession.h"
 
 namespace chat
 {
@@ -36,10 +37,10 @@ class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
     void handleJob() override;
 
   protected:
-    void handlePacket(std::list<parrot::SessionPktPair>& pktList);
+    void handlePacket(std::list<parrot::SessionPktPair<ChatSession>>& pktList);
 
   protected:
-    parrot::PacketJobHdr _packetJobHdr;
+    parrot::PacketJobHdr<ChatSession> _packetJobHdr;
     std::mutex _jobListLock;
     std::list<std::unique_ptr<parrot::Job>> _jobList;
     std::unique_ptr<parrot::EventNotifier> _notifier;

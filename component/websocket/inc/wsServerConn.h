@@ -53,7 +53,7 @@ class WsServerConn : public TcpServerConn,
   public:
     void setPacketHandler(PacketHandler* hdr);
     void setSession(std::shared_ptr<Sess>&& sess);
-    std::shared_ptr<Sess>& getSession() const;
+    std::shared_ptr<Sess>& getSession();
     void updateSession(std::shared_ptr<const Sess>&);
     void sendPacket(std::unique_ptr<WsPacket>& pkt);
     void sendPacket(std::list<std::unique_ptr<WsPacket>>& pkt);
@@ -113,9 +113,9 @@ void WsServerConn<Sess>::setPacketHandler(PacketHandler* hdr)
 }
 
 template <class Sess>
-std::shared_ptr<Sess> WsServerConn<Sess>::getSession() const
+std::shared_ptr<Sess>& WsServerConn<Sess>::getSession()
 {
-    return _session.get();
+    return _session;
 }
 
 template <class Sess> void WsServerConn<Sess>::setRandom(MtRandom* r)
@@ -131,11 +131,11 @@ template <class Sess> bool WsServerConn<Sess>::canSwitchToSend() const
 template <class Sess>
 void WsServerConn<Sess>::updateSession(std::shared_ptr<const Sess>& sess)
 {
-    _session.reset(new Session(sess));
+    _session.reset(new Sess(*sess));
 }
 
 template <class Sess>
-void WsServerConn::setSession(std::shared_ptr<Sess>&& sess)
+void WsServerConn<Sess>::setSession(std::shared_ptr<Sess>&& sess)
 {
     _session = std::move(sess);
 }

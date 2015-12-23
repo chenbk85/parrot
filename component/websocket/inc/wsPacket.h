@@ -57,6 +57,7 @@ class WsPacket
     std::unique_ptr<WsPacket> toResponsePkt();
 
   private:
+    void setSysJson(std::unique_ptr<Json>&& json);    
     bool decodeSysData();    
     bool loadSysInfo();
     bool decodeBinary();

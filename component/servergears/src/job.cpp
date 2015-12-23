@@ -2,16 +2,16 @@
 
 namespace parrot
 {
-Job::Job(eJobType jobType) : _jobType(jobType)
+Job::Job(uint32_t jobType) : _jobType(jobType)
 {
 }
 
-eJobType Job::getJobType() const
+uint32_t Job::getJobType() const
 {
     return _jobType;
 }
 
-void Job::setJobType(eJobType type)
+void Job::setJobType(uint32_t type)
 {
     _jobType = type;
 }
@@ -23,6 +23,6 @@ void* Job::getDerivedPtr() const
 
 void Job::setDerivedPtr(void* p)
 {
-    _derivedPtr = p
+    _derivedPtr = p;
 }
 }

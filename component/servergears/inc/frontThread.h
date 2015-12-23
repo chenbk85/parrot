@@ -11,6 +11,8 @@
 #include <ctime>
 #include <iostream>
 
+#include "epoll.h"
+#include "kqueue.h"
 #include "config.h"
 #include "mtRandom.h"
 #include "poolThread.h"
@@ -24,6 +26,7 @@
 #include "connHandler.h"
 #include "macroFuncs.h"
 #include "logger.h"
+#include "scheduler.h"
 
 namespace parrot
 {
@@ -38,6 +41,11 @@ class FrontThread : public PoolThread,
     {
         kPktListSize = 100
     };
+
+    using PktMap =
+        std::unordered_map<JobHandler*, std::list<SessionPktPair<Sess>>>;
+    using ConnMap =
+        std::unordered_map<std::string, std::unique_ptr<WsServerConn<Sess>>>;
 
   public:
     FrontThread();
@@ -75,7 +83,7 @@ class FrontThread : public PoolThread,
 
   protected:
     void handleUpdateSession(std::shared_ptr<const Sess>& ps);
-    void handlePacket(std::list<SessPktPair>& pktList);
+    void handlePacket(std::list<SessionPktPair<Sess>>& pktList);
     void dispatchPackets();
     void addConnToNotifier();
     void removeConn(WsServerConn<Sess>* conn);
@@ -88,18 +96,13 @@ class FrontThread : public PoolThread,
     std::mutex _connListLock;
     std::list<std::unique_ptr<WsServerConn<Sess>>> _connList;
 
-    std::unordered_map<JobHandler*, std::list<SessPktPair>> _pktMap;
-
-    // <SessionUniqueId, Conn>
-    std::unordered_map<std::string, std::unique_ptr<WsServerConn<Sess>>>
-        _connMap;
+    PktMap _pktMap;
+    ConnMap _connMap;
 
     std::unique_ptr<EventNotifier> _notifier;
 
-    uint32_t _lastDefaultJobIdx;
-    RspBindJobHdr _rspBindHdr;
-    UpdateSessJobHdr _updateSessHdr;
-    PacketJobHdr _pktJobHdr;
+    UpdateSessionJobHdr<Sess> _updateSessionHdr;
+    PacketJobHdr<Sess> _pktJobHdr;
 
     MtRandom _random;
     std::unique_ptr<TimeoutManager<WsServerConn<Sess>>> _timeoutMgr;
@@ -110,19 +113,17 @@ class FrontThread : public PoolThread,
 template <typename Sess>
 FrontThread<Sess>::FrontThread()
     : PoolThread(),
-      TimeoutHandler(),
+      TimeoutHandler<WsServerConn<Sess>>(),
+      JobHandler(),
+      ConnHandler<WsServerConn<Sess>>(),
+      WsPacketHandler<Sess, WsServerConn<Sess>>(),
       _jobListLock(),
       _jobList(),
       _connListLock(),
       _connList(),
-      _noRoutePktList(),
       _pktMap(),
-      _jobHandlerSet(),
       _connMap(),
       _notifier(nullptr),
-      _defaultJobHdrVec(),
-      _lastDefaultJobIdx(0),
-      _rspBindHdr(),
       _updateSessionHdr(),
       _pktJobHdr(),
       _random(),
@@ -132,7 +133,6 @@ FrontThread<Sess>::FrontThread()
 {
     using namespace std::placeholders;
 
-    _rspBindHdr       = std::bind(&FrontThread::handleRspBind, this, _1);
     _updateSessionHdr = std::bind(&FrontThread::handleUpdateSession, this, _1);
     _pktJobHdr        = std::bind(&FrontThread::handlePacket, this, _1);
 }
@@ -180,10 +180,9 @@ void FrontThread<Sess>::handleUpdateSession(std::shared_ptr<const Sess>& ps)
 }
 
 template <typename Sess>
-void FrontThread<Sess>::handlePacket(std::list<SessPktPair>& pktList)
+void FrontThread<Sess>::handlePacket(std::list<SessionPktPair<Sess>>& pktList)
 {
-    std::unordered_map<std::string,
-                       std::unique_ptr<WsServerConn<Sess>>>::iterator it;
+    typename ConnMap::iterator it;
     for (auto& s : pktList)
     {
         it = _connMap.find((s.first)->getUniqueSessionId());
@@ -217,26 +216,20 @@ template <typename Sess> void FrontThread<Sess>::handleJob()
     {
         switch (j->getJobType())
         {
-            case JOB_RSP_BIND:
-            {
-                std::unique_ptr<RspBindJob> tj(
-                    static_cast<RspBindJob*>((j.release())->getDerivedPtr()));
-                tj->call(_rspBindHdr);
-            }
-            break;
-
             case JOB_UPDATE_SESSION:
             {
-                std::unique_ptr<UpdateSessJob> tj(static_cast<UpdateSessJob*>(
-                    (j.release())->getDerivedPtr()));
-                tj->call(_updateSessHdr);
+                std::unique_ptr<UpdateSessionJob<Sess>> tj(
+                    static_cast<UpdateSessionJob<Sess>*>(
+                        (j.release())->getDerivedPtr()));
+                tj->call(_updateSessionHdr);
             }
             break;
 
             case JOB_PACKET:
             {
-                std::unique_ptr<PacketJob> tj(
-                    static_cast<PacketJob*>((j.release())->getDerivedPtr()));
+                std::unique_ptr<PacketJob<Sess>> tj(
+                    static_cast<PacketJob<Sess>*>(
+                        (j.release())->getDerivedPtr()));
                 tj->call(_pktJobHdr);
             }
             break;
@@ -279,7 +272,7 @@ template <typename Sess>
 void FrontThread<Sess>::onPacket(std::shared_ptr<const Sess>&& session,
                                  std::unique_ptr<WsPacket>&& pkt)
 {
-    auto hdr = Scheduler::getInstance()->getHandler(pkt->getRoute(), session);
+    auto hdr = Scheduler<Sess>::getInstance()->getHandler(pkt->getRoute(), session);
 
     if (!hdr)
     {
@@ -303,11 +296,9 @@ void FrontThread<Sess>::onPacket(std::shared_ptr<const Sess>&& session,
         if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
         {
             // Dispatch packetes.
-            std::unique_ptr<PacketJob> pktJob(new PacketJob<Sess>());
+            std::unique_ptr<PacketJob<Sess>> pktJob(new PacketJob<Sess>());
             pktJob->bind(std::move(it->second));
-            auto sit = _jobHandlerSet.find(
-                static_cast<JobHandler*>(session->_jobHandlerPtr));
-            (*sit)->addJob(std::move(pktJob));
+            hdr->addJob(std::move(pktJob));
             it->second.clear();
         }
     }
@@ -317,18 +308,18 @@ template <typename Sess>
 void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
                                 std::unique_ptr<WsPacket>&& pkt)
 {
+    auto session = conn->getSession();    
     auto hdr =
-        Scheduler<Sess>::getInstance()->getOnCloseHandler(conn->getSession());
+        Scheduler<Sess>::getInstance()->getOnCloseHandler(session);
     if (!hdr)
     {
         LOG_WARN("FrontThread::onClose: Failed to find hdr for session "
-                 << conn->getSession()->toString() << ".");
+                 << session->toString() << ".");
         removeConn(conn);
         return;
     }
 
     auto it = _pktMap.find(hdr);
-
     if (it == _pktMap.end())
     {
         _pktMap[hdr].emplace_back(std::move(session), std::move(pkt));
@@ -339,7 +330,7 @@ void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
         if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
         {
             // Dispatch packetes.
-            std::unique_ptr<PacketJob> pktJob(new PacketJob<Sess>());
+            std::unique_ptr<PacketJob<Sess>> pktJob(new PacketJob<Sess>());
             pktJob->bind(std::move(it->second));
             hdr->addJob(std::move(pktJob));
             it->second.clear();
@@ -349,7 +340,7 @@ void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
     removeConn(conn);
     LOG_INFO("FrontThread::onClose: Err is "
              << (uint32_t)(pkt->getCloseCode()) << ". Sess is "
-             << conn->getSession()->toString() << ".");
+             << session->toString() << ".");
 }
 
 template <typename Sess> void FrontThread<Sess>::dispatchPackets()
@@ -360,7 +351,7 @@ template <typename Sess> void FrontThread<Sess>::dispatchPackets()
         {
             LOG_DEBUG("FrontThread::dispatchPackets: _pktMap List "
                       << "size is " << kv.second.size() << ".");
-            std::unique_ptr<PacketJob> pktJob(new PacketJob<Sess>());
+            std::unique_ptr<PacketJob<Sess>> pktJob(new PacketJob<Sess>());
             pktJob->bind(std::move(kv.second));
             (kv.first)->addJob(std::move(pktJob));
             kv.second.clear();
@@ -420,7 +411,7 @@ void FrontThread<Sess>::removeConn(WsServerConn<Sess>* conn)
                                                  << " disconnected.");
     _timeoutMgr->remove(conn);
     _notifier->delEvent(conn);
-    _connMap.erase(conn->getSess()->_connUniqueId);
+    _connMap.erase(conn->getSession()->getUniqueSessionId());
 }
 
 template <typename Sess>

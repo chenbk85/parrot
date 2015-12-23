@@ -64,12 +64,12 @@ template <typename T> class DoubleLinkedList
 
         if (n == _head)
         {
-            _head = n->next();
+            _head = n->getNext();
             _head->setPrev(nullptr);
         }
         else if (n == _tail)
         {
-            _tail = n->prev();
+            _tail = n->getPrev();
             _tail->setNext(nullptr);
         }
         else

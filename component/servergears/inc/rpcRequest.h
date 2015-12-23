@@ -8,7 +8,6 @@
 #include "wsDefinition.h"
 #include "wsPacket.h"
 
-#include "rpcRequester.h"
 #include "timeoutGuard.h"
 #include "doubleLinkedListNode.h"
 

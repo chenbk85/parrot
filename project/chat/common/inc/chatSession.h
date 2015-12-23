@@ -14,7 +14,7 @@ class ChatSession
     ChatSession();
 
   public:
-    void setUid(const string& uid);
+    void setUid(const std::string& uid);
     const std::string& getUid() const;
 
     // cid + '-' + tid + '-' + srvId
@@ -30,7 +30,7 @@ class ChatSession
     const std::string &getIpAddr() const;
     uint16_t getPort() const;
 
-    const string& getJsonStr() const;
+    const std::string& getJsonStr() const;
 
     std::string toString() const;
 

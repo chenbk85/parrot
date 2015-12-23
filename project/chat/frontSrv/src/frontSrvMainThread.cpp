@@ -6,12 +6,19 @@
 #include "frontSrvConfig.h"
 #include "jobHandler.h"
 #include "logger.h"
+#include "frontSrvScheduler.h"
 
 namespace chat
 {
 FrontSrvMainThread::FrontSrvMainThread(const FrontSrvConfig* cfg)
     : MainThread<ChatSession>(cfg), _logicThreadPool(cfg->_logicThreadPoolSize)
 {
+}
+
+void FrontSrvMainThread::beforeStart()
+{
+    MainThread<ChatSession>::beforeStart();
+    FrontSrvScheduler::makeInstance();
 }
 
 void FrontSrvMainThread::createUserThreads()

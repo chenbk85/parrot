@@ -1,6 +1,6 @@
 #include "chatSession.h"
 
-namespace parrot
+namespace chat
 {
 ChatSession::ChatSession()
     : _uniqueSessionId(),
@@ -12,7 +12,7 @@ ChatSession::ChatSession()
 {
 }
 
-void ChatSession::setUid(const string& uid)
+void ChatSession::setUid(const std::string& uid)
 {
     _uid = uid;
 }
@@ -26,7 +26,7 @@ void ChatSession::createUniqueSessionId(const std::string& srvId,
                                         const std::string& tid,
                                         uint32_t cid)
 {
-    _uniqueSessionId = std::toString(cid) + "-" + tid + "-" + srvId;
+    _uniqueSessionId = std::to_string(cid) + "-" + tid + "-" + srvId;
 }
 
 const std::string& ChatSession::getUniqueSessionId() const
@@ -60,7 +60,7 @@ uint16_t ChatSession::getPort() const
     return _port;
 }
 
-const string& ChatSession::getJsonStr() const
+const std::string& ChatSession::getJsonStr() const
 {
     return _jsonStr;
 }
