@@ -5,7 +5,6 @@
 #include "epoll.h"
 #include "kqueue.h"
 #include "codes.h"
-#include "session.h"
 #include "simpleEventNotifier.h"
 #include "frontSrvLogicThread.h"
 #include "frontThread.h"
