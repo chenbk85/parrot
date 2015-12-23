@@ -53,7 +53,7 @@ all: $(OBJECTS) $(LIBRARIES) $(BINARIES)
 clean:
 	@find $(PRJ_ROOT) -name '*.o' -exec $(RM) {} \;
 	@find $(PRJ_ROOT) -name '*~' -exec $(RM) {} \;
-	@$(RM) $(PRJ_ROOT)/lib/* $(PRJ_ROOT)/bin/*
+	@$(RM) $(PRJ_ROOT)/lib/* $(PRJ_ROOT)/bin/* $(PRJ_ROOT)/project/*/lib/* $(PRJ_ROOT)/project/*/bin/*
 
 .PHONY: tarball
 tarball:

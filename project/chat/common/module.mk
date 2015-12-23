@@ -1,7 +1,9 @@
 MODULE := $(shell basename $(subdirectory))
 
+$(MODULE)_CURR_PATH   := $(subst /, ,$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))
+$(MODULE)_PRJ_DIR     := $(word 2, $($(MODULE)_CURR_PATH))
 $(MODULE)_DIR         := $(subdirectory)
-$(MODULE)_TARGET      := $(PRJ_ROOT)/project/chat/lib/lib$(MODULE).a
+$(MODULE)_TARGET      := $(PRJ_ROOT)/project/$($(MODULE)_PRJ_DIR)/lib/lib$(MODULE).a
 $(MODULE)_DEP_PRJ     := common
 $(MODULE)_DEP_COMP    := json websocket servergears
 $(MODULE)_DEP_BASE    := sys util
@@ -21,7 +23,7 @@ COMP_INC              := $(addsuffix /inc,\
 
 # Get the inc directory of modules in $Project/yourPrj directory.
 THIS_PRJ_INC          := $(addsuffix /inc,\
-							$(addprefix $(PRJ_ROOT)/project/chat/,$($(MODULE)_DEP_PRJ)))
+							$(addprefix $(PRJ_ROOT)/project/$($(MODULE)_PRJ_DIR)/,$($(MODULE)_DEP_PRJ)))
 
 THIRD_PARTY_INC       := $(addsuffix _INC, \
 							$(shell echo $($(MODULE)_3RD_PARTY) | tr a-z A-Z))

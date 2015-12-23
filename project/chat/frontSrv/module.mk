@@ -1,7 +1,9 @@
 MODULE := $(shell basename $(subdirectory))
 
+$(MODULE)_CURR_PATH   := $(subst /, ,$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))
+$(MODULE)_PRJ_DIR     := $(word 2, $($(MODULE)_CURR_PATH))
 $(MODULE)_DIR         := $(subdirectory)
-$(MODULE)_TARGET      := $(PRJ_ROOT)/bin/$(MODULE)
+$(MODULE)_TARGET      := $(PRJ_ROOT)/project/$($(MODULE)_PRJ_DIR)/bin/$(MODULE)
 $(MODULE)_DEP_PRJ     := common
 $(MODULE)_DEP_COMP    := servergears websocket json 
 $(MODULE)_DEP_BASE    := sys util
@@ -22,7 +24,7 @@ COMP_INC              := $(addsuffix /inc,\
 
 # Get the inc directory of modules in $Project/yourPrj directory.
 THIS_PRJ_INC          := $(addsuffix /inc,\
-							$(addprefix $(PRJ_ROOT)/project/chat/,$($(MODULE)_DEP_PRJ)))
+							$(addprefix $(PRJ_ROOT)/project/$($(MODULE)_PRJ_DIR)/,$($(MODULE)_DEP_PRJ)))
 
 THIRD_PARTY_DEP       := $(shell echo $($(MODULE)_3RD_PARTY) | tr a-z A-Z)
 THIRD_PARTY_INC       := $(addsuffix _INC, THIRD_PARTY_DEP)
@@ -37,9 +39,10 @@ $(MODULE)_INC         += $(THIS_PRJ_INC) $(COMP_INC) $(BASE_INC) $(THIRD_PARTY_I
 $(MODULE)_INC         := $(addprefix -I ,$($(MODULE)_INC))
 
 # Get all libraries.
-$(MODULE)_DEP_LIB     := $($(MODULE)_DEP_PRJ) $($(MODULE)_DEP_COMP) $($(MODULE)_DEP_BASE)
-$(MODULE)_LINK_LIB    := $(addprefix -l, $($(MODULE)_DEP_LIB))
-$(MODULE)_DEP_LIB     := $(addsuffix .a, $(addprefix $(PRJ_ROOT)/lib/lib,$($(MODULE)_DEP_LIB)))
+$(MODULE)_PRJ_LIB     := $($(MODULE)_DEP_PRJ)
+$(MODULE)_DEP_LIB     := $($(MODULE)_DEP_COMP) $($(MODULE)_DEP_BASE)
+$(MODULE)_LINK_LIB    := $(addprefix -l, $($(MODULE)_DEP_LIB) $($(MODULE)_PRJ_LIB))
+$(MODULE)_DEP_LIB     := $(addsuffix .a, $(addprefix $(PRJ_ROOT)/lib/lib,$($(MODULE)_DEP_LIB)) $(addprefix $(PRJ_ROOT)/project/$($(MODULE)_PRJ_DIR)/lib/lib,$($(MODULE)_PRJ_LIB)))
 
 # Add this module to targets.
 OBJECTS               += $($(MODULE)_OBJ)
