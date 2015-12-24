@@ -18,6 +18,10 @@ RpcServerThread::RpcServerThread()
 
 void RpcServerThread::stop()
 {
+    ThreadBase::stop();
+    _notifier->stopWaiting();
+    ThreadBase::join();
+    LOG_INFO("RpcServerThread::Stop: Done.");    
 }
 
 void RpcServerThread::registerConn(const std::string& sid, RpcServerConn* conn)
@@ -46,6 +50,5 @@ void RpcServerThread::afterAddNewConn()
 {
     _notifier->stopWaiting();
 }
-
 
 }

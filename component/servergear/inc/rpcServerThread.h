@@ -26,9 +26,9 @@ class RpcServerThread : public ThreadBase,
 
   protected:
     void afterAddNewConn() override;
-    
+
     void afterAddJob() override;
-    
+
     // ThreadBase
     void run() override;
 
