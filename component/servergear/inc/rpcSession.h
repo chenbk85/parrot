@@ -5,8 +5,16 @@
 
 namespace parrot
 {
-struct RpcSession
+class RpcSession
 {
+  public:
+    RpcSession() = default;
+    
+  public:
+    const std::string& getRemoteSid() const;
+    void setRemoteSid(const std::string &sid);
+    
+  private:
     std::string _remoteSid;
 };
 }

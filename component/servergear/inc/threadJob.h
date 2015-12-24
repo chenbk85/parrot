@@ -7,6 +7,7 @@
 
 #include "seqGenHelper.h"
 #include "job.h"
+#include "rpcSession.h"
 
 namespace parrot
 {
@@ -53,6 +54,12 @@ using SessionPktPair =
 //
 template <typename Sess>
 using PacketJob = ThreadJob<JOB_PACKET, std::list<SessionPktPair<Sess>>>;
+
+//
+//
+//
+using RpcPacketJob =
+    ThreadJob<JOB_RPC_PACKET, std::list<SessionPktPair<RpcSession>>>;
 
 //
 //

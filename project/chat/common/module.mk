@@ -5,7 +5,7 @@ $(MODULE)_PRJ_DIR     := $(word 2, $($(MODULE)_CURR_PATH))
 $(MODULE)_DIR         := $(subdirectory)
 $(MODULE)_TARGET      := $(PRJ_ROOT)/project/$($(MODULE)_PRJ_DIR)/lib/lib$(MODULE).a
 $(MODULE)_DEP_PRJ     := common
-$(MODULE)_DEP_COMP    := json websocket servergears
+$(MODULE)_DEP_COMP    := json websocket servergear
 $(MODULE)_DEP_BASE    := sys util
 $(MODULE)_3RD_PARTY   := rapidjson
 

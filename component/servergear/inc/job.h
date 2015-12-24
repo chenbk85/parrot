@@ -12,9 +12,10 @@ namespace parrot
 //
 //\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*
 const uint32_t JOB_PACKET         = 1;
-const uint32_t JOB_UPDATE_SESSION = 2;
-const uint32_t JOB_DEL_SESSION    = 3;
-const uint32_t JOB_KICK           = 4;
+const uint32_t JOB_RPC_PACKET     = 2;
+const uint32_t JOB_UPDATE_SESSION = 3;
+const uint32_t JOB_DEL_SESSION    = 4;
+const uint32_t JOB_KICK           = 5;
 
 class Job
 {
