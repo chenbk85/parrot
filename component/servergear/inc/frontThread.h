@@ -57,14 +57,13 @@ class FrontThread : public PoolThread,
     // ThreadBase
     void stop() override;
 
-    // JobHandler
-    void addJob(std::unique_ptr<Job>&& job) override;
-    void addJob(std::list<std::unique_ptr<Job>>& jobList) override;
-
     // ConnHandler<WsServerConn>
     void addConn(std::list<std::unique_ptr<WsServerConn<Sess>>>&) override;
 
   protected:
+    void afterAddNewConn() override;
+    void afterAddJob() override;
+
     // ThreadBase
     void run() override;
 
@@ -90,12 +89,6 @@ class FrontThread : public PoolThread,
     void updateTimeout(WsServerConn<Sess>* conn, std::time_t now);
 
   private:
-    std::mutex _jobListLock;
-    std::list<std::unique_ptr<Job>> _jobList;
-
-    std::mutex _connListLock;
-    std::list<std::unique_ptr<WsServerConn<Sess>>> _connList;
-
     PktMap _pktMap;
     ConnMap _connMap;
 
@@ -117,10 +110,6 @@ FrontThread<Sess>::FrontThread()
       JobHandler(),
       ConnHandler<WsServerConn<Sess>>(),
       WsPacketHandler<Sess, WsServerConn<Sess>>(),
-      _jobListLock(),
-      _jobList(),
-      _connListLock(),
-      _connList(),
       _pktMap(),
       _connMap(),
       _notifier(nullptr),
@@ -248,23 +237,13 @@ template <typename Sess> void FrontThread<Sess>::handleJob()
     }
 }
 
-template <typename Sess>
-void FrontThread<Sess>::addJob(std::unique_ptr<Job>&& job)
+template <typename Sess> void FrontThread<Sess>::afterAddJob()
 {
-    LOG_DEBUG("FrontThread::addJob.");
-    _jobListLock.lock();
-    _jobList.push_back(std::move(job));
-    _jobListLock.unlock();
     _notifier->stopWaiting();
 }
 
-template <typename Sess>
-void FrontThread<Sess>::addJob(std::list<std::unique_ptr<Job>>& jobList)
+template <typename Sess> void FrontThread<Sess>::afterAddNewConn()
 {
-    LOG_DEBUG("FrontThread::addJob: JobList size is " << jobList.size() << ".");
-    _jobListLock.lock();
-    _jobList.splice(_jobList.end(), jobList);
-    _jobListLock.unlock();
     _notifier->stopWaiting();
 }
 
@@ -272,7 +251,8 @@ template <typename Sess>
 void FrontThread<Sess>::onPacket(std::shared_ptr<const Sess>&& session,
                                  std::unique_ptr<WsPacket>&& pkt)
 {
-    auto hdr = Scheduler<Sess>::getInstance()->getHandler(pkt->getRoute(), session);
+    auto hdr =
+        Scheduler<Sess>::getInstance()->getHandler(pkt->getRoute(), session);
 
     if (!hdr)
     {
@@ -308,9 +288,8 @@ template <typename Sess>
 void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
                                 std::unique_ptr<WsPacket>&& pkt)
 {
-    auto session = conn->getSession();    
-    auto hdr =
-        Scheduler<Sess>::getInstance()->getOnCloseHandler(session);
+    auto session = conn->getSession();
+    auto hdr = Scheduler<Sess>::getInstance()->getOnCloseHandler(session);
     if (!hdr)
     {
         LOG_WARN("FrontThread::onClose: Failed to find hdr for session "
@@ -338,9 +317,9 @@ void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
     }
 
     removeConn(conn);
-    LOG_INFO("FrontThread::onClose: Err is "
-             << (uint32_t)(pkt->getCloseCode()) << ". Sess is "
-             << session->toString() << ".");
+    LOG_INFO("FrontThread::onClose: Err is " << (uint32_t)(pkt->getCloseCode())
+                                             << ". Sess is "
+                                             << session->toString() << ".");
 }
 
 template <typename Sess> void FrontThread<Sess>::dispatchPackets()
@@ -359,28 +338,13 @@ template <typename Sess> void FrontThread<Sess>::dispatchPackets()
     }
 }
 
-template <typename Sess>
-void FrontThread<Sess>::addConn(
-    std::list<std::unique_ptr<WsServerConn<Sess>>>& connList)
-{
-    for (auto& c : connList)
-    {
-        LOG_DEBUG("FrontThread::addConn: Client is "
-                  << c->getRemoteAddr() << ":" << c->getRemotePort() << ".");
-    }
-    _connListLock.lock();
-    _connList.splice(_connList.end(), connList);
-    _connListLock.unlock();
-    _notifier->stopWaiting();
-}
-
 template <typename Sess> void FrontThread<Sess>::addConnToNotifier()
 {
     std::list<std::unique_ptr<WsServerConn<Sess>>> tmpList;
 
-    _connListLock.lock();
-    tmpList = std::move(_connList);
-    _connListLock.unlock();
+    _newConnListLock.lock();
+    tmpList = std::move(_newConnList);
+    _newConnListLock.unlock();
 
     auto now = std::time(nullptr);
 

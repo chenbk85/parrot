@@ -7,14 +7,32 @@
 
 namespace parrot
 {
-template <typename Conn>
-class ConnHandler
+template <typename Conn> class ConnHandler
 {
   public:
+    ConnHandler() = default;
     virtual ~ConnHandler() = default;
+
   public:
-    virtual void addConn(std::list<std::unique_ptr<Conn>> &connList) = 0;
+    void addConn(std::list<std::unique_ptr<Conn>>& connList);
+
+  protected:
+    virtual void afterAddNewConn() = 0;
+
+  protected:
+    std::mutex _newConnListLock;
+    std::list<std::unique_ptr<RpcServerConn>> _newConnList;
 };
+
+template <typename Conn>
+void ConnHandler<Conn>::addConn(std::list<std::unique_ptr<Conn>>& connList)
+{
+    _newConnListLock.lock();
+    _newConnList.splice(_newConnList.end(), connList);
+    _newConnListLock.unlock();
+
+    afterAddConn();
+}
 }
 
 #endif

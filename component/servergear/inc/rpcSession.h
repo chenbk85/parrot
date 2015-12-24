@@ -13,6 +13,8 @@ class RpcSession
   public:
     const std::string& getRemoteSid() const;
     void setRemoteSid(const std::string &sid);
+
+    const std::string toString() const;
     
   private:
     std::string _remoteSid;

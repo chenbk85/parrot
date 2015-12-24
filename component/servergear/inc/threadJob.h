@@ -55,11 +55,18 @@ using SessionPktPair =
 template <typename Sess>
 using PacketJob = ThreadJob<JOB_PACKET, std::list<SessionPktPair<Sess>>>;
 
-//
+// <RpcSession, ClientSession, WsPacket>
 //
 //
 using RpcPacketJob =
-    ThreadJob<JOB_RPC_PACKET, std::list<SessionPktPair<RpcSession>>>;
+    ThreadJob<JOB_RPC_PACKET,
+              std::list<std::tuple<std::shared_ptr<RpcSession>,
+                                   std::unique_ptr<Json>,
+                                   std::unique_ptr<WsPacket>>>>;
+using RpcPacketJobHdr =
+    std::function<std::list<std::tuple<std::shared_ptr<RpcSession>,
+                                       std::unique_ptr<Json>,
+                                       std::unique_ptr<WsPacket>>>>;
 
 //
 //

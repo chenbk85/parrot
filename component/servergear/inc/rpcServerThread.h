@@ -8,6 +8,13 @@ class RpcServerThread : public ThreadBase,
                         public JobHandler,
                         public ConnHandler<RpcServerConn<RpcSession>>
 {
+    using PktList = std::list<std::tuple<std::shared_ptr<RpcSession>,
+                                         std::unique_ptr<Json>,
+                                         std::unique_ptr<WsPacket>>>;
+
+    using ConnMap =
+        std::unordered_map<RpcServerConn*, std::unique_ptr<RpcServerConn>>;
+
   public:
     RpcServerThread();
 
@@ -15,22 +22,37 @@ class RpcServerThread : public ThreadBase,
     // ThreadBase
     void stop() override;
 
-    // JobHandler
-    void addJob(std::unique_ptr<Job>&& job) override;
-    void addJob(std::list<std::unique_ptr<Job>>& jobList) override;
-
-    // ConnHandler<WsServerConn>
-    void addConn(std::list<std::unique_ptr<WsServerConn<Sess>>>&) override;
+    void registerConn(const std::string& sid, RpcServerConn* conn);
 
   protected:
+    void afterAddNewConn() override;
+    
+    void afterAddJob() override;
+    
     // ThreadBase
     void run() override;
 
     // TimeoutHandler
-    void onTimeout(WsServerConn<Sess>*) override;
+    void onTimeout(RpcServerConn*) override;
 
     // JobHandler
     void handleJob() override;
+
+  private:
+    void handlePacket(PktList& pktList);
+    void dispatchPackets();
+    void addConnToNotifier();
+    void removeConn(RpcServerConn* conn);
+    void updateTimeout(RpcServerConn* conn, std::time_t now);
+
+  private:
+    ConnMap _connMap;
+    // <Remote sid, RpcServerConn>
+    std::unordered_map<std::string, RpcSeverConn*> _registeredConnMap;
+
+    std::unique_ptr<EventNotifier> _notifier;
+    std::unique_ptr<TimeoutManager<RpcServerConn>> _timeoutMgr;
+    PacketJobHdr<RpcSession> _pktJobHdr;
 };
 }
 

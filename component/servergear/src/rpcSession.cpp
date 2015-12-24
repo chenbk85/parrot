@@ -11,4 +11,9 @@ void RpcSession::setRemoteSid(const std::string& sid)
 {
     _remoteSid = sid;
 }
+
+const std::string toString() const
+{
+    return _remoteSid;
+}
 }
