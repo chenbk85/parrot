@@ -17,8 +17,6 @@ FrontSrvLogicThread::FrontSrvLogicThread()
     : PoolThread(),
       JobHandler(),
       _packetJobHdr(),
-      _jobListLock(),
-      _jobList(),
 #if defined(__linux__)
       _notifier(new parrot::Epoll(1)),
 #elif defined(__APPLE__)
@@ -42,25 +40,8 @@ void FrontSrvLogicThread::beforeStart()
     _notifier->create();
 }
 
-void FrontSrvLogicThread::addJob(std::unique_ptr<parrot::Job>&& job)
+void FrontSrvLogicThread::afterAddJob()
 {
-    LOG_DEBUG("FrontSrvLogicThread::AddJob.");
-    _jobListLock.lock();
-    _jobList.push_back(std::move(job));
-    _jobListLock.unlock();
-
-    _notifier->stopWaiting();
-}
-
-void FrontSrvLogicThread::addJob(
-    std::list<std::unique_ptr<parrot::Job>>& jobList)
-{
-    LOG_DEBUG("FrontSrvLogicThread::AddJob. List size is " << jobList.size()
-                                                           << ".");
-    _jobListLock.lock();
-    _jobList.splice(_jobList.end(), jobList);
-    _jobListLock.unlock();
-
     _notifier->stopWaiting();
 }
 

@@ -5,6 +5,7 @@
 #include <memory>
 #include <tuple>
 
+#include "json.h"
 #include "seqGenHelper.h"
 #include "job.h"
 #include "rpcSession.h"
@@ -71,10 +72,10 @@ using RpcRequestJobHdr =
 using RpcResponseJob =
     ThreadJob<JOB_RPC_RSP,
               std::list<std::pair<std::shared_ptr<RpcSession>,
-                                   std::unique_ptr<WsPacket>>>>;
+                                  std::unique_ptr<WsPacket>>>>;
 using RpcResponseJobHdr =
-    std::function<std::list<std::pair<std::shared_ptr<RpcSession>,
-                                       std::unique_ptr<WsPacket>>>>;
+    std::function<void(std::list<std::pair<std::shared_ptr<RpcSession>,
+                                           std::unique_ptr<WsPacket>>>&)>;
 //
 //
 //

@@ -27,6 +27,9 @@ class RpcServerConn
                  std::unique_ptr<WsPacket>&&) override;
 
   private:
+    bool handshake(std::unique_ptr<WsPacket> &pkt);
+    
+  private:
     RpcServerThread* _rpcSrvThread;
     bool _registered;
 };

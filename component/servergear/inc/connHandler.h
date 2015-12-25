@@ -21,7 +21,7 @@ template <typename Conn> class ConnHandler
 
   protected:
     std::mutex _newConnListLock;
-    std::list<std::unique_ptr<RpcServerConn>> _newConnList;
+    std::list<std::unique_ptr<Conn>> _newConnList;
 };
 
 template <typename Conn>
@@ -31,7 +31,7 @@ void ConnHandler<Conn>::addConn(std::list<std::unique_ptr<Conn>>& connList)
     _newConnList.splice(_newConnList.end(), connList);
     _newConnListLock.unlock();
 
-    afterAddConn();
+    afterAddNewConn();
 }
 }
 

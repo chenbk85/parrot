@@ -1,3 +1,4 @@
+#include "jobHandler.h"
 #include "job.h"
 
 namespace parrot

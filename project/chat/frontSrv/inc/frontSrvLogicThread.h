@@ -26,9 +26,8 @@ class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
 
   public:
     void stop() override;
-    void addJob(std::unique_ptr<parrot::Job>&& job) override;
-    void addJob(std::list<std::unique_ptr<parrot::Job>>& jobList) override;
-
+    void afterAddJob() override;
+    
   protected:
     void beforeStart() override;
     void run() override;
@@ -41,8 +40,6 @@ class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
 
   protected:
     parrot::PacketJobHdr<ChatSession> _packetJobHdr;
-    std::mutex _jobListLock;
-    std::list<std::unique_ptr<parrot::Job>> _jobList;
     std::unique_ptr<parrot::EventNotifier> _notifier;
     const FrontSrvConfig* _config;
 };

@@ -57,9 +57,6 @@ class FrontThread : public PoolThread,
     // ThreadBase
     void stop() override;
 
-    // ConnHandler<WsServerConn>
-    void addConn(std::list<std::unique_ptr<WsServerConn<Sess>>>&) override;
-
   protected:
     void afterAddNewConn() override;
     void afterAddJob() override;
@@ -342,9 +339,9 @@ template <typename Sess> void FrontThread<Sess>::addConnToNotifier()
 {
     std::list<std::unique_ptr<WsServerConn<Sess>>> tmpList;
 
-    _newConnListLock.lock();
-    tmpList = std::move(_newConnList);
-    _newConnListLock.unlock();
+    ConnHandler<WsServerConn<Sess>>::_newConnListLock.lock();
+    tmpList = std::move(ConnHandler<WsServerConn<Sess>>::_newConnList);
+    ConnHandler<WsServerConn<Sess>>::_newConnListLock.unlock();
 
     auto now = std::time(nullptr);
 

@@ -1,18 +1,20 @@
 #include "rpcServerThread.h"
 #include "logger.h"
+#include "macroFuncs.h"
 
 namespace parrot
 {
 RpcServerThread::RpcServerThread()
     : ThreadBase(),
-      TimeoutHandler<RpcServerConn<RpcSession>>(),
+      TimeoutHandler<WsServerConn<RpcSession>>(),
       JobHandler(),
-      ConnHandler<RpcServerConn<RpcSession>>(),
+      ConnHandler<RpcServerConn>(),
       _connMap(),
       _registeredConnMap(),
       _reqMap(),
       _notifier(),
       _timeoutMgr(),
+      _random(),
       _rpcRspJobHdr()
 {
     using namespace std::placeholders;
@@ -45,7 +47,7 @@ void RpcServerThread::registerConn(const std::string& sid, RpcServerConn* conn)
 }
 
 void RpcServerThread::addReqPacket(JobHandler* hdr,
-                                   std::shared_ptr<const RpcSession> rpcSession,
+                                   std::shared_ptr<RpcSession> rpcSession,
                                    std::unique_ptr<Json>&& cliSession,
                                    std::unique_ptr<WsPacket>&& pkt)
 {
@@ -53,9 +55,9 @@ void RpcServerThread::addReqPacket(JobHandler* hdr,
                               std::move(pkt));
 }
 
-void RpcServerThread::handleRpcRsp(PktList& pktList)
+void RpcServerThread::handleRpcRsp(RspPktList& pktList)
 {
-    std::unordered_map<std::string, RpcSeverConn*>::iterator it;
+    std::unordered_map<std::string, RpcServerConn*>::iterator it;
     for (auto& s : pktList)
     {
         it = _registeredConnMap.find((s.first)->getRemoteSid());
@@ -84,7 +86,7 @@ void RpcServerThread::dispatchPackets()
         }
 
         std::unique_ptr<RpcRequestJob> job(new RpcRequestJob());
-        job.bind(std::move(kv.second));
+        job->bind(std::move(kv.second));
         kv.second.clear();
         (kv.first)->addJob(std::move(job));
     }
@@ -120,7 +122,7 @@ void RpcServerThread::removeConn(RpcServerConn* conn)
 {
     _connMap.erase(conn);
     _registeredConnMap.erase(conn->getSession()->getRemoteSid());
-    _timeoutMgr.remove(conn);
+    _timeoutMgr->remove(conn);
     _notifier->delEvent(conn);
 }
 
@@ -139,7 +141,7 @@ void RpcServerThread::afterAddNewConn()
     _notifier->stopWaiting();
 }
 
-void RpcServerThread::onTimeout(RpcServerConn* conn)
+void RpcServerThread::onTimeout(WsServerConn<RpcSession>* conn)
 {
     LOG_WARN("RpcServerThread::onTimeout: Remote sid is "
              << conn->getSession()->getRemoteSid() << ".");
@@ -216,7 +218,7 @@ void RpcServerThread::run()
                         if (ev->isConnection())
                         {
                             updateTimeout(
-                                static_cast<RpcSeverConn*>(ev->getDerivedPtr()),
+                                static_cast<RpcServerConn*>(ev->getDerivedPtr()),
                                 now);
                         }
                     }

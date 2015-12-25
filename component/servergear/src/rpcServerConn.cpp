@@ -19,7 +19,7 @@ void RpcServerConn::setRpcSrvThread(RpcServerThread* thread)
     _rpcSrvThread = thread;
 }
 
-bool RpcServerConn::verifyPeer(std::unique_ptr<WsPacket> &)
+bool RpcServerConn::handshake(std::unique_ptr<WsPacket> &)
 {
     return true;
 }
@@ -29,12 +29,12 @@ void RpcServerConn::onPacket(std::shared_ptr<const RpcSession>&&,
 {
     if (!_registered)
     {
-        if (verifyPeer(pkt))
+        if (handshake(pkt))
         {
             // TODO: set remote sid.
             getSession()->setRemoteSid("sid");
 
-            _rpcSrvThread->registerRpcClient(this);
+//            _rpcSrvThread->registerRpcClient(this);
             _registered = true;
         }
         else
@@ -47,7 +47,7 @@ void RpcServerConn::onPacket(std::shared_ptr<const RpcSession>&&,
     }
 }
 
-void RpcServerConn::onClose(WsServerConn<RpcSession>* conn,
+void RpcServerConn::onClose(WsServerConn<RpcSession>* ,
                             std::unique_ptr<WsPacket>&&)
 {
 }
