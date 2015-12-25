@@ -21,7 +21,7 @@ class JobHandler
 
   protected:
     virtual void handleJob() = 0;
-    virtual void afterAddJob() = 0;
+    virtual void afterAddJob() {}
 
   protected:
     std::mutex _jobListLock;

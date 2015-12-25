@@ -74,7 +74,7 @@ struct Config
     uint64_t _logSize = 104857600L; // 100MB.
     // The number of log rotation.
     uint32_t _rotateNum = 5;
-    // 0: INFO, 1: DEBUG, 2: WARN, 3: ERROR, 4: FATAL
+    // 0: DEBUG, 1: INFO, 2: WARN, 3: ERROR, 4: FATAL
     uint8_t _logLevel = 0;
 
     // MySQL configurations.

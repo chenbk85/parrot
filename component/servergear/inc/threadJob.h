@@ -58,16 +58,23 @@ using PacketJob = ThreadJob<JOB_PACKET, std::list<SessionPktPair<Sess>>>;
 // <RpcSession, ClientSession, WsPacket>
 //
 //
-using RpcPacketJob =
-    ThreadJob<JOB_RPC_PACKET,
+using RpcRequestJob =
+    ThreadJob<JOB_RPC_REQ,
               std::list<std::tuple<std::shared_ptr<RpcSession>,
                                    std::unique_ptr<Json>,
                                    std::unique_ptr<WsPacket>>>>;
-using RpcPacketJobHdr =
+using RpcRequestJobHdr =
     std::function<std::list<std::tuple<std::shared_ptr<RpcSession>,
                                        std::unique_ptr<Json>,
                                        std::unique_ptr<WsPacket>>>>;
 
+using RpcResponseJob =
+    ThreadJob<JOB_RPC_RSP,
+              std::list<std::pair<std::shared_ptr<RpcSession>,
+                                   std::unique_ptr<WsPacket>>>>;
+using RpcResponseJobHdr =
+    std::function<std::list<std::pair<std::shared_ptr<RpcSession>,
+                                       std::unique_ptr<WsPacket>>>>;
 //
 //
 //

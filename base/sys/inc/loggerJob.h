@@ -10,8 +10,8 @@ namespace parrot
 {
 enum class eLoggerLevel : uint8_t
 {
-    Info = 0,
-    Debug = 1,
+    Debug = 0,    
+    Info = 1,
     Warn = 2,
     Error = 3,
     Fatal = 4

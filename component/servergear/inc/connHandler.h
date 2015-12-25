@@ -17,7 +17,7 @@ template <typename Conn> class ConnHandler
     void addConn(std::list<std::unique_ptr<Conn>>& connList);
 
   protected:
-    virtual void afterAddNewConn() = 0;
+    virtual void afterAddNewConn() {}
 
   protected:
     std::mutex _newConnListLock;
