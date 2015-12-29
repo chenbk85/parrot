@@ -52,6 +52,7 @@ class RpcServerThread : public ThreadBase,
     void stop() override;
 
     void registerConn(const std::string& sid, RpcServerConn* conn);
+    void removeConn(RpcServerConn* conn);    
 
     void addReqPacket(JobHandler* hdr,
                       std::shared_ptr<RpcSession>,
@@ -76,7 +77,6 @@ class RpcServerThread : public ThreadBase,
     void handleRpcRsp(RspPktList& pktList);
     void dispatchPackets();
     void addConnToNotifier();
-    void removeConn(RpcServerConn* conn);
     void updateTimeout(RpcServerConn* conn, std::time_t now);
 
   private:
@@ -88,6 +88,8 @@ class RpcServerThread : public ThreadBase,
 
     std::unique_ptr<EventNotifier> _notifier;
     std::unique_ptr<TimeoutManager<WsServerConn<RpcSession>>> _timeoutMgr;
+
+    std::time_t _now;
 
     MtRandom _random;
     RpcResponseJobHdr _rpcRspJobHdr;

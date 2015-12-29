@@ -55,6 +55,17 @@ class Json
     //  True if succesfully parsed the buffer.
     bool parse(const char* buff, uint64_t len);
 
+    // parse
+    //
+    // parse string to json.
+    //
+    // Param:
+    // * str    The json string.
+    //
+    // Return
+    //  True if succesfully parsed the buffer.    
+    bool parse(const std::string &str);
+
     // getValue
     //
     // getValue from json.

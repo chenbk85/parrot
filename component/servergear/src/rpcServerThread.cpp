@@ -14,6 +14,7 @@ RpcServerThread::RpcServerThread()
       _reqMap(),
       _notifier(),
       _timeoutMgr(),
+      _now(0),
       _random(),
       _rpcRspJobHdr()
 {
@@ -71,6 +72,12 @@ void RpcServerThread::handleRpcRsp(RspPktList& pktList)
         }
 
         it->second->sendPacket(s.second);
+        if (it->second->canSwitchToSend())
+        {
+            it->second->setNextAction(eIoAction::Write);
+            _notifier->updateEventAction(it->second);
+        }
+
         LOG_DEBUG("RpcServerThread::handleRpcRsp: Sending packet. SysJson is "
                   << (s.second)->getSysJson()->toString() << ".");
     }
@@ -101,7 +108,6 @@ void RpcServerThread::addConnToNotifier()
     connList = std::move(_newConnList);
     _newConnListLock.unlock();
 
-    auto now = std::time(nullptr);
     for (auto& c : connList)
     {
         std::shared_ptr<RpcSession> sess(new RpcSession());
@@ -109,7 +115,7 @@ void RpcServerThread::addConnToNotifier()
         c->setNextAction(c->getDefaultAction());
         c->setRandom(&_random);
 
-        _timeoutMgr->add(c.get(), now);
+        _timeoutMgr->add(c.get(), _now);
         _notifier->addEvent(c.get());
 
         LOG_DEBUG("RpcServerThread::addConnToNotifier: Add client connection "
@@ -144,11 +150,8 @@ void RpcServerThread::afterAddNewConn()
 void RpcServerThread::onTimeout(WsServerConn<RpcSession>* conn)
 {
     LOG_WARN("RpcServerThread::onTimeout: Remote sid is "
-             << conn->getSession()->getRemoteSid() << ".");
-    std::unique_ptr<WsPacket> pkt(new WsPacket());
-    pkt->setOpCode(eOpCode::Close);
-    pkt->setClose(eCodes::ERR_Timeout);
-    conn->sendPacket(pkt);
+             << conn->getSession()->toString() << ".");
+    removeConn(static_cast<RpcServerConn*>(conn->getDerivedPtr()));
 }
 
 void RpcServerThread::handleJob()
@@ -185,21 +188,17 @@ void RpcServerThread::run()
     uint32_t idx      = 0;
     IoEvent* ev       = nullptr;
     eIoAction act     = eIoAction::None;
-    std::time_t now   = 0;
 
     try
     {
         while (!isStopping())
         {
-            now = std::time(nullptr);
-            _timeoutMgr->checkTimeout(now);
+            _now = std::time(nullptr);
+            _timeoutMgr->checkTimeout(_now);
 
             addConnToNotifier();
 
             eventNum = _notifier->waitIoEvents(5000);
-
-            // Append packet which needs to be sent to connections.
-            handleJob();
 
             // Here handle events.
             for (idx = 0; idx != eventNum; ++idx)
@@ -217,9 +216,9 @@ void RpcServerThread::run()
                     {
                         if (ev->isConnection())
                         {
-                            updateTimeout(
-                                static_cast<RpcServerConn*>(ev->getDerivedPtr()),
-                                now);
+                            updateTimeout(static_cast<RpcServerConn*>(
+                                              ev->getDerivedPtr()),
+                                          _now);
                         }
                     }
                     // No break;
@@ -243,6 +242,9 @@ void RpcServerThread::run()
                     break;
                 } // switch
             }     // for
+
+            // Append packet which needs to be sent to connections.
+            handleJob();
 
             // Dispatch packet to back threads.
             dispatchPackets();

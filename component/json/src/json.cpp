@@ -35,6 +35,15 @@ bool Json::parse(const char* buff, uint64_t len)
     return _impl->parse(buff, len);
 }
 
+bool Json::parse(const std::string &str)
+{
+    if (str.empty())
+    {
+        return false;
+    }
+    return _impl->parse(&str[0], str.size());
+}
+
 void Json::getValue(const char* key, uint32_t& v)
 {
     _impl->getValue(key, v);

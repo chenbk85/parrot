@@ -386,7 +386,7 @@ void FrontThread<Sess>::onTimeout(WsServerConn<Sess>* conn)
 {
     std::unique_ptr<WsPacket> pkt(new WsPacket());
     pkt->setOpCode(eOpCode::Close);
-    pkt->setClose(eCodes::ERR_Timeout);
+    pkt->setClose(eCodes::WS_NormalClosure);
     onClose(conn, std::move(pkt));
 }
 
@@ -408,9 +408,6 @@ template <typename Sess> void FrontThread<Sess>::run()
             addConnToNotifier();
 
             eventNum = _notifier->waitIoEvents(5000);
-
-            // Append packet which needs to be sent to connections.
-            handleJob();
 
             // Here handle events.
             for (idx = 0; idx != eventNum; ++idx)
@@ -454,6 +451,9 @@ template <typename Sess> void FrontThread<Sess>::run()
                     break;
                 } // switch
             }     // for
+
+            // Append packet which needs to be sent to connections.
+            handleJob();
 
             // Dispatch packet to back threads.
             dispatchPackets();

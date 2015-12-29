@@ -32,8 +32,6 @@ class RpcClientThread : public ThreadBase,
     RpcClientThread(const Config& cfg, const WsConfig& wsCfg);
 
   public:
-    void addJob(std::unique_ptr<Job>&& job);
-    void addJob(std::list<std::unique_ptr<Job>>& jobList);
     void addRsp(JobHandler* hdr,
                 std::shared_ptr<Sess>&,
                 std::std::unique_ptr<WsPacket>&& pkt);
@@ -44,14 +42,13 @@ class RpcClientThread : public ThreadBase,
     void handleRsp();
 
   private:
+    void afterAddJob() override;
+    void handleJob() override;
     void onTimeout() override;
     void beforeStart() override;
     void run() override;
 
   private:
-    std::mutex _jobListLock;
-    std::unordered_map<std::string, std::unique_ptr<job>> _jobList;
-
     std::list<std::unique_ptr<RpcClientConn<Sess>>> _disconnectedConnList;
 
     // Save connected client to this map.
@@ -71,8 +68,6 @@ RpcClientThread<Sess>::RpcClientThread(const Config& cfg, const WsConfig& wsCfg)
     : ThreadBase(),
       TimeoutHandler<RpcClientConn<Sess>>(),
       JobHandler(),
-      _jobListLock(),
-      _jobList(),
       _disconnectedConnList(),
       _connMap(),
       _notifier(),
@@ -100,23 +95,8 @@ template <typename Sess> void RpcClientConn<Sess>::init()
     _notifier->create();
 }
 
-template <typename Sess>
-void RpcClientThread<Sess>::addJob(std::unique_ptr<Job>&& job)
+template <typename Sess> void RpcClientThread<Sess>::afterAddJob()
 {
-    _jobListLock.lock();
-    _jobList.push_back(std::move(job));
-    _jobListLock.unlock();
-
-    _notifier.stopWaiting();
-}
-
-template <typename Sess>
-void RpcClientThread<Sess>::addJob(std::list<std::unique_ptr<Job>>& jobList)
-{
-    _jobListLock.lock();
-    _jobList.splice(_jobList.end(), jobList);
-    _jobListLock.unlock();
-
     _notifier.stopWaiting();
 }
 
@@ -210,6 +190,11 @@ template <typename Sess> void RpcClientThread<Sess>::beforeStart()
         _notifier->addEvent(conn.get());
         _disconnectedConnList.push_back(std::move(conn));
     }
+}
+
+template <typename Sess> void RpcClientThread<Sess>::handleJob()
+{
+    // TODO: Impl this function.
 }
 
 template <typename Sess> void RpcClientThread<Sess>::run()

@@ -58,9 +58,6 @@ class WsServerConn : public TcpServerConn,
     void sendPacket(std::unique_ptr<WsPacket>& pkt);
     void sendPacket(std::list<std::unique_ptr<WsPacket>>& pkt);
     eIoAction handleIoEvent() override;
-    // Up layer close the socket, we should sent the close packet and
-    // disconnect the connection.
-    void closeWebSocket(std::unique_ptr<WsPacket>& pkt);
     void setRandom(MtRandom* random);
     bool canSwitchToSend() const;
 
@@ -263,6 +260,12 @@ void WsServerConn<Sess>::sendPacket(std::unique_ptr<WsPacket>& pkt)
             "not be sent.");
         return;
     }
+
+    if (pkt->getOpCode() == eOpCode::Close)
+    {
+        _state     = eWsState::Closing;
+        _sentClose = true;
+    }
     _translayer->sendPacket(pkt);
 }
 
@@ -343,14 +346,6 @@ template <class Sess> eIoAction WsServerConn<Sess>::handleIoEvent()
 
     PARROT_ASSERT(false);
     return eIoAction::None;
-}
-
-template <class Sess>
-void WsServerConn<Sess>::closeWebSocket(std::unique_ptr<WsPacket>& pkt)
-{
-    sendPacket(pkt);
-    _state     = eWsState::Closing;
-    _sentClose = true;
 }
 }
 
