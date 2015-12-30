@@ -359,7 +359,7 @@ template <class Sess> void WsClientConn<Sess>::getNextConnectTime()
     _nextConnectTime = std::time(nullptr) + sec;
 }
 
-template <class Sess> bool WsClientConn<Sess>::canConnect()
+template <class Sess> bool WsClientConn<Sess>::canConnect() const
 {
     if (std::time(nullptr) >= _nextConnectTime)
     {

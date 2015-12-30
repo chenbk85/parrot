@@ -10,7 +10,7 @@ namespace chat
 {
 struct FrontSrvConfig;
 
-class FrontSrvMainThread : public parrot::MainThread<ChatSession>
+class FrontSrvMainThread : public parrot::MainThread<ChatSession, ChatSession>
 {
   public:
     explicit FrontSrvMainThread(const FrontSrvConfig* cfg);

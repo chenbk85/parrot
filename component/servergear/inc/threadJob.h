@@ -65,9 +65,9 @@ using RpcRequestJob =
                                    std::unique_ptr<Json>,
                                    std::unique_ptr<WsPacket>>>>;
 using RpcRequestJobHdr =
-    std::function<std::list<std::tuple<std::shared_ptr<RpcSession>,
-                                       std::unique_ptr<Json>,
-                                       std::unique_ptr<WsPacket>>>>;
+    std::function<void(std::list<std::tuple<std::shared_ptr<RpcSession>,
+                                            std::unique_ptr<Json>,
+                                            std::unique_ptr<WsPacket>>>&)>;
 
 using RpcResponseJob =
     ThreadJob<JOB_RPC_RSP,

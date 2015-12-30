@@ -31,7 +31,7 @@ class RpcRequest : public TimeoutGuard,
     std::unique_ptr<WsPacket>& getPacket();
     std::string toString();
     JobHandler* getRspHandler() const;
-    std::shared_ptr<Sess>& getSession() const;
+    std::shared_ptr<Sess>& getSession();
 
   private:
     std::string _remoteSrvId;
@@ -63,48 +63,48 @@ RpcRequest<Sess>::RpcRequest(const std::string& sid,
     json->setValue("/session", _session->getJsonStr());
 }
 
-template <typename Sess> void RpcRequest::setReqId(uint64_t reqId)
+template <typename Sess> void RpcRequest<Sess>::setReqId(uint64_t reqId)
 {
     _rpcReqId = reqId;
 }
 
-template <typename Sess> uint64_t RpcRequest::getReqId() const
+template <typename Sess> uint64_t RpcRequest<Sess>::getReqId() const
 {
     return _rpcReqId;
 }
 
-template <typename Sess> const std::string& RpcRequest::getDestSrvId() const
+template <typename Sess> const std::string& RpcRequest<Sess>::getDestSrvId() const
 {
     return _remoteSrvId;
 }
 
-template <typename Sess> ePacketType RpcRequest::getPacketType() const
+template <typename Sess> ePacketType RpcRequest<Sess>::getPacketType() const
 {
     return _packet->getPacketType();
 }
 
-template <typename Sess> std::unique_ptr<WsPacket>& RpcRequest::getPacket()
+template <typename Sess> std::unique_ptr<WsPacket>& RpcRequest<Sess>::getPacket()
 {
     return _packet;
 }
 
-template <typename Sess> JobHandler* RpcRequest::getRspHandler() const
+template <typename Sess> JobHandler* RpcRequest<Sess>::getRspHandler() const
 {
     return _rspHandler;
 }
 
 template <typename Sess>
-std::shared_ptr<Sess>& RpcRequest::getSession() const
+std::shared_ptr<Sess>& RpcRequest<Sess>::getSession()
 {
     return _session;
 }
 
-template <typename Sess> std::string RpcRequest::toString()
+template <typename Sess> std::string RpcRequest<Sess>::toString()
 {
     std::ostringstream ostr;
     ostr << "ReqId is " << _rpcReqId << ". Packet Type is "
-         << static_cast<uint16_t>(getPacketType()) << ". Requester is "
-         << _requester->toString();
+         << static_cast<uint16_t>(getPacketType()) << ". Session is "
+         << _session->toString();
     return std::move(ostr.str());
 }
 }

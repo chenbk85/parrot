@@ -1,23 +1,23 @@
-#include "frontSrvRpcScheduler.h"
+#include "backSrvRpcScheduler.h"
 
 namespace chat
 {
-std::unique_ptr<FrontSrvRpcScheduler> FrontSrvRpcScheduler::_instance;
+std::unique_ptr<BackSrvRpcScheduler> BackSrvRpcScheduler::_instance;
 
-void FrontSrvRpcScheduler::makeInstance()
+void BackSrvRpcScheduler::makeInstance()
 {
-    _instance.reset(new FrontSrvRpcScheduler());
+    _instance.reset(new BackSrvRpcScheduler());
     setInstance(std::move(_instance));
 }
 
 parrot::JobHandler*
-FrontSrvRpcScheduler::getHandler(uint64_t,
-                                 std::shared_ptr<const parrot::RpcSession>)
+BackSrvRpcScheduler::getHandler(uint64_t,
+                                std::shared_ptr<const parrot::RpcSession>)
 {
     return nullptr;
 }
 
-parrot::JobHandler* FrontSrvRpcScheduler::getOnCloseHandler(
+parrot::JobHandler* BackSrvRpcScheduler::getOnCloseHandler(
     std::shared_ptr<const parrot::RpcSession>)
 {
     return nullptr;

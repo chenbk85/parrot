@@ -1,33 +1,41 @@
-#ifndef __PROJECT_CHAT_FRONTSRV_INC_FRONTSRVLOGICTHREAD_H__
-#define __PROJECT_CHAT_FRONTSRV_INC_FRONTSRVLOGICTHREAD_H__
+#ifndef __PROJECT_CHAT_BACKSRV_INC_BACKSRVLOGICTHREAD_H__
+#define __PROJECT_CHAT_BACKSRV_INC_BACKSRVLOGICTHREAD_H__
 
 #include <list>
 #include <memory>
 #include <mutex>
+#include <functional>
 
 #include "poolThread.h"
 #include "wsPacket.h"
 #include "job.h"
+#include "json.h"
+#include "rpcSession.h"
 #include "threadJob.h"
 #include "jobHandler.h"
-#include "chatSession.h"
 
 namespace chat
 {
-struct FrontSrvConfig;
+struct BackSrvConfig;
+class BackSrvMainThread;
 
-class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
+class BackSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
 {
-  public:
-    FrontSrvLogicThread();
+    using PktList = std::list<std::tuple<std::shared_ptr<parrot::RpcSession>,
+                                         std::unique_ptr<parrot::Json>,
+                                         std::unique_ptr<parrot::WsPacket>>>;
 
   public:
-    void setConfig(const FrontSrvConfig* cfg);
+    BackSrvLogicThread();
+
+  public:
+    void setConfig(const BackSrvConfig* cfg);
+    void setBackSrvMainThread(BackSrvMainThread* mainThread);
 
   public:
     void stop() override;
     void afterAddJob() override;
-    
+
   protected:
     void beforeStart() override;
     void run() override;
@@ -36,12 +44,13 @@ class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
     void handleJob() override;
 
   protected:
-    void handlePacket(std::list<parrot::SessionPktPair<ChatSession>>& pktList);
+    void handleRpcReq(PktList& pktList);
 
   protected:
-    parrot::PacketJobHdr<ChatSession> _packetJobHdr;
+    BackSrvMainThread* _mainThread;
+    parrot::RpcRequestJobHdr _reqPktJobHdr;
     std::unique_ptr<parrot::EventNotifier> _notifier;
-    const FrontSrvConfig* _config;
+    const BackSrvConfig* _config;
 };
 }
 #endif

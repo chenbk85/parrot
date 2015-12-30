@@ -18,7 +18,7 @@ NOTICE_COLOR         := 2
 COMMAND_COLOR        := 4
 
 # Complier and linker
-CCACHE               := ccache
+CCACHE               := 
 ifeq (, $(shell command -v ccache))
 CCACHE               :=
 endif

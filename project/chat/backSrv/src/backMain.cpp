@@ -3,7 +3,7 @@
 #include "backSrvConfig.h"
 #include "urlParser.h"
 
-static void installConfig(chat::FrontSrvConfig& config)
+static void installConfig(chat::BackSrvConfig& config)
 {
     config._group                  = "leopold";
     config._user                   = "leopold";
@@ -22,7 +22,7 @@ static void installConfig(chat::FrontSrvConfig& config)
     config._logName                = "backSrv.log";
 }
 
-static void postProcessConfig(chat::FrontSrvConfig& config)
+static void postProcessConfig(chat::BackSrvConfig& config)
 {
     config._thisServer._frontWsUrlInfo =
         parrot::UrlParser::parse(config._thisServer._frontWsUrl);

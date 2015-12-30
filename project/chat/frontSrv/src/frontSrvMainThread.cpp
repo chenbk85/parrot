@@ -11,13 +11,14 @@
 namespace chat
 {
 FrontSrvMainThread::FrontSrvMainThread(const FrontSrvConfig* cfg)
-    : MainThread<ChatSession>(cfg), _logicThreadPool(cfg->_logicThreadPoolSize)
+    : MainThread<ChatSession, ChatSession>(cfg),
+      _logicThreadPool(cfg->_logicThreadPoolSize)
 {
 }
 
 void FrontSrvMainThread::beforeStart()
 {
-    MainThread<ChatSession>::beforeStart();
+    MainThread<ChatSession, ChatSession>::beforeStart();
     FrontSrvScheduler::makeInstance();
 }
 

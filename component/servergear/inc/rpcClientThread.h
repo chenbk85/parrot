@@ -10,19 +10,22 @@
 #include "threadJob.h"
 #include "timeoutHandler.h"
 #include "timeoutManager.h"
-#include "rpcClientConn.h"
 #include "eventNotifier.h"
 #include "wsPacket.h"
 #include "connHandler.h"
 #include "epoll.h"
 #include "kqueue.h"
+#include "rpcSession.h"
+#include "wsClientConn.h"
 
 namespace parrot
 {
 
+template <typename Sess> class RpcClientConn;
+
 template <typename Sess>
 class RpcClientThread : public ThreadBase,
-                        public TimeoutHandler<RpcClientConn<Sess>>,
+                        public TimeoutHandler<WsClientConn<RpcSession>>,
                         public JobHandler
 {
     using ConnMap =
@@ -34,17 +37,19 @@ class RpcClientThread : public ThreadBase,
   public:
     void addRsp(JobHandler* hdr,
                 std::shared_ptr<Sess>&,
-                std::std::unique_ptr<WsPacket>&& pkt);
+                std::unique_ptr<WsPacket>&& pkt);
 
   private:
     void init();
     void doConnect();
     void handleRsp();
+    void checkRpcRequestTimeout();
+    void updateTimeout(WsClientConn<RpcSession>* conn, std::time_t now);
 
   private:
     void afterAddJob() override;
     void handleJob() override;
-    void onTimeout() override;
+    void onTimeout(WsClientConn<RpcSession>*) override;
     void beforeStart() override;
     void run() override;
 
@@ -54,11 +59,12 @@ class RpcClientThread : public ThreadBase,
     // Save connected client to this map.
     ConnMap _connMap;
 
-    std::unordered_map<JobHandler*, std::list<SessionPktPair>> _rspMap;
+    std::unordered_map<JobHandler*, std::list<SessionPktPair<Sess>>> _rspMap;
 
     std::unique_ptr<EventNotifier> _notifier;
-    std::unique_ptr<TimeoutManager<RpcClientConn<Sess>>> _timeoutMgr;
+    std::unique_ptr<TimeoutManager<WsClientConn<RpcSession>>> _timeoutMgr;
     MtRandom _random;
+    std::time_t _now;
     const Config& _config;
     const WsConfig& _wsConfig;
 };
@@ -66,28 +72,29 @@ class RpcClientThread : public ThreadBase,
 template <typename Sess>
 RpcClientThread<Sess>::RpcClientThread(const Config& cfg, const WsConfig& wsCfg)
     : ThreadBase(),
-      TimeoutHandler<RpcClientConn<Sess>>(),
+      TimeoutHandler<WsClientConn<RpcSession>>(),
       JobHandler(),
       _disconnectedConnList(),
       _connMap(),
       _notifier(),
       _timeoutMgr(),
       _random(),
+      _now(0),
       _config(cfg),
       _wsConfig(wsCfg)
 {
     init();
 }
 
-template <typename Sess> void RpcClientConn<Sess>::init()
+template <typename Sess> void RpcClientThread<Sess>::init()
 {
-    _timeoutMgr.reset(new TimeoutManager<RpcClientConn<Sess>>(
+    _timeoutMgr.reset(new TimeoutManager<WsClientConn<RpcSession>>(
         this, _config._rpcThreadTimeout));
 
 #if defined(__linux__)
-    _notifier.reset(new Epoll(_config._neighborSrvMap.count()));
+    _notifier.reset(new Epoll(_config._neighborSrvMap.size()));
 #elif defined(__APPLE__)
-    _notifier.reset(new Kqueue(_config._neighborSrvMap.count()));
+    _notifier.reset(new Kqueue(_config._neighborSrvMap.size()));
 #elif defined(_WIN32)
 //    _notifier.reset(new
 //    SimpleEventNotifier(_config->_frontThreadMaxConnCount));
@@ -97,15 +104,15 @@ template <typename Sess> void RpcClientConn<Sess>::init()
 
 template <typename Sess> void RpcClientThread<Sess>::afterAddJob()
 {
-    _notifier.stopWaiting();
+    _notifier->stopWaiting();
 }
 
 template <typename Sess>
 void RpcClientThread<Sess>::addRsp(JobHandler* hdr,
                                    std::shared_ptr<Sess>& session,
-                                   std::std::unique_ptr<WsPacket>&& pkt)
+                                   std::unique_ptr<WsPacket>&& pkt)
 {
-    _rpcMap[hdr].emplace_back(std::move(session), std::move(pkt));
+    _rspMap[hdr].emplace_back(std::move(session), std::move(pkt));
 }
 
 template <typename Sess> void RpcClientThread<Sess>::doConnect()
@@ -115,13 +122,12 @@ template <typename Sess> void RpcClientThread<Sess>::doConnect()
         return;
     }
 
-    std::time_t now = std::time(nullptr);
     eIoAction act;
 
     for (auto it = _disconnectedConnList.begin();
          it != _disconnectedConnList.end();)
     {
-        if (!it->canConnect())
+        if (!(*it)->canConnect())
         {
             ++it;
             continue;
@@ -129,9 +135,9 @@ template <typename Sess> void RpcClientThread<Sess>::doConnect()
 
         act = (*it)->handleIoEvent(); // Initial connecting.
         (*it)->setNextAction(act);
-        _timeoutMgr->add((*it).get(), now);
+        _timeoutMgr->add((*it).get(), _now);
         _notifier->addEvent((*it).get());
-        _disconnectedConnList.remove(it);
+        _disconnectedConnList.erase(it);
     }
 }
 
@@ -139,20 +145,20 @@ template <typename Sess> void RpcClientThread<Sess>::checkRpcRequestTimeout()
 {
     for (auto& c : _connMap)
     {
-        (c.second)->checkReqTimeout();
+        (c.second)->checkReqTimeout(_now);
     }
 }
 
 template <typename Sess> void RpcClientThread<Sess>::handleRsp()
 {
-    for (auto& kv : rspMap)
+    for (auto& kv : _rspMap)
     {
         if (kv.second.empty())
         {
             continue;
         }
 
-        std::unique_ptr<PacketJob> pktJob(new PacketJob());
+        std::unique_ptr<PacketJob<Sess>> pktJob(new PacketJob<Sess>());
         pktJob.bind(std::move(kv.second));
         kv.second.clear();
         (kv.first)->addJob(std::move(pktJob));
@@ -160,16 +166,16 @@ template <typename Sess> void RpcClientThread<Sess>::handleRsp()
 }
 
 template <typename Sess>
-void RpcClientThread<Sess>::updateTimeout(RpcClientConn<Sess>* conn,
+void RpcClientThread<Sess>::updateTimeout(WsClientConn<RpcSession>* conn,
                                           std::time_t now)
 {
     _timeoutMgr->update(conn, now);
 }
 
 template <typename Sess>
-void RpcClientThread<Sess>::onTimeout(RpcClientConn<Sess>* conn)
+void RpcClientThread<Sess>::onTimeout(WsClientConn<RpcSession>* conn)
 {
-    conn->heartbeat();
+    (static_cast<RpcClientConn<Sess>*>(conn->getDerivedPtr()))->heartbeat();
 }
 
 template <typename Sess> void RpcClientThread<Sess>::beforeStart()
@@ -179,11 +185,10 @@ template <typename Sess> void RpcClientThread<Sess>::beforeStart()
     for (const auto& s : _config._neighborSrvMap)
     {
         std::unique_ptr<RpcClientConn<Sess>> conn(new RpcClientConn<Sess>(
-            this, _config, s._thisServer.rpcWsUrl, _wsConfig));
+            this, _config, s.second._rpcWsUrl, _wsConfig));
 
         conn->setDerivedPtr(conn.get());
         conn->setNextAction(conn->getDefaultAction());
-        conn->setPacketHandler(conn);
         conn->setRandom(&_random);
         conn->handleIoEvent(); // Initial connecting.
         _timeoutMgr->add(conn.get(), now);
@@ -203,7 +208,6 @@ template <typename Sess> void RpcClientThread<Sess>::run()
     uint32_t idx      = 0;
     IoEvent* ev       = nullptr;
     eIoAction act     = eIoAction::None;
-    std::time_t now   = 0;
 
     try
     {
@@ -211,8 +215,8 @@ template <typename Sess> void RpcClientThread<Sess>::run()
         {
             doConnect();
 
-            now = std::time(nullptr);
-            _timeoutMgr->checkTimeout(now);
+            _now = std::time(nullptr);
+            _timeoutMgr->checkTimeout(_now);
 
             // Needs to wake up to reconnect. So we should use small
             // milliseconds.
@@ -237,9 +241,9 @@ template <typename Sess> void RpcClientThread<Sess>::run()
                     {
                         if (ev->isConnection())
                         {
-                            updateTimeout(static_cast<WsServerConn<Session>*>(
+                            updateTimeout(static_cast<RpcClientConn<Sess>*>(
                                               ev->getDerivedPtr()),
-                                          now);
+                                          _now);
                         }
                     }
                     // No break;
@@ -251,8 +255,7 @@ template <typename Sess> void RpcClientThread<Sess>::run()
 
                     case eIoAction::Remove:
                     {
-                        removeConn(static_cast<WsServerConn<Session>*>(
-                            ev->getDerivedPtr()));
+                        // TODO: add to disconnected list.
                     }
                     break;
 

@@ -23,18 +23,22 @@
 #include "daemon.h"
 #include "epoll.h"
 #include "logger.h"
+#include "rpcServerThread.h"
+#include "rpcClientThread.h"
+#include "rpcClientConn.h"
 
 namespace parrot
 {
 struct Config;
 
-template <typename Sess>
-class MainThread
+template <typename FrontSession, typename RpcReqSession> class MainThread
 {
   public:
-    using FrontConnDispatcher =
-        ConnDispatcher<WsServerConn<Sess>, WsConfig, ConnFactory, ConnHandler>;
-    using FrontThreadPool = ThreadPool<FrontThread<Sess>>;
+    using FrontConnDispatcher = ConnDispatcher<WsServerConn<FrontSession>,
+                                               WsConfig,
+                                               ConnFactory,
+                                               ConnHandler>;
+    using FrontThreadPool = ThreadPool<FrontThread<FrontSession>>;
 
   public:
     explicit MainThread(const Config* cfg);
@@ -68,12 +72,14 @@ class MainThread
     std::unique_ptr<FrontConnDispatcher> _connDispatcher;
     std::unique_ptr<EventNotifier> _notifier;
     std::unique_ptr<FrontThreadPool> _frontThreadPool;
+    std::unique_ptr<RpcServerThread> _rpcSrvThread;
+    std::unique_ptr<RpcClientThread<RpcReqSession>> _rpcCliThread;
     std::unique_ptr<WsConfig> _wsConfig;
     const Config* _config;
 };
 
-template <typename Sess>
-MainThread<Sess>::MainThread(const Config* cfg)
+template <typename FrontSession, typename RpcReqSession>
+MainThread<FrontSession, RpcReqSession>::MainThread(const Config* cfg)
     : _connDispatcher(),
 #if defined(__linux__)
       _notifier(new Epoll(100)),
@@ -83,20 +89,23 @@ MainThread<Sess>::MainThread(const Config* cfg)
 //      _notifier(new SimpleEventNotifier()),
 #endif
       _frontThreadPool(new FrontThreadPool(cfg->_frontThreadMaxConnCount)),
+      _rpcSrvThread(),
+      _rpcCliThread(),
       _wsConfig(new WsConfig()),
       _config(cfg)
 {
 }
 
-template <typename Sess>
-void MainThread<Sess>::beforeStart()
+template <typename FrontSession, typename RpcReqSession>
+void MainThread<FrontSession, RpcReqSession>::beforeStart()
 {
     Daemon::setConfig(_config);
 
     // Make this process as daemon.
-    //Daemon::daemonize();
+    // Daemon::daemonize();
 
-    auto shutdownCb = std::bind(&MainThread<Sess>::onStop, this);
+    auto shutdownCb =
+        std::bind(&MainThread<FrontSession, RpcReqSession>::onStop, this);
     Daemon::registerShutdownCb(shutdownCb);
 
     parrot::Logger* logger = parrot::Logger::instance();
@@ -110,15 +119,18 @@ void MainThread<Sess>::beforeStart()
 
     _notifier->create();
 
-    ConnFactory<WsServerConn<Sess>, WsConfig>::getInstance()->setConfig(
-        _wsConfig.get());
+    if (_config->_thisServer._isFront)
+    {
+        ConnFactory<WsServerConn<FrontSession>, WsConfig>::getInstance()
+            ->setConfig(_wsConfig.get());
+    }
 
     createListenerEvents();
     createThreads();
 }
 
-template <typename Sess>
-void MainThread<Sess>::createThreads()
+template <typename FrontSession, typename RpcReqSession>
+void MainThread<FrontSession, RpcReqSession>::createThreads()
 {
     Daemon::beforeCreateThreads();
     createSysThreads();
@@ -126,46 +138,75 @@ void MainThread<Sess>::createThreads()
     Daemon::afterCreateThreads();
 }
 
-template <typename Sess>
-void MainThread<Sess>::createSysThreads()
+template <typename FrontSession, typename RpcReqSession>
+void MainThread<FrontSession, RpcReqSession>::createSysThreads()
 {
-    _frontThreadPool->setCount(_config->_frontThreadPoolSize);
-    _frontThreadPool->create();
-
-    std::vector<ConnHandler<WsServerConn<Sess>>*> vec;
-    auto& threadVec = _frontThreadPool->getThreadPoolVec();
-    for (auto& t : threadVec)
+    // Create front thread pool.
+    if (_config->_thisServer._isFront)
     {
-        t->updateByConfig(_config);
-        vec.push_back(t.get());
+        _frontThreadPool->setCount(_config->_frontThreadPoolSize);
+        _frontThreadPool->create();
+
+        std::vector<ConnHandler<WsServerConn<FrontSession>>*> vec;
+        auto& threadVec = _frontThreadPool->getThreadPoolVec();
+        for (auto& t : threadVec)
+        {
+            t->updateByConfig(_config);
+            vec.push_back(t.get());
+        }
+        _connDispatcher->setConnHandler(std::move(vec));
     }
-    _connDispatcher->setConnHandler(std::move(vec));
+
+    // Create rpc server thread.
+    _rpcSrvThread = std::unique_ptr<RpcServerThread>(new RpcServerThread());
+
+    // Create rpc client thread.
+    _rpcCliThread = std::unique_ptr<RpcClientThread<FrontSession>>(
+        new RpcClientThread<FrontSession>(*_config, *_wsConfig));
 }
 
-template <typename Sess>
-void MainThread<Sess>::createListenerEvents()
+template <typename FrontSession, typename RpcReqSession>
+void MainThread<FrontSession, RpcReqSession>::createListenerEvents()
 {
-    auto& thisServer = _config->_thisServer;
-    _connDispatcher.reset(
-        new FrontConnDispatcher(thisServer._frontPort, thisServer._frontIp));
+    if (_config->_thisServer._isFront)
+    {
+        auto& thisServer = _config->_thisServer;
+        _connDispatcher.reset(new FrontConnDispatcher(thisServer._frontPort,
+                                                      thisServer._frontIp));
 
-    _connDispatcher->setUrlInfo(thisServer._frontWsUrlInfo.get());
-    _connDispatcher->setNextAction(eIoAction::Read);
-    _connDispatcher->startListen();
-    _notifier->addEvent(_connDispatcher.get());
+        _connDispatcher->setUrlInfo(thisServer._frontWsUrlInfo.get());
+        _connDispatcher->setNextAction(eIoAction::Read);
+        _connDispatcher->startListen();
+        _notifier->addEvent(_connDispatcher.get());
+    }
 }
 
-template <typename Sess>
-void MainThread<Sess>::start()
+template <typename FrontSession, typename RpcReqSession>
+void MainThread<FrontSession, RpcReqSession>::start()
 {
     beforeStart();
-    _frontThreadPool->start();
+
+    // Start front thread pool.
+    if (_frontThreadPool)
+    {
+        _frontThreadPool->start();
+    }
+
+    // Start RPC server thread.
+    _rpcSrvThread->start();
+
+    // Start RPC client thread.
+    _rpcCliThread->start();
+
+    // Main thread run.
     run();
+
+    // Hook before terminate.
     beforeTerminate();
 }
 
-template <typename Sess>
-void MainThread<Sess>::run()
+template <typename FrontSession, typename RpcReqSession>
+void MainThread<FrontSession, RpcReqSession>::run()
 {
     int eventNum = 0;
     IoEvent* ev  = nullptr;
@@ -181,29 +222,34 @@ void MainThread<Sess>::run()
     }
 }
 
-template <typename Sess>
-void MainThread<Sess>::onStop()
+template <typename FrontSession, typename RpcReqSession>
+void MainThread<FrontSession, RpcReqSession>::onStop()
 {
     LOG_INFO("MainThread::onStop.");
     _notifier->stopWaiting();
 }
 
-template <typename Sess>
-void MainThread<Sess>::stopSysThreads()
+template <typename FrontSession, typename RpcReqSession>
+void MainThread<FrontSession, RpcReqSession>::stopSysThreads()
 {
-    _frontThreadPool->destroy();
+    if (_frontThreadPool)
+    {
+        _frontThreadPool->destroy();
+    }
+    _rpcCliThread->stop();
+    _rpcSrvThread->stop();
 }
 
-template <typename Sess>
-void MainThread<Sess>::stopThreads()
+template <typename FrontSession, typename RpcReqSession>
+void MainThread<FrontSession, RpcReqSession>::stopThreads()
 {
     stopUserThreads();
     stopSysThreads();
     LOG_INFO("MainThread::stopThreads: Done.");
 }
 
-template <typename Sess>
-void MainThread<Sess>::beforeTerminate()
+template <typename FrontSession, typename RpcReqSession>
+void MainThread<FrontSession, RpcReqSession>::beforeTerminate()
 {
     LOG_INFO("MainThread::beforeTerminate.");
     stopThreads();

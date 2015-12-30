@@ -2,33 +2,33 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "frontSrvMainThread.h"
-#include "frontSrvConfig.h"
+#include "backSrvMainThread.h"
+#include "backSrvConfig.h"
 #include "jobHandler.h"
 #include "logger.h"
-#include "frontSrvScheduler.h"
+#include "backSrvRpcScheduler.h"
 
 namespace chat
 {
-FrontSrvMainThread::FrontSrvMainThread(const FrontSrvConfig* cfg)
-    : MainThread<ChatSession>(cfg), _logicThreadPool(cfg->_logicThreadPoolSize)
+BackSrvMainThread::BackSrvMainThread(const BackSrvConfig* cfg)
+    : MainThread<ChatSession, ChatSession>(cfg), _logicThreadPool(cfg->_logicThreadPoolSize)
 {
 }
 
-void FrontSrvMainThread::beforeStart()
+void BackSrvMainThread::beforeStart()
 {
-    MainThread<ChatSession>::beforeStart();
-    FrontSrvScheduler::makeInstance();
+    MainThread<ChatSession, ChatSession>::beforeStart();
+    BackSrvRpcScheduler::makeInstance();
 }
 
-void FrontSrvMainThread::createUserThreads()
+void BackSrvMainThread::createUserThreads()
 {
     _logicThreadPool.create();
     _logicThreadPool.start();
-    LOG_INFO("FrontSrvMainThread::createUserThreads. Done.");
+    LOG_INFO("BackSrvMainThread::createUserThreads. Done.");
 }
 
-void FrontSrvMainThread::stopUserThreads()
+void BackSrvMainThread::stopUserThreads()
 {
     _logicThreadPool.destroy();
 }

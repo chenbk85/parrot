@@ -1,19 +1,19 @@
-#ifndef __PROJECT_CHAT_FRONTSRV_INC_FRONTSRVMAINTHREAD_H__
-#define __PROJECT_CHAT_FRONTSRV_INC_FRONTSRVMAINTHREAD_H__
+#ifndef __PROJECT_CHAT_BACKSRV_INC_BACKSRVMAINTHREAD_H__
+#define __PROJECT_CHAT_BACKSRV_INC_BACKSRVMAINTHREAD_H__
 
 #include "mainThread.h"
 #include "threadPool.h"
 #include "chatSession.h"
-#include "frontSrvLogicThread.h"
+#include "backSrvLogicThread.h"
 
 namespace chat
 {
-struct FrontSrvConfig;
+struct BackSrvConfig;
 
-class FrontSrvMainThread : public parrot::MainThread<ChatSession>
+class BackSrvMainThread : public parrot::MainThread<ChatSession, ChatSession>
 {
   public:
-    explicit FrontSrvMainThread(const FrontSrvConfig* cfg);
+    explicit BackSrvMainThread(const BackSrvConfig* cfg);
 
   protected:
     void beforeStart() override;
@@ -21,7 +21,7 @@ class FrontSrvMainThread : public parrot::MainThread<ChatSession>
     void stopUserThreads() override;
 
   protected:
-    parrot::ThreadPool<FrontSrvLogicThread> _logicThreadPool;
+    parrot::ThreadPool<BackSrvLogicThread> _logicThreadPool;
 };
 }
 #endif

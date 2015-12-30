@@ -6,17 +6,18 @@
 #include "kqueue.h"
 #include "codes.h"
 #include "simpleEventNotifier.h"
-#include "frontSrvLogicThread.h"
-#include "frontThread.h"
+#include "backSrvLogicThread.h"
+#include "backSrvMainThread.h"
 #include "wsPacket.h"
 #include "threadJob.h"
 
 namespace chat
 {
-FrontSrvLogicThread::FrontSrvLogicThread()
+BackSrvLogicThread::BackSrvLogicThread()
     : PoolThread(),
       JobHandler(),
-      _packetJobHdr(),
+      _mainThread(nullptr),
+      _reqPktJobHdr(),
 #if defined(__linux__)
       _notifier(new parrot::Epoll(1)),
 #elif defined(__APPLE__)
@@ -27,55 +28,34 @@ FrontSrvLogicThread::FrontSrvLogicThread()
       _config(nullptr)
 {
     using namespace std::placeholders;
-    _packetJobHdr = std::bind(&FrontSrvLogicThread::handlePacket, this, _1);
+    _reqPktJobHdr = std::bind(&BackSrvLogicThread::handleRpcReq, this, _1);
 }
 
-void FrontSrvLogicThread::setConfig(const FrontSrvConfig* cfg)
+void BackSrvLogicThread::setConfig(const BackSrvConfig* cfg)
 {
     _config = cfg;
 }
 
-void FrontSrvLogicThread::beforeStart()
+void BackSrvLogicThread::setBackSrvMainThread(BackSrvMainThread* mainThread)
+{
+    _mainThread = mainThread;
+}
+
+void BackSrvLogicThread::beforeStart()
 {
     _notifier->create();
 }
 
-void FrontSrvLogicThread::afterAddJob()
+void BackSrvLogicThread::afterAddJob()
 {
     _notifier->stopWaiting();
 }
 
-void FrontSrvLogicThread::handlePacket(
-    std::list<parrot::SessionPktPair<ChatSession>>& pktList)
+void BackSrvLogicThread::handleRpcReq(PktList& )
 {
-    std::unordered_map<parrot::JobHandler*,
-                       std::list<parrot::SessionPktPair<ChatSession>>> rspMap;
-
-    for (auto& sp : pktList)
-    {
-        LOG_INFO("FrontSrvLogicThread::handlePacket: session is "
-                 << (sp.first)->toString() << ".");
-        std::unique_ptr<parrot::WsPacket> pkt(new parrot::WsPacket());
-        pkt->setRoute(1);
-        std::unique_ptr<parrot::Json> json(new parrot::Json());
-        json->createRootObject();
-        std::string s = "Hello world!";
-        json->setValue("/s", s);
-        pkt->setJson(std::move(json));
-
-        rspMap[(sp.first)->getFrontJobHdr()].emplace_back(std::move(sp.first),
-                                                          std::move(pkt));
-    }
-
-    for (auto& kv : rspMap)
-    {
-        std::unique_ptr<parrot::PacketJob<ChatSession>> job(new parrot::PacketJob<ChatSession>());
-        job->bind(std::move(kv.second));
-        (kv.first)->addJob(std::move(job));
-    }
 }
 
-void FrontSrvLogicThread::handleJob()
+void BackSrvLogicThread::handleJob()
 {
     std::list<std::unique_ptr<parrot::Job>> jobList;
     _jobListLock.lock();
@@ -86,11 +66,12 @@ void FrontSrvLogicThread::handleJob()
     {
         switch (j->getJobType())
         {
-            case parrot::JOB_PACKET:
+            case parrot::JOB_RPC_REQ:
             {
-                std::unique_ptr<parrot::PacketJob<ChatSession>> tj(
-                    static_cast<parrot::PacketJob<ChatSession> *>((j.release())->getDerivedPtr()));
-                tj->call(_packetJobHdr);
+                std::unique_ptr<parrot::RpcRequestJob> tj(
+                    static_cast<parrot::RpcRequestJob*>(
+                        (j.release())->getDerivedPtr()));
+                tj->call(_reqPktJobHdr);
             }
             break;
 
@@ -103,13 +84,13 @@ void FrontSrvLogicThread::handleJob()
     }
 }
 
-void FrontSrvLogicThread::run()
+void BackSrvLogicThread::run()
 {
     parrot::IoEvent* ev = nullptr;
     uint32_t ret        = 0;
 
-    LOG_INFO("FrontSrvLogicThread::run. Tid is " << std::this_thread::get_id()
-                                                 << ".");
+    LOG_INFO("BackSrvLogicThread::run. Tid is " << std::this_thread::get_id()
+                                                << ".");
 
     while (!isStopping())
     {
@@ -125,11 +106,11 @@ void FrontSrvLogicThread::run()
     }
 }
 
-void FrontSrvLogicThread::stop()
+void BackSrvLogicThread::stop()
 {
     parrot::ThreadBase::stop();
     _notifier->stopWaiting();
     parrot::ThreadBase::join();
-    LOG_INFO("FrontSrvLogicThread::stop: Done.");
+    LOG_INFO("BackSrvLogicThread::stop: Done.");
 }
 }

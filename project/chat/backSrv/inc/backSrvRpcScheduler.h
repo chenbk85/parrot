@@ -1,5 +1,5 @@
-#ifndef __PROJECT_CHAT_FRONTSRV_INC_FRONTSRVRPCSCHEDULER_H__
-#define __PROJECT_CHAT_FRONTSRV_INC_FRONTSRVRPCSCHEDULER_H__
+#ifndef __PROJECT_CHAT_BACKSRV_INC_BACKSRVRPCSCHEDULER_H__
+#define __PROJECT_CHAT_BACKSRV_INC_BACKSRVRPCSCHEDULER_H__
 
 #include <memory>
 #include <cstdint>
@@ -10,16 +10,16 @@
 
 namespace chat
 {
-class FrontSrvRpcScheduler : public parrot::Scheduler<parrot::RpcSession>
+class BackSrvRpcScheduler : public parrot::Scheduler<parrot::RpcSession>
 {
   private:
-    FrontSrvRpcScheduler() = default;
+    BackSrvRpcScheduler() = default;
 
   public:
-    virtual ~FrontSrvRpcScheduler() = default;
+    virtual ~BackSrvRpcScheduler() = default;
 
   private:
-    static std::unique_ptr<FrontSrvRpcScheduler> _instance;
+    static std::unique_ptr<BackSrvRpcScheduler> _instance;
 
   public:
     static void makeInstance();
