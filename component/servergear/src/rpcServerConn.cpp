@@ -84,7 +84,19 @@ void RpcServerConn::onPacket(std::shared_ptr<const RpcSession>&&,
             return;
         }
 
-        _rpcSrvThread->addReqPacket(nullptr, getSession(),
+        auto hdr = Scheduler<RpcSession>::getInstance()->getHandler(
+            pkt->getRoute(), getSession());
+
+        if (!hdr)
+        {
+            LOG_WARN("RpcServerConn::handshake: Failed to find handler for "
+                     "route " << pkt->getRoute() <<". Remote is "
+                     << getRemoteAddr() << ". Session is "
+                     << getSession()->toString() << ".");            
+            return;
+        }
+
+        _rpcSrvThread->addReqPacket(hdr, getSession(),
                                     std::move(cliSession), std::move(pkt));
     }
 }
