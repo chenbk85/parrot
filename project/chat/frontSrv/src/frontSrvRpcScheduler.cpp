@@ -11,7 +11,7 @@ namespace chat
 static thread_local uint8_t gLogicThreadIdx = 0;
 std::unique_ptr<FrontSrvRpcScheduler> FrontSrvRpcScheduler::_instance;
 
-void FrontSrvRpcScheduler::makeInstance()
+void FrontSrvRpcScheduler::createInstance()
 {
     _instance.reset(new FrontSrvRpcScheduler());
     setInstance(std::move(_instance));
@@ -23,11 +23,11 @@ FrontSrvRpcScheduler::getHandler(uint64_t,
 {
     auto& logicThreadPool =
         FrontSrvMainThread::getInstance()->getLogicThreadPool();
-    auto & threadVec = logicThreadPool.getThreadPoolVec();
-    auto hdr =threadVec[gLogicThreadIdx].get();
-    
-    gLogicThreadIdx = (gLogicThreadIdx + 1) % threadVec.size();    
-    return hdr;    
+    auto& threadVec = logicThreadPool.getThreadPoolVec();
+    auto hdr        = threadVec[gLogicThreadIdx].get();
+
+    gLogicThreadIdx = (gLogicThreadIdx + 1) % threadVec.size();
+    return hdr;
 }
 
 parrot::JobHandler* FrontSrvRpcScheduler::getOnCloseHandler(

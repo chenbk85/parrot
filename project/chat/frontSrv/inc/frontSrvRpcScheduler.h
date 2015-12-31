@@ -22,7 +22,7 @@ class FrontSrvRpcScheduler : public parrot::Scheduler<parrot::RpcSession>
     static std::unique_ptr<FrontSrvRpcScheduler> _instance;
 
   public:
-    static void makeInstance();
+    static void createInstance();
 
   public:
     parrot::JobHandler*

@@ -10,6 +10,7 @@
 #include "jobHandler.h"
 #include "logger.h"
 #include "frontSrvScheduler.h"
+#include "frontSrvRpcScheduler.h"
 
 namespace chat
 {
@@ -47,6 +48,7 @@ void FrontSrvMainThread::beforeStart()
 {
     MainThread<ChatSession, ChatSession>::beforeStart();
     FrontSrvScheduler::createInstance();
+    FrontSrvRpcScheduler::createInstance();    
 
     auto& logicThreadsVec = _logicThreadPool.getThreadPoolVec();
     for (auto& t : logicThreadsVec)
