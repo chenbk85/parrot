@@ -157,7 +157,7 @@ template <class Sess> void WsServerConn<Sess>::onPong()
 template <class Sess>
 void WsServerConn<Sess>::onData(std::unique_ptr<WsPacket>&& pkt)
 {
-    _pktHandler->onPacket(_session, std::move(pkt));
+    _pktHandler->onPacket(this, std::move(pkt));
 }
 
 template <class Sess> void WsServerConn<Sess>::doClose()

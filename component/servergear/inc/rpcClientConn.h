@@ -42,7 +42,7 @@ class RpcClientConn
     void heartbeat();
 
   private:
-    void onPacket(std::shared_ptr<const RpcSession>&&,
+    void onPacket(WsClientConn<RpcSession>* conn,
                   std::unique_ptr<WsPacket>&&) override;
     void onClose(WsClientConn<RpcSession>* conn,
                  std::unique_ptr<WsPacket>&&) override;
@@ -123,7 +123,7 @@ template <typename Sess> void RpcClientConn<Sess>::heartbeat()
 }
 
 template <typename Sess>
-void RpcClientConn<Sess>::onPacket(std::shared_ptr<const RpcSession>&&,
+void RpcClientConn<Sess>::onPacket(WsClientConn<RpcSession>*,
                                    std::unique_ptr<WsPacket>&& pkt)
 {
     onResponse(std::move(pkt));

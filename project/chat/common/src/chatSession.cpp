@@ -3,7 +3,8 @@
 namespace chat
 {
 ChatSession::ChatSession()
-    : _uniqueSessionId(),
+    : _hdrMap(),
+      _uniqueSessionId(),
       _uid(),
       _ipAddr(),
       _jsonStr(),
@@ -63,6 +64,22 @@ uint16_t ChatSession::getPort() const
 const std::string& ChatSession::getJsonStr() const
 {
     return _jsonStr;
+}
+
+void ChatSession::setRouteHdr(uint64_t route, parrot::JobHandler* hdr)
+{
+    _hdrMap[route] = hdr;
+}
+
+parrot::JobHandler* ChatSession::getRouteHdr(uint64_t route) const
+{
+    auto it = _hdrMap.find(route);
+    if (it == _hdrMap.end())
+    {
+        return nullptr;
+    }
+
+    return it->second;
 }
 
 std::string ChatSession::toString() const

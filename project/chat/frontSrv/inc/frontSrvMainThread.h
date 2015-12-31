@@ -12,8 +12,22 @@ struct FrontSrvConfig;
 
 class FrontSrvMainThread : public parrot::MainThread<ChatSession, ChatSession>
 {
+  private:
+    static std::unique_ptr<FrontSrvMainThread> _instance;
+
   public:
+    static void createInstance(const FrontSrvConfig* cfg);
+    static FrontSrvMainThread* getInstance();
+
+  private:
     explicit FrontSrvMainThread(const FrontSrvConfig* cfg);
+
+  public:
+    ~FrontSrvMainThread() = default;
+
+  public:
+    parrot::ThreadPool<FrontSrvLogicThread>& getLogicThreadPool();
+    const FrontSrvConfig * getConfig() const;
 
   protected:
     void beforeStart() override;
@@ -21,6 +35,7 @@ class FrontSrvMainThread : public parrot::MainThread<ChatSession, ChatSession>
     void stopUserThreads() override;
 
   protected:
+    const FrontSrvConfig* _config;
     parrot::ThreadPool<FrontSrvLogicThread> _logicThreadPool;
 };
 }

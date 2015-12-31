@@ -8,7 +8,6 @@ static void installConfig(chat::BackSrvConfig& config)
     config._group                  = "leopold";
     config._user                   = "leopold";
     config._lockFilePath           = "./run/backsrv.lock";
-    config._frontThreadTimeout     = 60;
     config._rpcThreadTimeout       = 60;
     config._thisServer._isFront    = false;
     config._thisServer._serverType = "backSrv";
@@ -34,9 +33,8 @@ int main()
     installConfig(config);
     postProcessConfig(config);
 
-    std::unique_ptr<chat::BackSrvMainThread> mainThread(
-        new chat::BackSrvMainThread(&config));
-    mainThread->start();
+    chat::BackSrvMainThread::createInstance(&config);
+    chat::BackSrvMainThread::getInstance()->start();
+    
     return 0;
 }
-

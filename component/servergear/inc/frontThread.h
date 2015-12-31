@@ -72,7 +72,7 @@ class FrontThread : public PoolThread,
 
   public:
     // WsPacketHandler
-    void onPacket(std::shared_ptr<const Sess>&&,
+    void onPacket(WsServerConn<Sess>* conn,
                   std::unique_ptr<WsPacket>&&) override;
     void onClose(WsServerConn<Sess>* conn,
                  std::unique_ptr<WsPacket>&&) override;
@@ -245,11 +245,25 @@ template <typename Sess> void FrontThread<Sess>::afterAddNewConn()
 }
 
 template <typename Sess>
-void FrontThread<Sess>::onPacket(std::shared_ptr<const Sess>&& session,
+void FrontThread<Sess>::onPacket(WsServerConn<Sess>* conn,
                                  std::unique_ptr<WsPacket>&& pkt)
 {
-    auto hdr =
-        Scheduler<Sess>::getInstance()->getHandler(pkt->getRoute(), session);
+    // A copy of shard_ptr. Need to move next.
+    auto session = conn->getSession();
+    auto route   = pkt->getRoute();
+    auto hdr = session->getRouteHdr(route);
+    if (!hdr)
+    {
+        hdr = Scheduler<Sess>::getInstance()->getHandler(route, session);
+        if (!hdr)
+        {
+            LOG_WARN("FrontThread::onPacket: Failed to find handler "
+                     "for session "
+                     << session->toString() << ". Route is " << route << ".");
+            return;
+        }
+        session->setRouteHdr(route, hdr);
+    }
 
     if (!hdr)
     {
@@ -260,7 +274,6 @@ void FrontThread<Sess>::onPacket(std::shared_ptr<const Sess>&& session,
     }
 
     auto it = _pktMap.find(hdr);
-
     if (it == _pktMap.end())
     {
         PARROT_ASSERT(hdr);
@@ -285,7 +298,7 @@ template <typename Sess>
 void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
                                 std::unique_ptr<WsPacket>&& pkt)
 {
-    auto session = conn->getSession();
+    auto session = conn->getSession(); // A copy of shared_ptr.
     auto hdr = Scheduler<Sess>::getInstance()->getOnCloseHandler(session);
     if (!hdr)
     {

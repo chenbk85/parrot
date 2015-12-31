@@ -10,6 +10,8 @@
 
 namespace chat
 {
+struct FrontSrvConfig;
+
 class FrontSrvScheduler : public parrot::Scheduler<ChatSession>
 {
   private:
@@ -22,7 +24,7 @@ class FrontSrvScheduler : public parrot::Scheduler<ChatSession>
     static std::unique_ptr<FrontSrvScheduler> _instance;
 
   public:
-    static void makeInstance();
+    static void createInstance();
 
   public:
     parrot::JobHandler* getHandler(uint64_t route,

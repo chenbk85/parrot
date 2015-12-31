@@ -36,7 +36,7 @@ void BackSrvLogicThread::setConfig(const BackSrvConfig* cfg)
     _config = cfg;
 }
 
-void BackSrvLogicThread::setBackSrvMainThread(BackSrvMainThread* mainThread)
+void BackSrvLogicThread::setMainThread(BackSrvMainThread* mainThread)
 {
     _mainThread = mainThread;
 }

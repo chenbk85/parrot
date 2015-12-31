@@ -41,9 +41,8 @@ int main()
     installConfig(config);
     postProcessConfig(config);
 
-    std::unique_ptr<chat::FrontSrvMainThread> mainThread(
-        new chat::FrontSrvMainThread(&config));
-    mainThread->start();
-
+    chat::FrontSrvMainThread::createInstance(&config);
+    chat::FrontSrvMainThread::getInstance()->start();
+    
     return 0;
 }

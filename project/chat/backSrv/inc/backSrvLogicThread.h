@@ -13,6 +13,7 @@
 #include "rpcSession.h"
 #include "threadJob.h"
 #include "jobHandler.h"
+#include "eventNotifier.h"
 
 namespace chat
 {
@@ -30,7 +31,7 @@ class BackSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
 
   public:
     void setConfig(const BackSrvConfig* cfg);
-    void setBackSrvMainThread(BackSrvMainThread* mainThread);
+    void setMainThread(BackSrvMainThread* mainThread);
 
   public:
     void stop() override;

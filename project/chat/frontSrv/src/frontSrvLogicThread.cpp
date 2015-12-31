@@ -6,6 +6,7 @@
 #include "kqueue.h"
 #include "codes.h"
 #include "simpleEventNotifier.h"
+#include "frontSrvMainThread.h"
 #include "frontSrvLogicThread.h"
 #include "frontThread.h"
 #include "wsPacket.h"
@@ -16,6 +17,7 @@ namespace chat
 FrontSrvLogicThread::FrontSrvLogicThread()
     : PoolThread(),
       JobHandler(),
+      _mainThread(nullptr),
       _packetJobHdr(),
 #if defined(__linux__)
       _notifier(new parrot::Epoll(1)),
@@ -33,6 +35,11 @@ FrontSrvLogicThread::FrontSrvLogicThread()
 void FrontSrvLogicThread::setConfig(const FrontSrvConfig* cfg)
 {
     _config = cfg;
+}
+
+void FrontSrvLogicThread::setMainThread(FrontSrvMainThread* mainThread)
+{
+    _mainThread = mainThread;
 }
 
 void FrontSrvLogicThread::beforeStart()
@@ -69,7 +76,8 @@ void FrontSrvLogicThread::handlePacket(
 
     for (auto& kv : rspMap)
     {
-        std::unique_ptr<parrot::PacketJob<ChatSession>> job(new parrot::PacketJob<ChatSession>());
+        std::unique_ptr<parrot::PacketJob<ChatSession>> job(
+            new parrot::PacketJob<ChatSession>());
         job->bind(std::move(kv.second));
         (kv.first)->addJob(std::move(job));
     }
@@ -89,7 +97,8 @@ void FrontSrvLogicThread::handleJob()
             case parrot::JOB_PACKET:
             {
                 std::unique_ptr<parrot::PacketJob<ChatSession>> tj(
-                    static_cast<parrot::PacketJob<ChatSession> *>((j.release())->getDerivedPtr()));
+                    static_cast<parrot::PacketJob<ChatSession>*>(
+                        (j.release())->getDerivedPtr()));
                 tj->call(_packetJobHdr);
             }
             break;

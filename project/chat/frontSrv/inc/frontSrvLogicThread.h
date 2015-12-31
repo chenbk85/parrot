@@ -11,10 +11,12 @@
 #include "threadJob.h"
 #include "jobHandler.h"
 #include "chatSession.h"
+#include "eventNotifier.h"
 
 namespace chat
 {
 struct FrontSrvConfig;
+class FrontSrvMainThread;
 
 class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
 {
@@ -23,11 +25,12 @@ class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
 
   public:
     void setConfig(const FrontSrvConfig* cfg);
+    void setMainThread(FrontSrvMainThread* mainThread);
 
   public:
     void stop() override;
     void afterAddJob() override;
-    
+
   protected:
     void beforeStart() override;
     void run() override;
@@ -39,6 +42,7 @@ class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
     void handlePacket(std::list<parrot::SessionPktPair<ChatSession>>& pktList);
 
   protected:
+    FrontSrvMainThread* _mainThread;
     parrot::PacketJobHdr<ChatSession> _packetJobHdr;
     std::unique_ptr<parrot::EventNotifier> _notifier;
     const FrontSrvConfig* _config;

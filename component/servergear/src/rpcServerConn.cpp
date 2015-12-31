@@ -44,7 +44,7 @@ bool RpcServerConn::handshake(std::unique_ptr<WsPacket>& pkt)
     return true;
 }
 
-void RpcServerConn::onPacket(std::shared_ptr<const RpcSession>&&,
+void RpcServerConn::onPacket(WsServerConn<RpcSession>*,
                              std::unique_ptr<WsPacket>&& pkt)
 {
     if (!_registered)

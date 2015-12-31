@@ -14,9 +14,10 @@ template <typename Sess, typename Conn> class WsPacketHandler
     virtual ~WsPacketHandler() = default;
 
   public:
-    virtual void onPacket(std::shared_ptr<const Sess>&&,
+    virtual void onPacket(Conn* conn,
                           std::unique_ptr<WsPacket>&&) = 0;
-    virtual void onClose(Conn* conn, std::unique_ptr<WsPacket>&&) = 0;
+    virtual void onClose(Conn* conn,
+                         std::unique_ptr<WsPacket>&&) = 0;
 };
 }
 

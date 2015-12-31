@@ -22,7 +22,8 @@ class BackSrvRpcScheduler : public parrot::Scheduler<parrot::RpcSession>
     static std::unique_ptr<BackSrvRpcScheduler> _instance;
 
   public:
-    static void makeInstance();
+    static void createInstance();
+    static BackSrvRpcScheduler* getInstance();
 
   public:
     parrot::JobHandler*

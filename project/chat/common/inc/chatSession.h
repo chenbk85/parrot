@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 
 #include "jobHandler.h"
 
@@ -34,7 +35,11 @@ class ChatSession
 
     std::string toString() const;
 
+    void setRouteHdr(uint64_t route, parrot::JobHandler*);
+    parrot::JobHandler* getRouteHdr(uint64_t route) const;
+
   private:
+    std::unordered_map<uint64_t, parrot::JobHandler*> _hdrMap;
     std::string _uniqueSessionId;
     std::string _uid;
     std::string _ipAddr;

@@ -21,7 +21,7 @@ class RpcServerConn
     void setRpcSrvThread(RpcServerThread* thread);
 
   public:
-    void onPacket(std::shared_ptr<const RpcSession>&&,
+    void onPacket(WsServerConn<RpcSession>* conn,
                   std::unique_ptr<WsPacket>&&) override;
     void onClose(WsServerConn<RpcSession>* conn,
                  std::unique_ptr<WsPacket>&&) override;
