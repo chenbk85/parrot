@@ -33,6 +33,9 @@
 # Ignore bin directory
 bin/
 
+# Ignore build directory.
+build/
+
 # Logs
 *.log
 

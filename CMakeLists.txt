@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
 
 PROJECT(PARROT)
 
@@ -37,3 +37,6 @@ ADD_SUBDIRECTORY(base/sys)
 ADD_SUBDIRECTORY(component/json)
 ADD_SUBDIRECTORY(component/websocket)
 ADD_SUBDIRECTORY(component/servergear)
+
+# Add project dir.
+ADD_SUBDIRECTORY(project/chat)
