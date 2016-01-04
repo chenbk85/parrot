@@ -1,7 +1,11 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
 
-SET(CMAKE_CXX_COMPILER /Users/leopold/Workspace/tools/llvm/bin/clang++)
-SET(CMAKE_C_COMPILER /Users/leopold/Workspace/tools/llvm/bin/clang)
+# Use customized compiler. The apple clang doesn't support thread_local storage.
+IF(CMAKE_HOST_APPLE)
+  SET(CMAKE_CXX_COMPILER /Users/leopold/Workspace/tools/llvm/bin/clang++)
+  SET(CMAKE_C_COMPILER /Users/leopold/Workspace/tools/llvm/bin/clang)
+ENDIF(CMAKE_HOST_APPLE)
+
 PROJECT(PARROT)
 
 # Disable in source build.
@@ -21,9 +25,15 @@ IF (NOT CMAKE_BUILD_TYPE)
 ENDIF()
 
 # Compiler and its flags.
-SET(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing")
-SET(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
-SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -DRELEASE")
+IF(CMAKE_HOST_APPLE)
+  SET(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing")
+  SET(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
+  SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -DRELEASE")
+ELSE(CMAKE_HOST_APPLE)
+  SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing")
+  SET(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
+  SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -DRELEASE")
+ENDIF(CMAKE_HOST_APPLE)
 
 # Add definitions.
 ADD_DEFINITIONS(-DRAPIDJSON_HAS_STDSTRING -DRAPIDJSON_SSE2)
