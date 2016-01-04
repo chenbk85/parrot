@@ -1,6 +1,8 @@
 # Set depend modules.
-SET(DEPEND_BASE_MODULE util sys)
-SET(DEPEND_COMPONENT_MODULE json websocket servergear)
+# Put the dependencies to the back position
+# E.g., sys dependents util, so, the sequence is sys util.
+SET(DEPEND_BASE_MODULE sys util)
+SET(DEPEND_COMPONENT_MODULE servergear websocket json)
 SET(DEPEND_THIRD_PARTY RapidJson OpenSSL)
 SET(DEPEND_PRJ_MODULE common)
 
@@ -41,9 +43,21 @@ ENDFOREACH(module)
 # Set the path to save library.
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/${THIS_PRJ_NAME}/bin)
 
-# Add util as the target.
+# Add target.
 ADD_EXECUTABLE(${MODULE_NAME} ${${MODULE_NAME}_SRC})
-TARGET_LINK_LIBRARIES(${MODULE_NAME} common servergear websocket json sys util ssl crypto pthread dl)
+
+# Add link libraries.
+TARGET_LINK_LIBRARIES(${MODULE_NAME}
+        ${DEPEND_PRJ_MODULE}
+        ${DEPEND_COMPONENT_MODULE}
+        ${DEPEND_BASE_MODULE})
+
+FOREACH(module ${DEPEND_THIRD_PARTY})
+  STRING(TOUPPER ${module} MODULE)
+  TARGET_LINK_LIBRARIES(${MODULE_NAME} ${${MODULE}_LIBRARY} ${${MODULE}_LIBRARIES})
+ENDFOREACH(module)
+
+TARGET_LINK_LIBRARIES(${MODULE_NAME} pthread dl)
 
 # Add dependencies.
 ADD_DEPENDENCIES(${MODULE_NAME}

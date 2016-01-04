@@ -19,7 +19,7 @@ IF (NOT CMAKE_BUILD_TYPE)
 ENDIF()
 
 # Compiler flags.
-SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing -DRAPIDJSON_HAS_STDSTRING -DRAPIDJSON_SSE2")
+SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing")
 SET(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -DRELEASE")
 

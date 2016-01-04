@@ -35,7 +35,7 @@ ENDFOREACH(module)
 # Set the path to save library.
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
-# Add util as the target.
+# Add library.
 ADD_LIBRARY(${MODULE_NAME} STATIC ${LIB${MODULE_NAME}_SRC})
 
 # Add dependencies.
