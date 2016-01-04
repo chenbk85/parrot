@@ -21,8 +21,8 @@ class EventTrigger : public IoEvent
     void acknowledge();
 
   public:
-    virtual bool isConnection() const;    
-    virtual eIoAction handleIoEvent() override;
+    bool isConnection() const override;
+    eIoAction handleIoEvent() override;
 
   private:
     int _pipeFds[2];

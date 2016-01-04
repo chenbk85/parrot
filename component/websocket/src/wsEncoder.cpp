@@ -479,7 +479,7 @@ void WsEncoder::computeLength()
     auto sysJsonPtr = _currPkt->getSysJson();
     if (sysJsonPtr)
     {
-        _sysJsonStr = std::move(sysJsonPtr->toString());
+        _sysJsonStr = sysJsonPtr->toString();
         _totalLen += getDataLen(_sysJsonStr.size());
     }
     else
@@ -491,7 +491,7 @@ void WsEncoder::computeLength()
     auto jsonPtr = _currPkt->getJson();
     if (jsonPtr)
     {
-        _jsonStr = std::move(jsonPtr->toString());
+        _jsonStr = jsonPtr->toString();
         _totalLen += getDataLen(_jsonStr.size());
     }
     else

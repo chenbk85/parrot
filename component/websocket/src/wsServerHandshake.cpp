@@ -297,7 +297,7 @@ void WsServerHandshake::createHttpHandshakeRsp()
              << createHandshakeSHA1Key() << "\r\n\r\n";
     }
 
-    std::string headerStr = std::move(ostr.str());
+    std::string headerStr = ostr.str();
     std::copy_n(headerStr.begin(), headerStr.size(), &_sendVec[0]);
     _needSendLen = headerStr.size();
 }

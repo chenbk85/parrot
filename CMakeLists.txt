@@ -1,5 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.11)
 
+SET(CMAKE_CXX_COMPILER /Users/leopold/Workspace/tools/llvm/bin/clang++)
+SET(CMAKE_C_COMPILER /Users/leopold/Workspace/tools/llvm/bin/clang)
 PROJECT(PARROT)
 
 # Disable in source build.
@@ -18,8 +20,8 @@ IF (NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE "DEBUG")
 ENDIF()
 
-# Compiler flags.
-SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing")
+# Compiler and its flags.
+SET(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing")
 SET(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
 SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -DRELEASE")
 
@@ -28,6 +30,21 @@ ADD_DEFINITIONS(-DRAPIDJSON_HAS_STDSTRING -DRAPIDJSON_SSE2)
 
 # Set module direcotry.
 SET(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
+
+# Packages.
+FIND_PACKAGE(OpenSSL)
+IF(NOT OPENSSL_FOUND)
+  MESSAGE(STATUS "Failed to find system OpenSSL, trying to find local OpenSSL.")
+  FIND_PACKAGE(LocalOpenSSL)
+  IF(NOT OPENSSL_FOUND)
+    MESSAGE(FATAL_ERROR "Failed to find OpenSSL.")
+  ENDIF(NOT OPENSSL_FOUND)
+ENDIF(NOT OPENSSL_FOUND)
+
+FIND_PACKAGE(RapidJson)
+IF(NOT RAPIDJSON_FOUND)
+  MESSAGE(FATAL_ERROR "Failed to find rapidjson.")
+ENDIF(NOT RAPIDJSON_FOUND)
 
 # Add subdirectory in base.
 ADD_SUBDIRECTORY(base/util)
@@ -40,3 +57,5 @@ ADD_SUBDIRECTORY(component/servergear)
 
 # Add project dir.
 ADD_SUBDIRECTORY(project/chat)
+
+

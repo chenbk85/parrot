@@ -105,7 +105,7 @@ template <typename Sess> std::string RpcRequest<Sess>::toString()
     ostr << "ReqId is " << _rpcReqId << ". Packet Type is "
          << static_cast<uint16_t>(getPacketType()) << ". Session is "
          << _session->toString();
-    return std::move(ostr.str());
+    return ostr.str();
 }
 }
 

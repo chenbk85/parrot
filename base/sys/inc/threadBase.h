@@ -2,6 +2,7 @@
 #define __BASE_SYS_INC_THREADBASE_H__
 
 #include <thread>
+#include <string>
 #include <cstdint>
 #include <memory>
 #include <mutex>

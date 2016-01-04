@@ -22,14 +22,10 @@ FOREACH(module ${DEPEND_COMPONENT_MODULE})
   INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/component/${module}/inc)
 ENDFOREACH(module)
 
+# Add third party headers.
 FOREACH(module ${DEPEND_THIRD_PARTY})
-  FIND_PACKAGE(${module})
   STRING(TOUPPER ${module} MODULE)
-  IF(${MODULE}_FOUND)
-    INCLUDE_DIRECTORIES(${${MODULE}_INCLUDE_DIR})
-  ELSE(${MODULE}_FOUND)
-    MESSAGE(FATAL_ERROR "Failed to find ${module}")
-  ENDIF(${MODULE}_FOUND)
+  INCLUDE_DIRECTORIES(${${MODULE}_INCLUDE_DIR})
 ENDFOREACH(module)
 
 # Set the path to save library.

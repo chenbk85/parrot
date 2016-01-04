@@ -18,7 +18,6 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
-#include <endian.h>
 #elif defined(_WIN32)
 #include <Winsock2.h>
 #endif

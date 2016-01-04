@@ -13,7 +13,7 @@ namespace parrot
 {
 struct UrlInfo;
 struct WsConfig;
-struct WsTranslayer;
+class WsTranslayer;
 
 class WsServerHandshake
 {

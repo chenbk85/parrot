@@ -25,14 +25,10 @@ FOREACH(module ${DEPEND_COMPONENT_MODULE})
   INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR}/component/${module}/inc)
 ENDFOREACH(module)
 
+# Add third party headers.
 FOREACH(module ${DEPEND_THIRD_PARTY})
-  FIND_PACKAGE(${module})
   STRING(TOUPPER ${module} MODULE)
-  IF(${MODULE}_FOUND)
-    INCLUDE_DIRECTORIES(${${MODULE}_INCLUDE_DIR})
-  ELSE(${MODULE}_FOUND)
-    MESSAGE(FATAL_ERROR "Failed to find ${module}")
-  ENDIF(${MODULE}_FOUND)
+  INCLUDE_DIRECTORIES(${${MODULE}_INCLUDE_DIR})
 ENDFOREACH(module)
 
 # Find header of project modules.
@@ -41,7 +37,7 @@ FOREACH(module ${DEPEND_PRJ_MODULE})
 ENDFOREACH(module)
 
 # Set the path to save executable.
-SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/${THIS_PRJ_NAME}/bin)
+SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 # Add target.
 ADD_EXECUTABLE(${MODULE_NAME} ${${MODULE_NAME}_SRC})

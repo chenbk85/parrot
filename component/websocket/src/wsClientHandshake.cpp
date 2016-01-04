@@ -104,8 +104,8 @@ eCodes WsClientHandshake::parse()
     http_parser_execute(parser.get(), &settings,
                         reinterpret_cast<char*>(&_recvVec[0]), _rcvdLen);
 
-    if (!parser->status_code !=
-            static_cast<uint16_t>(eCodes::HTTP_SwitchingProtocols) ||
+    if ((parser->status_code !=
+         static_cast<uint16_t>(eCodes::HTTP_SwitchingProtocols)) ||
         (parser->http_major != 1 && parser->http_major != 2) ||
         (parser->http_major == 1 && parser->http_minor != 1))
     {
@@ -268,7 +268,7 @@ void WsClientHandshake::createHttpHandshake()
          << "Sec-WebSocket-Version: 13\r\n"
          << "Sec-WebSocket-Key: " << _secWebSocketKey << "\r\n\r\n";
 
-    std::string headerStr = std::move(ostr.str());
+    std::string headerStr = ostr.str();
     std::copy_n(headerStr.begin(), headerStr.size(), &_sendVec[0]);
     _needSendLen = headerStr.size();
 }
