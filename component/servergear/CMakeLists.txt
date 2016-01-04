@@ -1,7 +1,7 @@
 # Set depend modules.
 SET(DEPEND_BASE_MODULE util sys)
 SET(DEPEND_COMPONENT_MODULE json websocket)
-SET(DEPEND_THIRD_PARTY RapidJson OpenSSL) # OpenSSL is case sensitive.
+SET(DEPEND_THIRD_PARTY RapidJson OpenSSL)
 
 # Get direcotry name.
 GET_FILENAME_COMPONENT(MODULE_NAME ${CMAKE_CURRENT_SOURCE_DIR} NAME)

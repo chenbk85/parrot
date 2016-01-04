@@ -40,7 +40,7 @@ FOREACH(module ${DEPEND_PRJ_MODULE})
   INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR}/../${module}/inc)
 ENDFOREACH(module)
 
-# Set the path to save library.
+# Set the path to save executable.
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 # Add target.
