@@ -158,7 +158,8 @@ void MainThread<FrontSession, RpcReqSession>::createSysThreads()
     }
 
     // Create rpc server thread.
-    _rpcSrvThread = std::unique_ptr<RpcServerThread>(new RpcServerThread());
+    _rpcSrvThread =
+        std::unique_ptr<RpcServerThread>(new RpcServerThread(_config));
 
     // Create rpc client thread.
     _rpcCliThread = std::unique_ptr<RpcClientThread<FrontSession>>(

@@ -11,12 +11,13 @@ namespace parrot
 // JOB_XXX < 1000 are reserved for system jobs.
 //
 //\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*
-const uint32_t JOB_PACKET         = 1;
-const uint32_t JOB_RPC_REQ        = 2;
-const uint32_t JOB_RPC_RSP        = 3;
-const uint32_t JOB_UPDATE_SESSION = 4;
-const uint32_t JOB_DEL_SESSION    = 5;
-const uint32_t JOB_KICK           = 6;
+constexpr uint32_t JOB_PACKET             = 1;
+constexpr uint32_t JOB_RPC_REQ            = 2;
+constexpr uint32_t JOB_RPC_RSP            = 3;
+constexpr uint32_t JOB_UPDATE_SESSION     = 4;
+constexpr uint32_t JOB_UPDATE_SESSION_ACK = 5;
+constexpr uint32_t JOB_DEL_SESSION        = 6;
+constexpr uint32_t JOB_KICK               = 7;
 
 class Job
 {

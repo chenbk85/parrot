@@ -67,5 +67,3 @@ ADD_SUBDIRECTORY(component/servergear)
 
 # Add project dir.
 ADD_SUBDIRECTORY(project/chat)
-
-

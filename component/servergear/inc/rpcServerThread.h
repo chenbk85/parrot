@@ -12,7 +12,6 @@
 #include <ctime>
 #include <iostream>
 
-#include "config.h"
 #include "mtRandom.h"
 #include "threadBase.h"
 #include "jobHandler.h"
@@ -29,6 +28,8 @@
 
 namespace parrot
 {
+struct Config;
+
 class RpcServerThread : public ThreadBase,
                         public TimeoutHandler<WsServerConn<RpcSession>>,
                         public JobHandler,
@@ -45,14 +46,14 @@ class RpcServerThread : public ThreadBase,
         std::unordered_map<RpcServerConn*, std::unique_ptr<RpcServerConn>>;
 
   public:
-    RpcServerThread();
+    explicit RpcServerThread(const Config *cfg);
 
   public:
     // ThreadBase
     void stop() override;
 
     void registerConn(const std::string& sid, RpcServerConn* conn);
-    void removeConn(RpcServerConn* conn);    
+    void removeConn(RpcServerConn* conn);
 
     void addReqPacket(JobHandler* hdr,
                       std::shared_ptr<RpcSession>,
@@ -74,6 +75,7 @@ class RpcServerThread : public ThreadBase,
     void handleJob() override;
 
   private:
+    void init();
     void handleRpcRsp(RspPktList& pktList);
     void dispatchPackets();
     void addConnToNotifier();
@@ -93,6 +95,8 @@ class RpcServerThread : public ThreadBase,
 
     MtRandom _random;
     RpcResponseJobHdr _rpcRspJobHdr;
+
+    const Config* _config;
 };
 }
 

@@ -56,17 +56,13 @@ function parseItem(buff, offset) {
     
     var newBuff = new Buffer(len);
     buff.copy(newBuff, 0, offset, buff.length);    
-    if (type === 1) {
+    if (type === 1 || type === 2) {
         console.log(newBuff);        
         // Data is json.
         var str = newBuff.toString();
         var json = JSON.parse(str);
 
-        if(json.s.length !== pktLenIdx++) {
-            throw new Error('Bad len.');
-        }
-        
-        console.log('parseItem: jsonStrLen is %d', json.s.length);
+        console.log('parseItem: json is %j', json);
     } else if (type === 2) {
         // Data is binary.
         console.log('parseItem: Binary');
@@ -80,15 +76,6 @@ function parseBinaryData(buff) {
     }
 
     var offset = 0;
-    var route = 0;
-    var ret = getVariableNumber(buff, offset);
-
-    if (!ret) {
-        return;
-    }
-
-    offset += ret.o;
-    route = ret.n;
     
     while (offset < buff.length) {
         offset = parseItem(buff, offset);
@@ -119,23 +106,44 @@ client.on('connect', function(connection) {
             parseBinaryData(message.binaryData);
         }
 
-        process.nextTick(sendNumber, connection);
+        process.nextTick(sendData, connection);
     });
 
     var i = 0;
-    function sendNumber(conn) {
+    var reqId = 0;
+    function sendData(conn) {
         if (conn.connected) {
-            var str = 'HelloWorld' + i++;
-            var buff = new Buffer(str.length);            
-            buff.write(str, 0, str.length, 'utf8');
+            var sysJson = {
+                route: 1,
+                type: 2,
+                reqId: reqId
+            };
+            var dataJson = {
+                str: 'Hello world.' + reqId
+            };
+
+            ++reqId;
+
+            var sysJsonStr = JSON.stringify(sysJson);
+            var dataJsonStr = JSON.stringify(dataJson);
+            var buff = new Buffer(2 + sysJsonStr.length + 2 + dataJsonStr.length);
+            var idx = 0;
+            buff.writeUInt8(1, idx++);
+            buff.writeUInt8(sysJsonStr.length, idx++);
+            buff.write(sysJsonStr, idx, sysJsonStr.length, 'utf8');
+            idx += sysJsonStr.length;
+            buff.writeUInt8(2, idx++);
+            buff.writeUInt8(dataJsonStr.length, idx++);
+            buff.write(dataJsonStr, idx, dataJsonStr.length, 'utf8');
+
             conn.send(buff);
 
             if (i < 2) {
-                setTimeout(sendNumber.bind(null, connection), 1000);
+                setTimeout(sendData.bind(null, connection), 1000);
             }
         }
     }
-    sendNumber(connection);
+    sendData(connection);
 });
 
-client.connect('ws://10.24.100.202:9898/');
+client.connect('ws://10.24.100.176:9898/');

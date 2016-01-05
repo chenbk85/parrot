@@ -1,6 +1,8 @@
 #ifndef __COMPONENT_WEBSOCKET_INC_WSDEFINITION_H__
 #define __COMPONENT_WEBSOCKET_INC_WSDEFINITION_H__
 
+#include <cstdint>
+
 namespace parrot
 {
 enum class eOpCode

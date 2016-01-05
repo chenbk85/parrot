@@ -51,8 +51,9 @@ struct Config
     // The lock file path.
     std::string _lockFilePath = "";
 
-    uint32_t _frontThreadTimeout = 45;
-    uint32_t _rpcThreadTimeout = 45;
+    uint32_t _frontClientConnTimeout = 60;
+    uint32_t _rpcClientConnTimeout = 60;
+    uint32_t _rpcClientHeartbeatInterval = 45;
     uint32_t _rpcReqTimeout = 5;
     
     // This server's info.

@@ -38,19 +38,26 @@ SED                  := sed
 MV                   := mv
 AR                   := ar
 
-# Set the default goal, or the included makefile will change it.
-.DEFAULT_GOAL        := all
+#Sub project dir.
+SUB_PRJ_DIR         := $(shell find ./project -mindepth 1 -maxdepth 1 -type d)
+
+# Default target.
+.PHONY:all
+all:
 
 include Platform.mk $(SUB_MAKEFILES)
 
-.PHONY: all
-all: $(OBJECTS) $(LIBRARIES) $(BINARIES)
+all: create_bin_dir $(OBJECTS) $(LIBRARIES) $(BINARIES)
+
+.PHONY: create_bin_dir
+create_bin_dir:
+	$(foreach d,$(SUB_PRJ_DIR),$(shell mkdir -p $(PRJ_ROOT)/bin/$(word 3,$(subst /, ,$(d)))))
 
 .PHONY: clean
 clean:
 	@find $(PRJ_ROOT) -name '*.o' -exec $(RM) {} \;
 	@find $(PRJ_ROOT) -name '*~' -exec $(RM) {} \;
-	@$(RM) $(PRJ_ROOT)/lib/* $(PRJ_ROOT)/bin/* $(PRJ_ROOT)/project/*/lib/* $(PRJ_ROOT)/project/*/bin/*
+	@$(RM) $(PRJ_ROOT)/lib/* $(PRJ_ROOT)/bin/* $(PRJ_ROOT)/project/*/lib/*
 
 .PHONY: dist
 dist:

@@ -152,10 +152,11 @@ std::unique_ptr<UrlInfo> UrlParser::parse(const std::string& urlStr)
     if (*tail == '/' && !foundPort)
     {
         urlInfo->_port = getDefaultPortByScheme(urlInfo->_scheme);
+        ++tail;
     }
 
     head = tail;
-    if (++tail == urlStr.end())
+    if (tail == urlStr.end())
     {
         urlInfo->_path = "/";
         return urlInfo;

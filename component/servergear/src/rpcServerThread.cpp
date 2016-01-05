@@ -1,10 +1,13 @@
+#include "epoll.h"
+#include "kqueue.h"
+#include "config.h"
 #include "rpcServerThread.h"
 #include "logger.h"
 #include "macroFuncs.h"
 
 namespace parrot
 {
-RpcServerThread::RpcServerThread()
+RpcServerThread::RpcServerThread(const Config* cfg)
     : ThreadBase(),
       TimeoutHandler<WsServerConn<RpcSession>>(),
       JobHandler(),
@@ -16,10 +19,29 @@ RpcServerThread::RpcServerThread()
       _timeoutMgr(),
       _now(0),
       _random(),
-      _rpcRspJobHdr()
+      _rpcRspJobHdr(),
+      _config(cfg)
 {
     using namespace std::placeholders;
     _rpcRspJobHdr = std::bind(&RpcServerThread::handleRpcRsp, this, _1);
+
+    init();
+}
+
+void RpcServerThread::init()
+{
+    _timeoutMgr.reset(new TimeoutManager<WsServerConn<RpcSession>>(
+        this, _config->_rpcClientConnTimeout));
+
+#if defined(__linux__)
+    _notifier.reset(new Epoll(_config->_neighborSrvMap.size()));
+#elif defined(__APPLE__)
+    _notifier.reset(new Kqueue(_config->_neighborSrvMap.size()));
+#elif defined(_WIN32)
+//    _notifier.reset(new
+//    SimpleEventNotifier(_config->_frontThreadMaxConnCount));
+#endif
+    _notifier->create();
 }
 
 void RpcServerThread::stop()

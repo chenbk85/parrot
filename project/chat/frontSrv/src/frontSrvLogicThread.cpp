@@ -62,8 +62,8 @@ void FrontSrvLogicThread::handlePacket(
     {
         LOG_INFO("FrontSrvLogicThread::handlePacket: session is "
                  << (sp.first)->toString() << ".");
-        std::unique_ptr<parrot::WsPacket> pkt(new parrot::WsPacket());
-        pkt->setRoute(1);
+
+        auto pkt = (sp.second)->toResponsePkt();
         std::unique_ptr<parrot::Json> json(new parrot::Json());
         json->createRootObject();
         std::string s = "Hello world!";

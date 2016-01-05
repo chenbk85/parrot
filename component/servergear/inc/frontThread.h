@@ -78,7 +78,7 @@ class FrontThread : public PoolThread,
                  std::unique_ptr<WsPacket>&&) override;
 
   protected:
-    void handleUpdateSession(std::shared_ptr<const Sess>& ps);
+    void handleUpdateSession(JobHandler*, std::shared_ptr<const Sess>& ps);
     void handlePacket(std::list<SessionPktPair<Sess>>& pktList);
     void dispatchPackets();
     void addConnToNotifier();
@@ -119,7 +119,7 @@ FrontThread<Sess>::FrontThread()
 {
     using namespace std::placeholders;
 
-    _updateSessionHdr = std::bind(&FrontThread::handleUpdateSession, this, _1);
+    _updateSessionHdr = std::bind(&FrontThread::handleUpdateSession, this, _1, _2);
     _pktJobHdr        = std::bind(&FrontThread::handlePacket, this, _1);
 }
 
@@ -128,7 +128,7 @@ void FrontThread<Sess>::updateByConfig(const Config* cfg)
 {
     _config = cfg;
     _timeoutMgr.reset(new TimeoutManager<WsServerConn<Sess>>(
-        this, _config->_frontThreadTimeout));
+        this, _config->_frontClientConnTimeout));
 
 #if defined(__linux__)
     _notifier.reset(new Epoll(_config->_frontThreadMaxConnCount));
@@ -150,7 +150,8 @@ template <typename Sess> void FrontThread<Sess>::stop()
 }
 
 template <typename Sess>
-void FrontThread<Sess>::handleUpdateSession(std::shared_ptr<const Sess>& ps)
+void FrontThread<Sess>::handleUpdateSession(JobHandler* hdr,
+                                            std::shared_ptr<const Sess>& ps)
 {
     auto it = _connMap.find(ps->getUniqueSessionId());
 
@@ -163,6 +164,10 @@ void FrontThread<Sess>::handleUpdateSession(std::shared_ptr<const Sess>& ps)
     }
 
     it->second->updateSession(ps);
+    std::unique_ptr<UpdateSessionAckJob<Sess>> ackJob(
+        new UpdateSessionAckJob<Sess>());
+    ackJob->bind(std::move(ps));
+    hdr->addJob(std::move(ackJob));
 }
 
 template <typename Sess>

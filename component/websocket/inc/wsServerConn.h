@@ -145,7 +145,7 @@ template <class Sess> void WsServerConn<Sess>::onOpen()
 
 template <class Sess> void WsServerConn<Sess>::onPing()
 {
-    std::unique_ptr<WsPacket> pkt(new WsPacket);
+    std::unique_ptr<WsPacket> pkt(new WsPacket());
     pkt->setOpCode(eOpCode::Pong);
     sendPacket(pkt);
 }
@@ -182,7 +182,7 @@ void WsServerConn<Sess>::onClose(std::unique_ptr<WsPacket>&& p)
     else
     {
         // Closing hand wave.
-        std::unique_ptr<WsPacket> pkt(new WsPacket);
+        std::unique_ptr<WsPacket> pkt(new WsPacket());
         pkt->setClose(eCodes::WS_NormalClosure);
         sendPacket(pkt);
         _sentClose = true;

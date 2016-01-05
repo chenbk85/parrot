@@ -42,6 +42,7 @@ template <uint32_t JOBTYPE, typename... Ts> class ThreadJob : public Job
 };
 
 class WsPacket;
+class JobHandler;
 
 //
 //
@@ -87,13 +88,28 @@ using PacketJobHdr = std::function<void(std::list<SessionPktPair<Sess>>&)>;
 //
 template <typename Sess>
 using UpdateSessionJob =
-    ThreadJob<JOB_UPDATE_SESSION, std::shared_ptr<const Sess>>;
+    ThreadJob<JOB_UPDATE_SESSION, JobHandler*, std::shared_ptr<const Sess>>;
 
 //
 //
 //
 template <typename Sess>
-using UpdateSessionJobHdr = std::function<void(std::shared_ptr<const Sess>&)>;
+using UpdateSessionJobHdr =
+    std::function<void(JobHandler*, std::shared_ptr<const Sess>&)>;
+
+//
+//
+//
+template <typename Sess>
+using UpdateSessionAckJob =
+    ThreadJob<JOB_UPDATE_SESSION_ACK, std::shared_ptr<const Sess>>;
+
+//
+//
+//
+template <typename Sess>
+using UpdateSessionAckJobHdr =
+    std::function<void(std::shared_ptr<const Sess>&)>;
 }
 
 #endif

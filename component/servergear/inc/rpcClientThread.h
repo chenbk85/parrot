@@ -17,6 +17,8 @@
 #include "kqueue.h"
 #include "rpcSession.h"
 #include "wsClientConn.h"
+#include "config.h"
+#include "wsConfig.h"
 
 namespace parrot
 {
@@ -38,6 +40,10 @@ class RpcClientThread : public ThreadBase,
     void addRsp(JobHandler* hdr,
                 std::shared_ptr<Sess>&,
                 std::unique_ptr<WsPacket>&& pkt);
+
+
+  public:
+    void stop() override;
 
   private:
     void init();
@@ -89,7 +95,7 @@ RpcClientThread<Sess>::RpcClientThread(const Config& cfg, const WsConfig& wsCfg)
 template <typename Sess> void RpcClientThread<Sess>::init()
 {
     _timeoutMgr.reset(new TimeoutManager<WsClientConn<RpcSession>>(
-        this, _config._rpcThreadTimeout));
+        this, _config._rpcClientHeartbeatInterval));
 
 #if defined(__linux__)
     _notifier.reset(new Epoll(_config._neighborSrvMap.size()));
@@ -100,6 +106,14 @@ template <typename Sess> void RpcClientThread<Sess>::init()
 //    SimpleEventNotifier(_config->_frontThreadMaxConnCount));
 #endif
     _notifier->create();
+}
+
+template <typename Sess> void RpcClientThread<Sess>::stop()
+{
+    ThreadBase::stop();
+    _notifier->stopWaiting();
+    ThreadBase::join();
+    LOG_INFO("RpcClientThread::Stop: Done.");
 }
 
 template <typename Sess> void RpcClientThread<Sess>::afterAddJob()

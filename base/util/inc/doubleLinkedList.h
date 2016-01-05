@@ -51,8 +51,6 @@ template <typename T> class DoubleLinkedList
 
     void remove(T* n) noexcept
     {
-        PARROT_ASSERT(n != nullptr && n->getPrev() != nullptr);
-
         if (_count == 1)
         {
             _head = _tail = nullptr;
