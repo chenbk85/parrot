@@ -185,7 +185,7 @@ void FrontThread<Sess>::handlePacket(std::list<SessionPktPair<Sess>>& pktList)
         }
 
         LOG_DEBUG("FrontThread::handlePacket: Send packet to session "
-                  << (s.first)->toString());
+                  << (s.first)->toString() << ".");
         it->second->sendPacket(s.second);
 
         if (it->second->canSwitchToSend())
@@ -369,6 +369,8 @@ template <typename Sess> void FrontThread<Sess>::addConnToNotifier()
         sess->createUniqueSessionId(_config->_thisServer._serverId,
                                     getThreadIdStr(), _connUniqueIdx++);
         sess->setIpAddrPort(c->getRemoteAddr(), c->getRemotePort());
+        sess->setFrontJobHdr(this);
+        
         c->setSession(std::move(sess));
         c->setNextAction(c->getDefaultAction());
         c->setPacketHandler(this);

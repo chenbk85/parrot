@@ -1,4 +1,6 @@
+#include <sstream>
 #include "chatSession.h"
+#include "macroFuncs.h"
 
 namespace chat
 {
@@ -42,6 +44,7 @@ void ChatSession::setFrontJobHdr(parrot::JobHandler* hdr)
 
 parrot::JobHandler* ChatSession::getFrontJobHdr() const
 {
+    PARROT_ASSERT(_frontJobHdr != nullptr);
     return _frontJobHdr;
 }
 
@@ -84,6 +87,8 @@ parrot::JobHandler* ChatSession::getRouteHdr(uint64_t route) const
 
 std::string ChatSession::toString() const
 {
-    return "";
+    std::ostringstream ostr;
+    ostr << "[Uid is " << _uid << ". IP is " << _ipAddr << "]";
+    return ostr.str();
 }
 }

@@ -120,7 +120,7 @@ void RpcServerThread::dispatchPackets()
         (kv.first)->addJob(std::move(job));
     }
 
-    LOG_DEBUG("RpcServerThread::dispatchPackets");
+    LOG_DEBUG("RpcServerThread::dispatchPackets.");
 }
 
 void RpcServerThread::addConnToNotifier()

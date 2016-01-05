@@ -109,7 +109,6 @@ client.on('connect', function(connection) {
         process.nextTick(sendData, connection);
     });
 
-    var i = 0;
     var reqId = 0;
     function sendData(conn) {
         if (conn.connected) {
@@ -137,10 +136,7 @@ client.on('connect', function(connection) {
             buff.write(dataJsonStr, idx, dataJsonStr.length, 'utf8');
 
             conn.send(buff);
-
-            if (i < 2) {
-                setTimeout(sendData.bind(null, connection), 1000);
-            }
+            setTimeout(sendData.bind(null, connection), 1000);
         }
     }
     sendData(connection);

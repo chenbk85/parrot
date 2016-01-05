@@ -39,7 +39,7 @@ MV                   := mv
 AR                   := ar
 
 #Sub project dir.
-SUB_PRJ_DIR         := $(shell find ./project -mindepth 1 -maxdepth 1 -type d)
+SUB_PRJ_DIR          := $(shell find ./project -mindepth 1 -maxdepth 1 -type d)
 
 # Default target.
 .PHONY:all
