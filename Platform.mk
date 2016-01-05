@@ -23,6 +23,10 @@ endif
 
 ifeq ($(uname_S), Darwin)
 
+COMPLIER          := /Users/leopold/Workspace/tools/llvm/bin/clang++ -stdlib=libc++ -std=c++11 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk
+
+LINKER            := /Users/leopold/Workspace/tools/llvm/bin/clang++
+
 # Openssl
 OPENSSL_INC       := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/openssl/include
 OPENSSL_LIB       := $(THIRD_PARTY_DIR)/$(uname_S).$(uname_M)/openssl/lib
