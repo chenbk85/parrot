@@ -133,6 +133,7 @@ eCodes WsTranslayer::sendData()
 
 void WsTranslayer::sendPacket(std::list<std::unique_ptr<WsPacket>>& pktList)
 {
+    LOG_DEBUG("WsTransLayer::sendPacket: List version");    
     for (auto& p : pktList)
     {
         _pktList.emplace_back(std::move(p));
@@ -141,6 +142,7 @@ void WsTranslayer::sendPacket(std::list<std::unique_ptr<WsPacket>>& pktList)
 
 void WsTranslayer::sendPacket(std::unique_ptr<WsPacket>& pkt)
 {
+    LOG_DEBUG("WsTransLayer::sendPacket: Single pkt version");     
     _pktList.emplace_back(std::move(pkt));
 }
 

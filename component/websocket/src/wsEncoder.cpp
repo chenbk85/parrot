@@ -566,6 +566,8 @@ void WsEncoder::encodePlainPacket()
                 }
 
                 _writeState = eWriteState::Json;
+                _encodingMeta = true;
+                _metaData.clear();
             }
         }
         // No break;
@@ -583,6 +585,8 @@ void WsEncoder::encodePlainPacket()
                 }
 
                 _writeState = eWriteState::Binary;
+                _encodingMeta = true;
+                _metaData.clear();                                
             }
         }
         // No break;
@@ -599,6 +603,8 @@ void WsEncoder::encodePlainPacket()
                 }
 
                 // _writeState = eWriteState::None;
+                // _encodingMeta = true;
+                // _metaData.clear();
             }
         }
         break;

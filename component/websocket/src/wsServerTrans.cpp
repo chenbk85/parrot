@@ -109,6 +109,8 @@ eIoAction WsServerTrans::work(eIoAction evt)
                     if (res != eCodes::ST_Ok)
                     {
                         _onErrorCb(res);
+                        // Next, we only send packets.
+                        _state = eTranslayerState::WsError;                        
                         return eIoAction::Write;
                     }
 
@@ -153,6 +155,35 @@ eIoAction WsServerTrans::work(eIoAction evt)
         }
         break;
 
+        case eTranslayerState::WsError:
+        {
+            if (evt == eIoAction::Read)
+            {
+                return eIoAction::Write;                
+            }
+            else if (evt == eIoAction::Write)
+            {
+                code = sendData();
+                if (code == eCodes::ST_Complete)
+                {
+                    return eIoAction::Read;
+                }
+                else if (code == eCodes::ST_NeedSend)
+                {
+                    return eIoAction::Write;
+                }
+                else
+                {
+                    return eIoAction::Remove;
+                }
+            }
+            else
+            {
+                PARROT_ASSERT(false);
+            }
+        }
+        break;
+        
         default:
         {
             PARROT_ASSERT(false);
