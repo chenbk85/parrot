@@ -242,11 +242,13 @@ template <typename Sess> void FrontThread<Sess>::handleJob()
 template <typename Sess> void FrontThread<Sess>::afterAddJob()
 {
     _notifier->stopWaiting();
+    LOG_DEBUG("FrontThread::afterAddJob.");
 }
 
 template <typename Sess> void FrontThread<Sess>::afterAddNewConn()
 {
     _notifier->stopWaiting();
+    LOG_DEBUG("FrontThread::afterAddNewConn.");    
 }
 
 template <typename Sess>

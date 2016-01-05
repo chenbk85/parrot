@@ -34,7 +34,8 @@ class WsTranslayer
     {
         RecvHttpHandshake,
         SendHttpHandshake,
-        WsConnected
+        WsConnected,
+        WsError // In this state, we only send packets.
     };
 
   public:
