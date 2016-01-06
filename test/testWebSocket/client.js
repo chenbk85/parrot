@@ -30,7 +30,7 @@ function getVariableNumber(buff, offset) {
 function parseItem(buff, offset) {
     if (buff.length <= offset) {
         console.log('parseItem:: bad buff1.');        
-        return;
+        return -1;
     }
 
     var type = buff.readUInt8(offset++, true);
@@ -41,7 +41,7 @@ function parseItem(buff, offset) {
     var len = 0;    
 
     if (!ret) {
-        return;
+        return -1;
     }
 
     len = ret.n;
@@ -49,7 +49,7 @@ function parseItem(buff, offset) {
 
     if (buff.len < offset + len) {
         console.log('parseItem:: bad buff2.');
-        return;
+        return -1;
     }
 
 //    console.log('parseBinaryData len is %d. offset is %d', len, offset);    
@@ -67,6 +67,9 @@ function parseItem(buff, offset) {
         // Data is binary.
         console.log('parseItem: Binary');
     }
+
+    offset += len;
+    return offset;
 }
 
 function parseBinaryData(buff) {
@@ -79,6 +82,10 @@ function parseBinaryData(buff) {
     
     while (offset < buff.length) {
         offset = parseItem(buff, offset);
+
+        if (offset < 0) {
+            break;
+        }
     }
 }
 
@@ -106,7 +113,7 @@ client.on('connect', function(connection) {
             parseBinaryData(message.binaryData);
         }
 
-        process.nextTick(sendData, connection);
+       // process.nextTick(sendData, connection);
     });
 
     var reqId = 0;
@@ -136,7 +143,7 @@ client.on('connect', function(connection) {
             buff.write(dataJsonStr, idx, dataJsonStr.length, 'utf8');
 
             conn.send(buff);
-            //setTimeout(sendData.bind(null, connection), 1000);
+            setTimeout(sendData.bind(null, connection), 1000);
         }
     }
     sendData(connection);
