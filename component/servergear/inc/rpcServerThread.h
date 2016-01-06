@@ -47,6 +47,7 @@ class RpcServerThread : public ThreadBase,
 
   public:
     explicit RpcServerThread(const Config *cfg);
+    virtual ~RpcServerThread() = default;
 
   public:
     // ThreadBase
@@ -94,7 +95,7 @@ class RpcServerThread : public ThreadBase,
     std::time_t _now;
 
     MtRandom _random;
-    RpcResponseJobHdr _rpcRspJobHdr;
+    RpcSrvRspJobHdr _rpcRspJobHdr;
 
     const Config* _config;
 };

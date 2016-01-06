@@ -11,6 +11,7 @@
 #include "frontThread.h"
 #include "wsPacket.h"
 #include "threadJob.h"
+#include "rpcRequest.h"
 
 namespace chat
 {
@@ -72,6 +73,12 @@ void FrontSrvLogicThread::handlePacket(
 
         rspMap[(sp.first)->getFrontJobHdr()].emplace_back(std::move(sp.first),
                                                           std::move(pkt));
+
+        std::unique_ptr<parrot::RpcRequest<ChatSession>> rpcReq(
+            new parrot::RpcRequest<ChatSession>(
+                "backSrv001", sp.first,
+                std::unique_ptr<parrot::WsPacket>(new parrot::WsPacket()),
+                this));
     }
 
     for (auto& kv : rspMap)

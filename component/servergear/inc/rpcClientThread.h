@@ -4,6 +4,7 @@
 #include <memory>
 #include <list>
 
+#include "codes.h"
 #include "threadBase.h"
 #include "mtRandom.h"
 #include "jobHandler.h"
@@ -19,6 +20,7 @@
 #include "wsClientConn.h"
 #include "config.h"
 #include "wsConfig.h"
+#include "rpcRequest.h"
 
 namespace parrot
 {
@@ -33,14 +35,19 @@ class RpcClientThread : public ThreadBase,
     using ConnMap =
         std::unordered_map<std::string, std::shared_ptr<RpcClientConn<Sess>>>;
 
+    using RpcRspList = std::list<std::tuple<eCodes,
+                                            std::shared_ptr<const Sess>,
+                                            std::unique_ptr<WsPacket>>>;
+
   public:
     RpcClientThread(const Config& cfg, const WsConfig& wsCfg);
 
   public:
+    // Internal API. Client should not call this API.
     void addRsp(JobHandler* hdr,
-                std::shared_ptr<Sess>&,
+                eCodes code,
+                std::shared_ptr<const Sess>&,
                 std::unique_ptr<WsPacket>&& pkt);
-
 
   public:
     void stop() override;
@@ -65,7 +72,7 @@ class RpcClientThread : public ThreadBase,
     // Save connected client to this map.
     ConnMap _connMap;
 
-    std::unordered_map<JobHandler*, std::list<SessionPktPair<Sess>>> _rspMap;
+    std::unordered_map<JobHandler*, RpcRspList> _rspMap;
 
     std::unique_ptr<EventNotifier> _notifier;
     std::unique_ptr<TimeoutManager<WsClientConn<RpcSession>>> _timeoutMgr;
@@ -123,10 +130,11 @@ template <typename Sess> void RpcClientThread<Sess>::afterAddJob()
 
 template <typename Sess>
 void RpcClientThread<Sess>::addRsp(JobHandler* hdr,
-                                   std::shared_ptr<Sess>& session,
+                                   eCodes code,
+                                   std::shared_ptr<const Sess>& session,
                                    std::unique_ptr<WsPacket>&& pkt)
 {
-    _rspMap[hdr].emplace_back(std::move(session), std::move(pkt));
+    _rspMap[hdr].emplace_back(code, std::move(session), std::move(pkt));
 }
 
 template <typename Sess> void RpcClientThread<Sess>::doConnect()
@@ -172,8 +180,8 @@ template <typename Sess> void RpcClientThread<Sess>::handleRsp()
             continue;
         }
 
-        std::unique_ptr<PacketJob<Sess>> pktJob(new PacketJob<Sess>());
-        pktJob.bind(std::move(kv.second));
+        std::unique_ptr<RpcCliRspJob<Sess>> pktJob(new RpcCliRspJob<Sess>());
+        pktJob->bind(std::move(kv.second));
         kv.second.clear();
         (kv.first)->addJob(std::move(pktJob));
     }
@@ -213,7 +221,51 @@ template <typename Sess> void RpcClientThread<Sess>::beforeStart()
 
 template <typename Sess> void RpcClientThread<Sess>::handleJob()
 {
-    // TODO: Impl this function.
+    std::list<std::unique_ptr<Job>> jobList;
+    _jobListLock.lock();
+    jobList = std::move(_jobList);
+    _jobListLock.unlock();
+
+    auto mit = _connMap.end();
+
+    for (auto& j : jobList)
+    {
+        switch (j->getJobType())
+        {
+            case JOB_RPC_CLI_REQ:
+            {
+                std::unique_ptr<RpcRequest<Sess>> req(
+                    static_cast<RpcRequest<Sess>*>(
+                        (j.release())->getDerivedPtr()));
+
+                mit = _connMap.find(req->getDestSrvId());
+                if (mit == _connMap.end())
+                {
+                    LOG_WARN(
+                        "RpcClientThread::handleJob: Failed to find rpc server "
+                        << req->getDestSrvId() << ".");
+                    addRsp(req->getRspHandler(), eCodes::ERR_RemoteNotConnected,
+                           req->getSession(),
+                           std::unique_ptr<WsPacket>(new WsPacket()));
+                    continue;
+                }
+
+                mit->second->addJob(req);
+                if (mit->second->canSwitchToSend())
+                {
+                    mit->second->setNextAction(eIoAction::Write);
+                    _notifier->updateEventAction(mit->second.get());
+                }
+            }
+            break;
+
+            default:
+            {
+                PARROT_ASSERT(false);
+            }
+            break;
+        }
+    }
 }
 
 template <typename Sess> void RpcClientThread<Sess>::run()
@@ -235,9 +287,6 @@ template <typename Sess> void RpcClientThread<Sess>::run()
             // Needs to wake up to reconnect. So we should use small
             // milliseconds.
             eventNum = _notifier->waitIoEvents(1000);
-
-            // Append packet which needs to be sent to connections.
-            handleJob();
 
             // Here handle events.
             for (idx = 0; idx != eventNum; ++idx)
@@ -281,8 +330,13 @@ template <typename Sess> void RpcClientThread<Sess>::run()
                 } // switch
             }     // for
 
-            checkRpcRequestTimeout();
+            // Append packet which needs to be sent to connections.
+            handleJob();
 
+            // Send responses to the handler.
+            handleRsp();
+
+            checkRpcRequestTimeout();
         } // while
     }
     catch (const std::system_error& e)

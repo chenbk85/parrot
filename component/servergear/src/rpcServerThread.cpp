@@ -4,6 +4,7 @@
 #include "rpcServerThread.h"
 #include "logger.h"
 #include "macroFuncs.h"
+#include "timeoutManager.h"
 
 namespace parrot
 {
@@ -59,11 +60,13 @@ void RpcServerThread::registerConn(const std::string& sid, RpcServerConn* conn)
     auto it = _registeredConnMap.find(sid);
     if (it != _registeredConnMap.end())
     {
+        // Found same server id!!! Kick this connection.
         LOG_WARN("RpcServerThread::registerConn: Removing conn "
                  << it->second->getSession()->toString() << ".");
         removeConn(it->second);
     }
 
+    // Add the new connection to the connection map.
     _registeredConnMap[sid] = conn;
     LOG_DEBUG("RpcServerThread::addConn: Registered conn "
               << conn->getSession()->toString() << ".");
@@ -114,13 +117,11 @@ void RpcServerThread::dispatchPackets()
             continue;
         }
 
-        std::unique_ptr<RpcRequestJob> job(new RpcRequestJob());
+        std::unique_ptr<RpcSrvReqJob> job(new RpcSrvReqJob());
         job->bind(std::move(kv.second));
         kv.second.clear();
         (kv.first)->addJob(std::move(job));
     }
-
-    LOG_DEBUG("RpcServerThread::dispatchPackets.");
 }
 
 void RpcServerThread::addConnToNotifier()
@@ -187,9 +188,9 @@ void RpcServerThread::handleJob()
     {
         switch (j->getJobType())
         {
-            case JOB_RPC_RSP:
+            case JOB_RPC_SRV_RSP:
             {
-                std::unique_ptr<RpcResponseJob> tj(static_cast<RpcResponseJob*>(
+                std::unique_ptr<RpcSrvRspJob> tj(static_cast<RpcSrvRspJob*>(
                     (j.release())->getDerivedPtr()));
                 tj->call(_rpcRspJobHdr);
             }

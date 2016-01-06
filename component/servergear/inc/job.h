@@ -12,12 +12,17 @@ namespace parrot
 //
 //\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*\!*/!*
 constexpr uint32_t JOB_PACKET             = 1;
-constexpr uint32_t JOB_RPC_REQ            = 2;
-constexpr uint32_t JOB_RPC_RSP            = 3;
-constexpr uint32_t JOB_UPDATE_SESSION     = 4;
-constexpr uint32_t JOB_UPDATE_SESSION_ACK = 5;
-constexpr uint32_t JOB_DEL_SESSION        = 6;
-constexpr uint32_t JOB_KICK               = 7;
+
+constexpr uint32_t JOB_RPC_SRV_REQ        = 2;
+constexpr uint32_t JOB_RPC_SRV_RSP        = 3;
+
+constexpr uint32_t JOB_RPC_CLI_REQ        = 4;
+constexpr uint32_t JOB_RPC_CLI_RSP        = 5;
+
+constexpr uint32_t JOB_UPDATE_SESSION     = 6;
+constexpr uint32_t JOB_UPDATE_SESSION_ACK = 7;
+
+constexpr uint32_t JOB_KICK               = 8;
 
 class Job
 {

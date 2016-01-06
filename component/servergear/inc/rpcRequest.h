@@ -8,34 +8,41 @@
 #include "wsDefinition.h"
 #include "wsPacket.h"
 
+#include "job.h"
 #include "timeoutGuard.h"
 #include "doubleLinkedListNode.h"
 
 namespace parrot
 {
+class JobHandler;
+
 template <typename Sess>
 class RpcRequest : public TimeoutGuard,
-                   public DoubleLinkedListNode<RpcRequest<Sess>>
+                   public DoubleLinkedListNode<RpcRequest<Sess>>,
+                   public Job
 {
   public:
     RpcRequest(const std::string& sid,
-               std::shared_ptr<Sess>& sess,
+               std::shared_ptr<const Sess>& sess,
                std::unique_ptr<WsPacket>&& msg,
                JobHandler* rspHandler);
 
   public:
+    // Internal api.
     void setReqId(uint64_t reqId);
+    // Internal api.
     const std::string& getDestSrvId() const;
+    // Internal api.
     uint64_t getReqId() const;
     ePacketType getPacketType() const;
     std::unique_ptr<WsPacket>& getPacket();
     std::string toString();
     JobHandler* getRspHandler() const;
-    std::shared_ptr<Sess>& getSession();
+    std::shared_ptr<const Sess>& getSession();
 
   private:
     std::string _remoteSrvId;
-    std::shared_ptr<Sess> _session;
+    std::shared_ptr<const Sess> _session;
     std::unique_ptr<WsPacket> _packet;
     uint64_t _rpcReqId;
     JobHandler* _rspHandler;
@@ -43,10 +50,13 @@ class RpcRequest : public TimeoutGuard,
 
 template <typename Sess>
 RpcRequest<Sess>::RpcRequest(const std::string& sid,
-                             std::shared_ptr<Sess>& session,
+                             std::shared_ptr<const Sess>& session,
                              std::unique_ptr<WsPacket>&& msg,
                              JobHandler* rspHandler)
-    : _remoteSrvId(sid),
+    : TimeoutGuard(),
+      DoubleLinkedListNode<RpcRequest<Sess>>(),
+      Job(JOB_RPC_CLI_REQ),
+      _remoteSrvId(sid),
       _session(session),
       _packet(std::move(msg)),
       _rpcReqId(0),
@@ -61,6 +71,9 @@ RpcRequest<Sess>::RpcRequest(const std::string& sid,
     }
 
     json->setValue("/session", _session->getJsonStr());
+
+    // To avoid dynamic_cast from job.
+    setDerivedPtr(this);
 }
 
 template <typename Sess> void RpcRequest<Sess>::setReqId(uint64_t reqId)
@@ -73,7 +86,8 @@ template <typename Sess> uint64_t RpcRequest<Sess>::getReqId() const
     return _rpcReqId;
 }
 
-template <typename Sess> const std::string& RpcRequest<Sess>::getDestSrvId() const
+template <typename Sess>
+const std::string& RpcRequest<Sess>::getDestSrvId() const
 {
     return _remoteSrvId;
 }
@@ -83,7 +97,8 @@ template <typename Sess> ePacketType RpcRequest<Sess>::getPacketType() const
     return _packet->getPacketType();
 }
 
-template <typename Sess> std::unique_ptr<WsPacket>& RpcRequest<Sess>::getPacket()
+template <typename Sess>
+std::unique_ptr<WsPacket>& RpcRequest<Sess>::getPacket()
 {
     return _packet;
 }
@@ -93,8 +108,7 @@ template <typename Sess> JobHandler* RpcRequest<Sess>::getRspHandler() const
     return _rspHandler;
 }
 
-template <typename Sess>
-std::shared_ptr<Sess>& RpcRequest<Sess>::getSession()
+template <typename Sess> std::shared_ptr<const Sess>& RpcRequest<Sess>::getSession()
 {
     return _session;
 }

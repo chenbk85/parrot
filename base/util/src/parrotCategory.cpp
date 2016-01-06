@@ -130,6 +130,9 @@ std::string ParrotCategoryImpl::message(int ec) const noexcept
         case eCodes::ERR_Fail:
             ret = "ERR_Fail";
             break;
+        case eCodes::ERR_Timeout:
+            ret = "ERR_Timeout";
+            break;
         case eCodes::ERR_FileOpen:
             ret = "ERR_FileOpen";
             break;
@@ -139,14 +142,17 @@ std::string ParrotCategoryImpl::message(int ec) const noexcept
         case eCodes::ERR_FileRead:
             ret = "ERR_FileRead";
             break;
+        case eCodes::ERR_RemoteNotConnected:
+            ret = "ERR_RemoteNotConnected";
+            break;            
+        case eCodes::ERR_HttpHeader:
+            ret = "ERR_HttpHeader";
+            break;            
         case eCodes::ERR_Send:
             ret = "ERR_Send";
             break;
         case eCodes::ERR_Recv:
             ret = "ERR_Recv";
-            break;
-        case eCodes::ERR_HttpHeader:
-            ret = "ERR_HttpHeader";
             break;
         default:
             return std::string("Unknown code ") + std::to_string(ec);

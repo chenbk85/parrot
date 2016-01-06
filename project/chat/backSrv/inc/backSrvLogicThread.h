@@ -49,7 +49,7 @@ class BackSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
 
   protected:
     BackSrvMainThread* _mainThread;
-    parrot::RpcRequestJobHdr _reqPktJobHdr;
+    parrot::RpcSrvReqJobHdr _reqPktJobHdr;
     std::unique_ptr<parrot::EventNotifier> _notifier;
     const BackSrvConfig* _config;
 };

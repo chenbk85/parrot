@@ -116,6 +116,9 @@ class IoEvent
     std::string _remoteIP;
     uint16_t _remotePort;
     const UrlInfo* _urlInfo;
+
+    // The address of derived class. Use this field to avoid
+    // dynamic_cast.
     void* _derivedPtr;
 };
 }

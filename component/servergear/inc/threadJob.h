@@ -5,6 +5,7 @@
 #include <memory>
 #include <tuple>
 
+#include "codes.h"
 #include "json.h"
 #include "seqGenHelper.h"
 #include "job.h"
@@ -57,31 +58,49 @@ using SessionPktPair =
 template <typename Sess>
 using PacketJob = ThreadJob<JOB_PACKET, std::list<SessionPktPair<Sess>>>;
 
+//
+//
+//
+template <typename Sess>
+using PacketJobHdr = std::function<void(std::list<SessionPktPair<Sess>>&)>;
+
 // <RpcSession, ClientSession, WsPacket>
 //
 //
-using RpcRequestJob =
-    ThreadJob<JOB_RPC_REQ,
+using RpcSrvReqJob =
+    ThreadJob<JOB_RPC_SRV_REQ,
               std::list<std::tuple<std::shared_ptr<RpcSession>,
                                    std::unique_ptr<Json>,
                                    std::unique_ptr<WsPacket>>>>;
-using RpcRequestJobHdr =
+using RpcSrvReqJobHdr =
     std::function<void(std::list<std::tuple<std::shared_ptr<RpcSession>,
                                             std::unique_ptr<Json>,
                                             std::unique_ptr<WsPacket>>>&)>;
 
-using RpcResponseJob =
-    ThreadJob<JOB_RPC_RSP,
-              std::list<std::pair<std::shared_ptr<RpcSession>,
-                                  std::unique_ptr<WsPacket>>>>;
-using RpcResponseJobHdr =
+using RpcSrvRspJob = ThreadJob<JOB_RPC_SRV_RSP,
+                               std::list<std::pair<std::shared_ptr<RpcSession>,
+                                                   std::unique_ptr<WsPacket>>>>;
+using RpcSrvRspJobHdr =
     std::function<void(std::list<std::pair<std::shared_ptr<RpcSession>,
                                            std::unique_ptr<WsPacket>>>&)>;
 //
 //
 //
 template <typename Sess>
-using PacketJobHdr = std::function<void(std::list<SessionPktPair<Sess>>&)>;
+using RpcCliRspJob =
+    ThreadJob<JOB_RPC_CLI_RSP,
+              std::list<std::tuple<eCodes,
+                                   std::shared_ptr<const Sess>,
+                                   std::unique_ptr<WsPacket>>>>;
+
+//
+//
+//
+template <typename Sess>
+using RpcCliRspJobHdr =
+    std::function<void(std::list<std::tuple<eCodes,
+                                            std::shared_ptr<const Sess>,
+                                            std::unique_ptr<WsPacket>>>&)>;
 
 //
 //

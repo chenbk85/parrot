@@ -54,6 +54,10 @@ template <typename FrontSession, typename RpcReqSession> class MainThread
   public:
     virtual void start();
 
+  public:
+    RpcServerThread* getRpcSrvThread();
+    RpcClientThread<RpcReqSession>* getRpcCliThread();
+
   protected:
     virtual void beforeStart();
     virtual void createUserThreads() = 0;
@@ -162,8 +166,8 @@ void MainThread<FrontSession, RpcReqSession>::createSysThreads()
         std::unique_ptr<RpcServerThread>(new RpcServerThread(_config));
 
     // Create rpc client thread.
-    _rpcCliThread = std::unique_ptr<RpcClientThread<FrontSession>>(
-        new RpcClientThread<FrontSession>(*_config, *_wsConfig));
+    _rpcCliThread = std::unique_ptr<RpcClientThread<RpcReqSession>>(
+        new RpcClientThread<RpcReqSession>(*_config, *_wsConfig));
 }
 
 template <typename FrontSession, typename RpcReqSession>
@@ -180,6 +184,19 @@ void MainThread<FrontSession, RpcReqSession>::createListenerEvents()
         _connDispatcher->startListen();
         _notifier->addEvent(_connDispatcher.get());
     }
+}
+
+template <typename FrontSession, typename RpcReqSession>
+RpcServerThread* MainThread<FrontSession, RpcReqSession>::getRpcSrvThread()
+{
+    return _rpcSrvThread.get();
+}
+
+template <typename FrontSession, typename RpcReqSession>
+RpcClientThread<RpcReqSession>*
+MainThread<FrontSession, RpcReqSession>::getRpcCliThread()
+{
+    return _rpcCliThread.get();
 }
 
 template <typename FrontSession, typename RpcReqSession>

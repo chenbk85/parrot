@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <cstdint>
 
+#include "codes.h"
 #include "logger.h"
 #include "rpcRequest.h"
 #include "rpcSession.h"
@@ -15,6 +16,8 @@
 #include "wsClientConn.h"
 #include "timeoutManager.h"
 #include "timeoutHandler.h"
+#include "config.h"
+#include "wsConfig.h"
 
 namespace parrot
 {
@@ -36,8 +39,7 @@ class RpcClientConn
                   const WsConfig& wsCfg);
 
   public:
-    void addJob(std::unique_ptr<RpcRequest<Sess>>&& req);
-    void addJob(std::list<std::unique_ptr<RpcRequest<Sess>>>& reqList);
+    void addJob(std::unique_ptr<RpcRequest<Sess>>& req);
     void checkReqTimeout(std::time_t now);
     void heartbeat();
 
@@ -76,7 +78,7 @@ RpcClientConn<Sess>::RpcClientConn(RpcClientThread<Sess>* thread,
 }
 
 template <typename Sess>
-void RpcClientConn<Sess>::addJob(std::unique_ptr<RpcRequest<Sess>>&& req)
+void RpcClientConn<Sess>::addJob(std::unique_ptr<RpcRequest<Sess>>& req)
 {
     if (req->getPacketType() == ePacketType::Request)
     {
@@ -85,26 +87,7 @@ void RpcClientConn<Sess>::addJob(std::unique_ptr<RpcRequest<Sess>>&& req)
         _reqMap.emplace(_reqId, std::move(req));
         ++_reqId;
     }
-
     sendPacket(req->getPacket());
-}
-
-template <typename Sess>
-void RpcClientConn<Sess>::addJob(
-    std::list<std::unique_ptr<RpcRequest<Sess>>>& reqList)
-{
-    auto now = std::time(nullptr);
-    for (auto& req : reqList)
-    {
-        if (req->getPacketType() == ePacketType::Request)
-        {
-            req->setReqId(_reqId);
-            _timeoutMgr->add(req.get(), now);
-            _reqMap.emplace(_reqId, std::move(req));
-            ++_reqId;
-        }
-        sendPacket(req->getPacket());
-    }
 }
 
 template <typename Sess>
@@ -141,7 +124,11 @@ void RpcClientConn<Sess>::onTimeout(RpcRequest<Sess>* req)
 {
     LOG_WARN("RpcClientConn::onTimeout: Request timeout. Request is "
              << req->toString() << ".");
+
     _reqMap.erase(req->getReqId());
+    _rpcClientThread->addRsp(req->getRspHandler(), eCodes::ERR_Timeout,
+                             req->getSession(),
+                             std::unique_ptr<WsPacket>(new WsPacket()));
 }
 
 template <typename Sess>
@@ -169,7 +156,7 @@ void RpcClientConn<Sess>::onResponse(std::unique_ptr<WsPacket>&& pkt)
     LOG_INFO("RpcClientConn::onResponse: Received response for rpc request: "
              << it->second->toString() << ".");
 
-    _rpcClientThread->addRsp(it->second->getRspHandler(),
+    _rpcClientThread->addRsp(it->second->getRspHandler(), eCodes::ST_Ok,
                              it->second->getSession(), std::move(pkt));
     _timeoutMgr->remove(it->second.get());
     _reqMap.erase(it);

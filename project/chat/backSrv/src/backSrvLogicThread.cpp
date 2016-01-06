@@ -10,6 +10,7 @@
 #include "backSrvMainThread.h"
 #include "wsPacket.h"
 #include "threadJob.h"
+#include "rpcSession.h"
 
 namespace chat
 {
@@ -51,8 +52,20 @@ void BackSrvLogicThread::afterAddJob()
     _notifier->stopWaiting();
 }
 
-void BackSrvLogicThread::handleRpcReq(PktList& )
+void BackSrvLogicThread::handleRpcReq(PktList& pktList)
 {
+    std::list<std::pair<std::shared_ptr<parrot::RpcSession>,
+                        std::unique_ptr<parrot::WsPacket>>> rspList;
+    // tuple<RpcSession, CliSessionJson, WsPacket>
+    for (auto& p : pktList)
+    {
+        auto& pkt = std::get<2>(p);
+        rspList.emplace_back(std::move(std::get<0>(p), std::move(pkt)));
+    }
+
+    std::unique_ptr<parrot::RpcSrvRspJob> rspJob(new parrot::RpcSrvRspJob());
+    rspJob->bind(std::move(rspList));
+    _mainThread->getRpcSrvThread()->addJob();
 }
 
 void BackSrvLogicThread::handleJob()
@@ -66,10 +79,10 @@ void BackSrvLogicThread::handleJob()
     {
         switch (j->getJobType())
         {
-            case parrot::JOB_RPC_REQ:
+            case parrot::JOB_RPC_SRV_REQ:
             {
-                std::unique_ptr<parrot::RpcRequestJob> tj(
-                    static_cast<parrot::RpcRequestJob*>(
+                std::unique_ptr<parrot::RpcSrvReqJob> tj(
+                    static_cast<parrot::RpcSrvReqJob*>(
                         (j.release())->getDerivedPtr()));
                 tj->call(_reqPktJobHdr);
             }

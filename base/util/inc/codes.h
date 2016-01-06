@@ -49,15 +49,20 @@ enum class eCodes
     ST_Complete          = 100100,
     ST_Ok                = 1000000,
 
-    // Common error codes start from 1,000,000.
-    ERR_Fail       = 5000000,
-    ERR_FileOpen   = 5000001,
-    ERR_FileWrite  = 5000002,
-    ERR_FileRead   = 5000003,
-    ERR_Send       = 5000004,
-    ERR_Recv       = 5000005,
-    ERR_HttpHeader = 5000006,
-    ERR_Timeout    = 5000007
+    // Common error codes start from 5,000,000.
+    ERR_Fail    = 5000000,
+    ERR_Timeout = 5000001,
+
+    // File system errors: 5000101 and 5000199.
+    ERR_FileOpen  = 5000101,
+    ERR_FileWrite = 5000102,
+    ERR_FileRead  = 5000103,
+
+    // Network errors: 5000200 and 5000299.
+    ERR_RemoteNotConnected = 5000200,
+    ERR_HttpHeader         = 5000201,
+    ERR_Send               = 5000202,
+    ERR_Recv               = 5000203
 };
 
 std::error_code make_error_code(eCodes e) noexcept;
