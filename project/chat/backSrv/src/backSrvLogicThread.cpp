@@ -60,12 +60,12 @@ void BackSrvLogicThread::handleRpcReq(PktList& pktList)
     for (auto& p : pktList)
     {
         auto& pkt = std::get<2>(p);
-        rspList.emplace_back(std::move(std::get<0>(p), std::move(pkt)));
+        rspList.emplace_back(std::move(std::get<0>(p)), std::move(pkt));
     }
 
     std::unique_ptr<parrot::RpcSrvRspJob> rspJob(new parrot::RpcSrvRspJob());
     rspJob->bind(std::move(rspList));
-    _mainThread->getRpcSrvThread()->addJob();
+    _mainThread->getRpcSrvThread()->addJob(std::move(rspJob));
 }
 
 void BackSrvLogicThread::handleJob()
