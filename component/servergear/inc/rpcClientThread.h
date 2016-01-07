@@ -21,6 +21,7 @@
 #include "config.h"
 #include "wsConfig.h"
 #include "rpcRequest.h"
+#include "jobFactory.h"
 
 namespace parrot
 {
@@ -35,9 +36,13 @@ class RpcClientThread : public ThreadBase,
     using ConnMap =
         std::unordered_map<std::string, std::shared_ptr<RpcClientConn<Sess>>>;
 
-    using RpcRspList = std::list<std::tuple<eCodes,
-                                            std::shared_ptr<const Sess>,
-                                            std::unique_ptr<WsPacket>>>;
+    using RpcCliRspJobParam = std::tuple<eCodes,
+                                         std::shared_ptr<const Sess>,
+                                         std::unique_ptr<WsPacket>>;
+    using RpcCliRspJobFactory =
+        JobFactory<RpcCliRspJobParam, RpcCliRspJob<Sess>>;
+    using HdrJobListMap =
+        std::unordered_map<JobHandler*, std::list<std::unique_ptr<Job>>>;
 
   public:
     RpcClientThread(const Config& cfg, const WsConfig& wsCfg);
@@ -72,7 +77,8 @@ class RpcClientThread : public ThreadBase,
     // Save connected client to this map.
     ConnMap _connMap;
 
-    std::unordered_map<JobHandler*, RpcRspList> _rspMap;
+    RpcCliRspJobFactory _rpcCliRspJobFactory;
+    HdrJobListMap _hdrJobListMap;
 
     std::unique_ptr<EventNotifier> _notifier;
     std::unique_ptr<TimeoutManager<WsClientConn<RpcSession>>> _timeoutMgr;
@@ -89,6 +95,8 @@ RpcClientThread<Sess>::RpcClientThread(const Config& cfg, const WsConfig& wsCfg)
       JobHandler(),
       _disconnectedConnList(),
       _connMap(),
+      _rpcCliRspJobFactory(),
+      _hdrJobListMap(),
       _notifier(),
       _timeoutMgr(),
       _random(),
@@ -134,7 +142,8 @@ void RpcClientThread<Sess>::addRsp(JobHandler* hdr,
                                    std::shared_ptr<const Sess>& session,
                                    std::unique_ptr<WsPacket>&& pkt)
 {
-    _rspMap[hdr].emplace_back(code, std::move(session), std::move(pkt));
+    _rpcCliRspJobFactory.add(
+        hdr, RpcCliRspJobParam(code, std::move(session), std::move(pkt)));
 }
 
 template <typename Sess> void RpcClientThread<Sess>::doConnect()
@@ -173,17 +182,16 @@ template <typename Sess> void RpcClientThread<Sess>::checkRpcRequestTimeout()
 
 template <typename Sess> void RpcClientThread<Sess>::handleRsp()
 {
-    for (auto& kv : _rspMap)
+    _rpcCliRspJobFactory.loadJobs(_hdrJobListMap);
+
+    for (auto& kv : _hdrJobListMap)
     {
         if (kv.second.empty())
         {
             continue;
         }
-
-        std::unique_ptr<RpcCliRspJob<Sess>> pktJob(new RpcCliRspJob<Sess>());
-        pktJob->bind(std::move(kv.second));
+        (kv.first)->addJob(kv.second);
         kv.second.clear();
-        (kv.first)->addJob(std::move(pktJob));
     }
 }
 

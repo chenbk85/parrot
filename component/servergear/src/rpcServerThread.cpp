@@ -15,7 +15,8 @@ RpcServerThread::RpcServerThread(const Config* cfg)
       ConnHandler<RpcServerConn>(),
       _connMap(),
       _registeredConnMap(),
-      _reqMap(),
+      _rpcSrvReqJobFactory(),
+      _hdrJobListMap(),
       _notifier(),
       _timeoutMgr(),
       _now(0),
@@ -77,8 +78,9 @@ void RpcServerThread::addReqPacket(JobHandler* hdr,
                                    std::unique_ptr<Json>&& cliSession,
                                    std::unique_ptr<WsPacket>&& pkt)
 {
-    _reqMap[hdr].emplace_back(std::move(rpcSession), std::move(cliSession),
-                              std::move(pkt));
+    _rpcSrvReqJobFactory.add(hdr, RpcSrvReqJobParam(std::move(rpcSession),
+                                                    std::move(cliSession),
+                                                    std::move(pkt)));
 }
 
 void RpcServerThread::handleRpcRsp(RspPktList& pktList)
@@ -110,17 +112,15 @@ void RpcServerThread::handleRpcRsp(RspPktList& pktList)
 
 void RpcServerThread::dispatchPackets()
 {
-    for (auto& kv : _reqMap)
+    _rpcSrvReqJobFactory.loadJobs(_hdrJobListMap);
+    for (auto& kv : _hdrJobListMap)
     {
         if (kv.second.empty())
         {
             continue;
         }
-
-        std::unique_ptr<RpcSrvReqJob> job(new RpcSrvReqJob());
-        job->bind(std::move(kv.second));
+        (kv.first)->addJob(kv.second);
         kv.second.clear();
-        (kv.first)->addJob(std::move(job));
     }
 }
 
@@ -190,8 +190,8 @@ void RpcServerThread::handleJob()
         {
             case JOB_RPC_SRV_RSP:
             {
-                std::unique_ptr<RpcSrvRspJob> tj(static_cast<RpcSrvRspJob*>(
-                    (j.release())->getDerivedPtr()));
+                std::unique_ptr<RpcSrvRspJob> tj(
+                    static_cast<RpcSrvRspJob*>((j.release())->getDerivedPtr()));
                 tj->call(_rpcRspJobHdr);
             }
             break;
