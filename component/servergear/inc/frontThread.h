@@ -27,6 +27,7 @@
 #include "macroFuncs.h"
 #include "logger.h"
 #include "scheduler.h"
+#include "jobFactory.h"
 
 namespace parrot
 {
@@ -42,10 +43,11 @@ class FrontThread : public PoolThread,
         kPktListSize = 100
     };
 
-    using PktMap =
-        std::unordered_map<JobHandler*, std::list<SessionPktPair<Sess>>>;
     using ConnMap =
         std::unordered_map<std::string, std::unique_ptr<WsServerConn<Sess>>>;
+    using PktJobFactory = JobFactory<SessionPktPair<Sess>, PacketJob<Sess>>;
+    using HdrJobListMap =
+        std::unordered_map<JobHandler*, std::list<std::unique_ptr<Job>>>;
 
   public:
     FrontThread();
@@ -86,7 +88,8 @@ class FrontThread : public PoolThread,
     void updateTimeout(WsServerConn<Sess>* conn, std::time_t now);
 
   private:
-    PktMap _pktMap;
+    JobFactory<SessionPktPair<Sess>, PacketJob<Sess>> _pktJobFactory;
+    HdrJobListMap _hdrJobListMap;
     ConnMap _connMap;
 
     std::unique_ptr<EventNotifier> _notifier;
@@ -107,7 +110,8 @@ FrontThread<Sess>::FrontThread()
       JobHandler(),
       ConnHandler<WsServerConn<Sess>>(),
       WsPacketHandler<Sess, WsServerConn<Sess>>(),
-      _pktMap(),
+      _pktJobFactory(),
+      _hdrJobListMap(),
       _connMap(),
       _notifier(nullptr),
       _updateSessionHdr(),
@@ -119,8 +123,9 @@ FrontThread<Sess>::FrontThread()
 {
     using namespace std::placeholders;
 
-    _updateSessionHdr = std::bind(&FrontThread::handleUpdateSession, this, _1, _2);
-    _pktJobHdr        = std::bind(&FrontThread::handlePacket, this, _1);
+    _updateSessionHdr =
+        std::bind(&FrontThread::handleUpdateSession, this, _1, _2);
+    _pktJobHdr = std::bind(&FrontThread::handlePacket, this, _1);
 }
 
 template <typename Sess>
@@ -146,7 +151,7 @@ template <typename Sess> void FrontThread<Sess>::stop()
     ThreadBase::stop();
     _notifier->stopWaiting();
     ThreadBase::join();
-    LOG_INFO("FrontThread::Stop: Done.");
+    LOG_INFO("FrontThread::stop: Done.");
 }
 
 template <typename Sess>
@@ -248,7 +253,7 @@ template <typename Sess> void FrontThread<Sess>::afterAddJob()
 template <typename Sess> void FrontThread<Sess>::afterAddNewConn()
 {
     _notifier->stopWaiting();
-    LOG_DEBUG("FrontThread::afterAddNewConn.");    
+    LOG_DEBUG("FrontThread::afterAddNewConn.");
 }
 
 template <typename Sess>
@@ -280,25 +285,8 @@ void FrontThread<Sess>::onPacket(WsServerConn<Sess>* conn,
         return;
     }
 
-    auto it = _pktMap.find(hdr);
-    if (it == _pktMap.end())
-    {
-        PARROT_ASSERT(hdr);
-        _pktMap[hdr].emplace_back(std::move(session), std::move(pkt));
-    }
-    else
-    {
-        LOG_DEBUG("FrontThread::onPacket: Append packet.");
-        it->second.emplace_back(std::move(session), std::move(pkt));
-        if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
-        {
-            // Dispatch packetes.
-            std::unique_ptr<PacketJob<Sess>> pktJob(new PacketJob<Sess>());
-            pktJob->bind(std::move(it->second));
-            hdr->addJob(std::move(pktJob));
-            it->second.clear();
-        }
-    }
+    _pktJobFactory.add(
+        hdr, SessionPktPair<Sess>(std::move(session), std::move(pkt)));
 }
 
 template <typename Sess>
@@ -315,23 +303,8 @@ void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
         return;
     }
 
-    auto it = _pktMap.find(hdr);
-    if (it == _pktMap.end())
-    {
-        _pktMap[hdr].emplace_back(std::move(session), std::move(pkt));
-    }
-    else
-    {
-        it->second.emplace_back(std::move(session), std::move(pkt));
-        if (it->second.size() >= static_cast<uint32_t>(Constants::kPktListSize))
-        {
-            // Dispatch packetes.
-            std::unique_ptr<PacketJob<Sess>> pktJob(new PacketJob<Sess>());
-            pktJob->bind(std::move(it->second));
-            hdr->addJob(std::move(pktJob));
-            it->second.clear();
-        }
-    }
+    _pktJobFactory.add(
+        hdr, SessionPktPair<Sess>(std::move(session), std::move(pkt)));
 
     removeConn(conn);
     LOG_INFO("FrontThread::onClose: Err is " << (uint32_t)(pkt->getCloseCode())
@@ -341,15 +314,16 @@ void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
 
 template <typename Sess> void FrontThread<Sess>::dispatchPackets()
 {
-    for (auto& kv : _pktMap)
+    LOG_DEBUG("FrontThread::dispatchPackets.");
+
+    // Factory load jobs here.
+    _pktJobFactory.loadJobs(_hdrJobListMap);
+
+    for (auto& kv : _hdrJobListMap)
     {
         if (!kv.second.empty())
         {
-            LOG_DEBUG("FrontThread::dispatchPackets: _pktMap List "
-                      << "size is " << kv.second.size() << ".");
-            std::unique_ptr<PacketJob<Sess>> pktJob(new PacketJob<Sess>());
-            pktJob->bind(std::move(kv.second));
-            (kv.first)->addJob(std::move(pktJob));
+            (kv.first)->addJob(kv.second);
             kv.second.clear();
         }
     }
@@ -372,7 +346,7 @@ template <typename Sess> void FrontThread<Sess>::addConnToNotifier()
                                     getThreadIdStr(), _connUniqueIdx++);
         sess->setIpAddrPort(c->getRemoteAddr(), c->getRemotePort());
         sess->setFrontJobHdr(this);
-        
+
         c->setSession(std::move(sess));
         c->setNextAction(c->getDefaultAction());
         c->setPacketHandler(this);
