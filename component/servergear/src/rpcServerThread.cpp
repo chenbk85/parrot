@@ -50,7 +50,7 @@ void RpcServerThread::stop()
     ThreadBase::stop();
     _notifier->stopWaiting();
     ThreadBase::join();
-    LOG_INFO("RpcServerThread::Stop: Done.");
+    LOG_INFO("RpcServerThread::stop: Done.");
 }
 
 void RpcServerThread::registerConn(const std::string& sid, RpcServerConn* conn)

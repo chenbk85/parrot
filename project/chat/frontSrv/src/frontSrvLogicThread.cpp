@@ -9,9 +9,11 @@
 #include "frontSrvMainThread.h"
 #include "frontSrvLogicThread.h"
 #include "frontThread.h"
+#include "rpcClientThread.h"
 #include "wsPacket.h"
 #include "threadJob.h"
 #include "rpcRequest.h"
+#include "macroFuncs.h"
 
 namespace chat
 {
@@ -27,6 +29,8 @@ FrontSrvLogicThread::FrontSrvLogicThread()
 #elif defined(_WIN32)
 //      _notifier(new parrot::SimpleEventNotifier()),
 #endif
+      _rpcReqList(),
+      _clientPktMap(),
       _config(nullptr)
 {
     using namespace std::placeholders;
@@ -56,9 +60,6 @@ void FrontSrvLogicThread::afterAddJob()
 void FrontSrvLogicThread::handlePacket(
     std::list<parrot::SessionPktPair<ChatSession>>& pktList)
 {
-    std::unordered_map<parrot::JobHandler*,
-                       std::list<parrot::SessionPktPair<ChatSession>>> rspMap;
-
     for (auto& sp : pktList)
     {
         LOG_INFO("FrontSrvLogicThread::handlePacket: session is "
@@ -71,22 +72,67 @@ void FrontSrvLogicThread::handlePacket(
         json->setValue("/s", s);
         pkt->setJson(std::move(json));
 
-        rspMap[(sp.first)->getFrontJobHdr()].emplace_back(std::move(sp.first),
-                                                          std::move(pkt));
+        // _clientPktMap[(sp.first)->getFrontJobHdr()].emplace_back(
+        //     std::move(sp.first), std::move(pkt));
 
-        std::unique_ptr<parrot::RpcRequest<ChatSession>> rpcReq(
-            new parrot::RpcRequest<ChatSession>(
-                "backSrv001", sp.first,
-                std::unique_ptr<parrot::WsPacket>(new parrot::WsPacket()),
-                this));
+        // std::unique_ptr<parrot::RpcRequest<ChatSession>> rpcReq(
+        //     new parrot::RpcRequest<ChatSession>(
+        //         "backSrv001", sp.first,
+        //         std::unique_ptr<parrot::WsPacket>(new parrot::WsPacket()),
+        //         this));
+
+        _rpcReqList.emplace_back(
+            std::unique_ptr<parrot::RpcRequest<ChatSession>>(
+                new parrot::RpcRequest<ChatSession>(
+                    "backSrv001", sp.first,
+                    std::unique_ptr<parrot::WsPacket>(new parrot::WsPacket()),
+                    this)));
     }
 
-    for (auto& kv : rspMap)
+    _mainThread->getRpcCliThread()->addJob(_rpcReqList);
+    PARROT_ASSERT(_rpcReqList.empty());
+
+    // for (auto& kv : _clientPktMap)
+    // {
+    //     std::unique_ptr<parrot::PacketJob<ChatSession>> job(
+    //         new parrot::PacketJob<ChatSession>());
+    //     job->bind(std::move(kv.second));
+    //     (kv.first)->addJob(std::move(job));
+    //     kv.second.clear();
+    // }
+}
+
+void FrontSrvLogicThread::handleRpcResponse(RpcRspList& rspList)
+{
+    parrot::eCodes code;
+
+    // <eCodes, ChatSession, WsPacket>
+    for (auto& p : rspList)
+    {
+        code = std::get<0>(p);
+        if (code != parrot::eCodes::ST_Ok)
+        {
+            std::system_error e(static_cast<int>(code),
+                                parrot::ParrotCategory());
+            LOG_WARN(
+                "FrontSrvLogicThread::handleRpcResponse: Rpc failed. Err is "
+                << e.what() << ". Session is " << std::get<1>(p)->toString()
+                << ".");
+            continue;
+        }
+
+        auto& session = std::get<1>(p);
+        _clientPktMap[session->getFrontJobHdr()].emplace_back(
+            std::move(session), std::move(std::get<2>(p)));
+    }
+
+    for (auto& kv : _clientPktMap)
     {
         std::unique_ptr<parrot::PacketJob<ChatSession>> job(
             new parrot::PacketJob<ChatSession>());
         job->bind(std::move(kv.second));
         (kv.first)->addJob(std::move(job));
+        kv.second.clear();
     }
 }
 
@@ -102,6 +148,15 @@ void FrontSrvLogicThread::handleJob()
         switch (j->getJobType())
         {
             case parrot::JOB_PACKET:
+            {
+                std::unique_ptr<parrot::PacketJob<ChatSession>> tj(
+                    static_cast<parrot::PacketJob<ChatSession>*>(
+                        (j.release())->getDerivedPtr()));
+                tj->call(_packetJobHdr);
+            }
+            break;
+
+            case parrot::JOB_RPC_CLI_RSP:
             {
                 std::unique_ptr<parrot::PacketJob<ChatSession>> tj(
                     static_cast<parrot::PacketJob<ChatSession>*>(

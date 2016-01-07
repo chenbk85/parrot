@@ -120,7 +120,7 @@ template <typename Sess> void RpcClientThread<Sess>::stop()
     ThreadBase::stop();
     _notifier->stopWaiting();
     ThreadBase::join();
-    LOG_INFO("RpcClientThread::Stop: Done.");
+    LOG_INFO("RpcClientThread::stop: Done.");
 }
 
 template <typename Sess> void RpcClientThread<Sess>::afterAddJob()

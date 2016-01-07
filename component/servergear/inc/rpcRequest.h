@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <cstdint>
+#include <sstream>
 
 #include "wsDefinition.h"
 #include "wsPacket.h"

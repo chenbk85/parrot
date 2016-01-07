@@ -26,6 +26,7 @@ BackSrvLogicThread::BackSrvLogicThread()
 #elif defined(_WIN32)
 //      _notifier(new parrot::SimpleEventNotifier()),
 #endif
+      _rpcRspList(),
       _config(nullptr)
 {
     using namespace std::placeholders;
@@ -54,18 +55,17 @@ void BackSrvLogicThread::afterAddJob()
 
 void BackSrvLogicThread::handleRpcReq(PktList& pktList)
 {
-    std::list<std::pair<std::shared_ptr<parrot::RpcSession>,
-                        std::unique_ptr<parrot::WsPacket>>> rspList;
     // tuple<RpcSession, CliSessionJson, WsPacket>
     for (auto& p : pktList)
     {
         auto& pkt = std::get<2>(p);
-        rspList.emplace_back(std::move(std::get<0>(p)), std::move(pkt));
+        _rpcRspList.emplace_back(std::move(std::get<0>(p)), std::move(pkt));
     }
 
     std::unique_ptr<parrot::RpcSrvRspJob> rspJob(new parrot::RpcSrvRspJob());
-    rspJob->bind(std::move(rspList));
+    rspJob->bind(std::move(_rpcRspList));
     _mainThread->getRpcSrvThread()->addJob(std::move(rspJob));
+    _rpcRspList.clear();
 }
 
 void BackSrvLogicThread::handleJob()

@@ -26,6 +26,9 @@ class BackSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
                                          std::unique_ptr<parrot::Json>,
                                          std::unique_ptr<parrot::WsPacket>>>;
 
+    using RpcRspList = std::list<std::pair<std::shared_ptr<parrot::RpcSession>,
+                                           std::unique_ptr<parrot::WsPacket>>>;
+
   public:
     BackSrvLogicThread();
 
@@ -51,6 +54,7 @@ class BackSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
     BackSrvMainThread* _mainThread;
     parrot::RpcSrvReqJobHdr _reqPktJobHdr;
     std::unique_ptr<parrot::EventNotifier> _notifier;
+    RpcRspList _rpcRspList;
     const BackSrvConfig* _config;
 };
 }
