@@ -20,9 +20,6 @@ class FrontSrvScheduler : public parrot::Scheduler<ChatSession>
   public:
     virtual ~FrontSrvScheduler() = default;
 
-  private:
-    static std::unique_ptr<FrontSrvScheduler> _instance;
-
   public:
     static void createInstance();
 

@@ -18,9 +18,6 @@ class FrontSrvRpcScheduler : public parrot::Scheduler<parrot::RpcSession>
   public:
     virtual ~FrontSrvRpcScheduler() = default;
 
-  private:
-    static std::unique_ptr<FrontSrvRpcScheduler> _instance;
-
   public:
     static void createInstance();
 

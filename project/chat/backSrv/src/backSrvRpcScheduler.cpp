@@ -5,17 +5,9 @@ namespace chat
 {
 static thread_local uint8_t gLogicThreadIdx = 0;
 
-std::unique_ptr<BackSrvRpcScheduler> BackSrvRpcScheduler::_instance;
-
 void BackSrvRpcScheduler::createInstance()
 {
-    _instance.reset(new BackSrvRpcScheduler());
-    setInstance(std::move(_instance));
-}
-
-BackSrvRpcScheduler* BackSrvRpcScheduler::getInstance()
-{
-    return _instance.get();
+    _scheduler.reset(new BackSrvRpcScheduler());
 }
 
 parrot::JobHandler*

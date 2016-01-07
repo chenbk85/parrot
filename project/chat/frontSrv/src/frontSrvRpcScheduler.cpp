@@ -9,12 +9,10 @@
 namespace chat
 {
 static thread_local uint8_t gLogicThreadIdx = 0;
-std::unique_ptr<FrontSrvRpcScheduler> FrontSrvRpcScheduler::_instance;
 
 void FrontSrvRpcScheduler::createInstance()
 {
-    _instance.reset(new FrontSrvRpcScheduler());
-    setInstance(std::move(_instance));
+    _scheduler.reset(new FrontSrvRpcScheduler());
 }
 
 parrot::JobHandler*

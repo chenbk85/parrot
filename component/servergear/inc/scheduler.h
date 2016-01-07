@@ -15,12 +15,11 @@ template <typename Sess> class Scheduler
   public:
     virtual ~Scheduler() = default;
 
-  private:
+  protected:
     static std::unique_ptr<Scheduler> _scheduler;
 
   public:
     static Scheduler* getInstance();
-    static void setInstance(std::unique_ptr<Scheduler>&&);
 
     virtual JobHandler* getHandler(uint64_t route,
                                    std::shared_ptr<const Sess>) = 0;
@@ -35,11 +34,6 @@ template <typename Sess> Scheduler<Sess>* Scheduler<Sess>::getInstance()
     return _scheduler.get();
 }
 
-template <typename Sess>
-void Scheduler<Sess>::setInstance(std::unique_ptr<Scheduler>&& p)
-{
-    _scheduler = std::move(p);
-}
 }
 
 #endif

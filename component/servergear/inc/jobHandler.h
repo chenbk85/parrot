@@ -1,5 +1,5 @@
-#ifndef __COMPONENT_SERVERGEAR_INC_JOBHandler_H__
-#define __COMPONENT_SERVERGEAR_INC_JOBHandler_H__
+#ifndef __COMPONENT_SERVERGEAR_INC_JOBHANDLER_H__
+#define __COMPONENT_SERVERGEAR_INC_JOBHANDLER_H__
 
 #include <mutex>
 #include <list>
