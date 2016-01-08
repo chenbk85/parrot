@@ -26,18 +26,19 @@
 #include "scheduler.h"
 #include "wsServerConn.h"
 #include "jobFactory.h"
+#include "rpcServerJobProcesser.h"
 
 namespace parrot
 {
 struct Config;
+class RpcServerJobProcesser;
 
 class RpcServerThread : public ThreadBase,
                         public TimeoutHandler<WsServerConn<RpcSession>>,
                         public JobHandler,
                         public ConnHandler<RpcServerConn>
 {
-    using RspPktList = std::list<
-        std::pair<std::shared_ptr<RpcSession>, std::unique_ptr<WsPacket>>>;
+    friend class RpcServerJobProcesser;
 
     using ConnMap =
         std::unordered_map<RpcServerConn*, std::unique_ptr<RpcServerConn>>;
@@ -53,10 +54,7 @@ class RpcServerThread : public ThreadBase,
     void registerConn(const std::string& sid, RpcServerConn* conn);
     void removeConn(RpcServerConn* conn);
 
-    void addReqPacket(JobHandler* hdr,
-                      std::shared_ptr<RpcSession>,
-                      std::unique_ptr<Json>&& cliSession,
-                      std::unique_ptr<WsPacket>&& pkt);
+    void addReqPacket(JobHandler* hdr, RpcSrvReqJobParam&& jobParam);
 
   protected:
     void afterAddNewConn() override;
@@ -74,8 +72,6 @@ class RpcServerThread : public ThreadBase,
 
   private:
     void init();
-    void handleRpcRsp(RspPktList& pktList);
-    void dispatchPackets();
     void addConnToNotifier();
     void updateTimeout(RpcServerConn* conn, std::time_t now);
 
@@ -84,16 +80,14 @@ class RpcServerThread : public ThreadBase,
     // <Remote sid, RpcServerConn>
     std::unordered_map<std::string, RpcServerConn*> _registeredConnMap;
 
-    RpcSrvReqJobFactory _rpcSrvReqJobFactory;
-    HdrJobListMap _hdrJobListMap;
-    
+    std::unique_ptr<RpcServerJobProcesser> _jobProcesser;
+
     std::unique_ptr<EventNotifier> _notifier;
     std::unique_ptr<TimeoutManager<WsServerConn<RpcSession>>> _timeoutMgr;
 
     std::time_t _now;
 
     MtRandom _random;
-    RpcSrvRspJobHdr _rpcRspJobHdr;
 
     const Config* _config;
 };

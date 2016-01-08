@@ -27,8 +27,8 @@ class RpcClientConnHandshake
     eCodes handshake(WsPacket *inPkt, std::unique_ptr<WsPacket> &outPkt);
 
   private:
-    eHandshakeState _state;
-    RpcClientConn* _conn;
+//    eHandshakeState _state;
+//    RpcClientConn* _conn;
 };
 }
 

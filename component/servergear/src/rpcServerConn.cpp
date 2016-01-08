@@ -2,6 +2,7 @@
 #include "json.h"
 #include "rpcServerConn.h"
 #include "rpcServerThread.h"
+#include "threadJob.h"
 #include "wsConfig.h"
 
 namespace parrot
@@ -39,7 +40,7 @@ bool RpcServerConn::handshake(std::unique_ptr<WsPacket>& pkt)
     }
 
     std::string sid;
-    json->getValue("sid", sid);    
+    json->getValue("sid", sid);
     getSession()->setRemoteSid(sid);
     return true;
 }
@@ -90,14 +91,15 @@ void RpcServerConn::onPacket(WsServerConn<RpcSession>*,
         if (!hdr)
         {
             LOG_WARN("RpcServerConn::handshake: Failed to find handler for "
-                     "route " << pkt->getRoute() <<". Remote is "
-                     << getRemoteAddr() << ". Session is "
-                     << getSession()->toString() << ".");            
+                     "route "
+                     << pkt->getRoute() << ". Remote is " << getRemoteAddr()
+                     << ". Session is " << getSession()->toString() << ".");
             return;
         }
 
-        _rpcSrvThread->addReqPacket(hdr, getSession(),
-                                    std::move(cliSession), std::move(pkt));
+        _rpcSrvThread->addReqPacket(
+            hdr, RpcSrvReqJobParam(std::move(getSession()),
+                                   std::move(cliSession), std::move(pkt)));
     }
 }
 

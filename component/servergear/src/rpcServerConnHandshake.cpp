@@ -3,8 +3,8 @@
 
 namespace parrot
 {
-RpcServerConnHandshake::RpcServerConnHandshake(RpcServerConn* conn)
-    : _state(eHandshakeState::RecvCliPubKey), _conn(conn)
+RpcServerConnHandshake::RpcServerConnHandshake(RpcServerConn* )
+//    : _state(eHandshakeState::RecvCliPubKey), _conn(conn)
 {
 }
 

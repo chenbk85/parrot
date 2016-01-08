@@ -15,23 +15,20 @@ RpcServerThread::RpcServerThread(const Config* cfg)
       ConnHandler<RpcServerConn>(),
       _connMap(),
       _registeredConnMap(),
-      _rpcSrvReqJobFactory(),
-      _hdrJobListMap(),
+    _jobProcesser(),
       _notifier(),
       _timeoutMgr(),
       _now(0),
       _random(),
-      _rpcRspJobHdr(),
       _config(cfg)
 {
-    using namespace std::placeholders;
-    _rpcRspJobHdr = std::bind(&RpcServerThread::handleRpcRsp, this, _1);
-
     init();
 }
 
 void RpcServerThread::init()
 {
+    _jobProcesser.reset(new RpcServerJobProcesser(this));
+    
     _timeoutMgr.reset(new TimeoutManager<WsServerConn<RpcSession>>(
         this, _config->_rpcClientConnTimeout));
 
@@ -74,54 +71,9 @@ void RpcServerThread::registerConn(const std::string& sid, RpcServerConn* conn)
 }
 
 void RpcServerThread::addReqPacket(JobHandler* hdr,
-                                   std::shared_ptr<RpcSession> rpcSession,
-                                   std::unique_ptr<Json>&& cliSession,
-                                   std::unique_ptr<WsPacket>&& pkt)
+                                   RpcSrvReqJobParam&& jobParam)
 {
-    _rpcSrvReqJobFactory.add(hdr, RpcSrvReqJobParam(std::move(rpcSession),
-                                                    std::move(cliSession),
-                                                    std::move(pkt)));
-}
-
-void RpcServerThread::handleRpcRsp(RspPktList& pktList)
-{
-    std::unordered_map<std::string, RpcServerConn*>::iterator it;
-    for (auto& s : pktList)
-    {
-        it = _registeredConnMap.find((s.first)->getRemoteSid());
-        if (it == _registeredConnMap.end())
-        {
-            LOG_WARN("RpcServerThread::handleRpcRsp: Failed to find remote sid "
-                     << (s.first)->getRemoteSid() << ". Packet is discarded. "
-                     << "SysJson is " << (s.second)->getSysJson()->toString()
-                     << ".");
-            continue;
-        }
-
-        it->second->sendPacket(s.second);
-        if (it->second->canSwitchToSend())
-        {
-            it->second->setNextAction(eIoAction::Write);
-            _notifier->updateEventAction(it->second);
-        }
-
-        LOG_DEBUG("RpcServerThread::handleRpcRsp: Sending packet. SysJson is "
-                  << (s.second)->getSysJson()->toString() << ".");
-    }
-}
-
-void RpcServerThread::dispatchPackets()
-{
-    _rpcSrvReqJobFactory.loadJobs(_hdrJobListMap);
-    for (auto& kv : _hdrJobListMap)
-    {
-        if (kv.second.empty())
-        {
-            continue;
-        }
-        (kv.first)->addJob(kv.second);
-        kv.second.clear();
-    }
+    _jobProcesser->createRpcReqJob(hdr, std::move(jobParam));
 }
 
 void RpcServerThread::addConnToNotifier()
@@ -179,30 +131,11 @@ void RpcServerThread::onTimeout(WsServerConn<RpcSession>* conn)
 
 void RpcServerThread::handleJobs()
 {
-    std::list<std::unique_ptr<Job>> jobList;
     _jobListLock.lock();
-    jobList = std::move(_jobList);
+    _jobProcesser->addJob(std::move(_jobList));
     _jobListLock.unlock();
 
-    for (auto& j : jobList)
-    {
-        switch (j->getJobType())
-        {
-            case JOB_RPC_SRV_RSP:
-            {
-                std::unique_ptr<RpcSrvRspJob> tj(
-                    static_cast<RpcSrvRspJob*>((j.release())->getDerivedPtr()));
-                tj->call(_rpcRspJobHdr);
-            }
-            break;
-
-            default:
-            {
-                PARROT_ASSERT(false);
-            }
-            break;
-        }
-    }
+    _jobProcesser->processJobs();
 }
 
 void RpcServerThread::run()
@@ -268,10 +201,6 @@ void RpcServerThread::run()
 
             // Append packet which needs to be sent to connections.
             handleJobs();
-
-            // Dispatch packet to back threads.
-            dispatchPackets();
-
         } // while
     }
     catch (const std::system_error& e)
