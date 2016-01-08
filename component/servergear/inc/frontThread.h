@@ -28,9 +28,12 @@
 #include "logger.h"
 #include "scheduler.h"
 #include "jobFactory.h"
+#include "frontThreadJobProcesser.h"
 
 namespace parrot
 {
+template <typename Sess> class FrontThreadJobProcesser;
+
 template <typename Sess>
 class FrontThread : public PoolThread,
                     public TimeoutHandler<WsServerConn<Sess>>,
@@ -45,6 +48,8 @@ class FrontThread : public PoolThread,
 
     using ConnMap =
         std::unordered_map<std::string, std::unique_ptr<WsServerConn<Sess>>>;
+
+    friend class FrontThreadJobProcesser<Sess>;
 
   public:
     FrontThread();
@@ -66,7 +71,6 @@ class FrontThread : public PoolThread,
     // TimeoutHandler
     void onTimeout(WsServerConn<Sess>*) override;
 
-    // JobHandler
     void handleJobs() override;
 
   public:
@@ -77,23 +81,15 @@ class FrontThread : public PoolThread,
                  std::unique_ptr<WsPacket>&&) override;
 
   protected:
-    void handleUpdateSession(std::list<UpdateSessionJobParam<Sess>>&);
-    void handlePacket(std::list<PacketJobParam<Sess>>& pktList);
-    void dispatchPackets();
     void addConnToNotifier();
     void removeConn(WsServerConn<Sess>* conn);
     void updateTimeout(WsServerConn<Sess>* conn, std::time_t now);
 
   private:
-    PacketJobFactory<Sess> _pktJobFactory;
-    UpdateSessionAckJobFactory<Sess> _updateSessAckJobFactory;
-    HdrJobListMap _hdrJobListMap;
     ConnMap _connMap;
 
     std::unique_ptr<EventNotifier> _notifier;
-
-    UpdateSessionJobHdr<Sess> _updateSessionHdr;
-    PacketJobHdr<Sess> _pktJobHdr;
+    std::unique_ptr<FrontThreadJobProcesser<Sess>> _jobProcesser;
 
     MtRandom _random;
     std::unique_ptr<TimeoutManager<WsServerConn<Sess>>> _timeoutMgr;
@@ -108,22 +104,15 @@ FrontThread<Sess>::FrontThread()
       JobHandler(),
       ConnHandler<WsServerConn<Sess>>(),
       WsPacketHandler<Sess, WsServerConn<Sess>>(),
-      _pktJobFactory(),
-      _updateSessAckJobFactory(),
-      _hdrJobListMap(),
       _connMap(),
       _notifier(nullptr),
-      _updateSessionHdr(),
-      _pktJobHdr(),
+      _jobProcesser(),
       _random(),
       _timeoutMgr(),
       _connUniqueIdx(0),
       _config(nullptr)
 {
-    using namespace std::placeholders;
-
-    _updateSessionHdr = std::bind(&FrontThread::handleUpdateSession, this, _1);
-    _pktJobHdr        = std::bind(&FrontThread::handlePacket, this, _1);
+    _jobProcesser.reset(new FrontThreadJobProcesser<Sess>(this));
 }
 
 template <typename Sess>
@@ -150,100 +139,6 @@ template <typename Sess> void FrontThread<Sess>::stop()
     _notifier->stopWaiting();
     ThreadBase::join();
     LOG_INFO("FrontThread::stop: Done.");
-}
-
-template <typename Sess>
-void FrontThread<Sess>::handleUpdateSession(
-    std::list<UpdateSessionJobParam<Sess>>& newSessList)
-{
-    auto it = _connMap.end();
-    for (auto& kv : newSessList)
-    {
-        it = _connMap.find((kv.second)->getUniqueSessionId());
-        if (it == _connMap.end())
-        {
-            // If the session is not here, the session must be disconnected,
-            // and uplayer will receive session removed event. So we will not
-            // notify uplayer that updating session is failed.
-            LOG_WARN(
-                "FrontThread::handleUpdateSession: Failed to bind conn key "
-                << (kv.second)->getUniqueSessionId() << ". Sess is "
-                << (kv.second)->toString() << ".");
-            return;
-        }
-
-        it->second->updateSession(kv.second);
-        _updateSessAckJobFactory.add(kv.first, std::move(kv.second));
-    }
-}
-
-template <typename Sess>
-void FrontThread<Sess>::handlePacket(std::list<PacketJobParam<Sess>>& pktList)
-{
-    typename ConnMap::iterator it;
-    for (auto& s : pktList)
-    {
-        it = _connMap.find((s.first)->getUniqueSessionId());
-        if (it == _connMap.end())
-        {
-            LOG_DEBUG("FrontThread::handlePacket: Failed to find session "
-                      << (s.first)->toString() << ".");
-            continue;
-        }
-
-        LOG_DEBUG("FrontThread::handlePacket: Send packet to session "
-                  << (s.first)->toString() << ".");
-        it->second->sendPacket(s.second);
-
-        if (it->second->canSwitchToSend())
-        {
-            it->second->setNextAction(eIoAction::Write);
-            _notifier->updateEventAction(it->second.get());
-        }
-    }
-}
-
-template <typename Sess> void FrontThread<Sess>::handleJobs()
-{
-    std::list<std::unique_ptr<Job>> jobList;
-    _jobListLock.lock();
-    jobList = std::move(_jobList);
-    _jobListLock.unlock();
-
-    for (auto& j : jobList)
-    {
-        switch (j->getJobType())
-        {
-            case JOB_UPDATE_SESSION:
-            {
-                std::unique_ptr<UpdateSessionJob<Sess>> tj(
-                    static_cast<UpdateSessionJob<Sess>*>(
-                        (j.release())->getDerivedPtr()));
-                tj->call(_updateSessionHdr);
-            }
-            break;
-
-            case JOB_PACKET:
-            {
-                std::unique_ptr<PacketJob<Sess>> tj(
-                    static_cast<PacketJob<Sess>*>(
-                        (j.release())->getDerivedPtr()));
-                tj->call(_pktJobHdr);
-            }
-            break;
-
-            case JOB_KICK:
-            {
-            }
-            break;
-
-            default:
-            {
-                PARROT_ASSERT(false);
-            }
-            break;
-        }
-    }
 }
 
 template <typename Sess> void FrontThread<Sess>::afterAddJob()
@@ -286,8 +181,7 @@ void FrontThread<Sess>::onPacket(WsServerConn<Sess>* conn,
                  << ".");
         return;
     }
-
-    _pktJobFactory.add(
+    _jobProcesser->createPacketJobs(
         hdr, PacketJobParam<Sess>(std::move(session), std::move(pkt)));
 }
 
@@ -305,7 +199,7 @@ void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
         return;
     }
 
-    _pktJobFactory.add(
+    _jobProcesser->createPacketJobs(
         hdr, PacketJobParam<Sess>(std::move(session), std::move(pkt)));
 
     removeConn(conn);
@@ -314,22 +208,13 @@ void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
                                              << session->toString() << ".");
 }
 
-template <typename Sess> void FrontThread<Sess>::dispatchPackets()
+template <typename Sess> void FrontThread<Sess>::handleJobs()
 {
-    LOG_DEBUG("FrontThread::dispatchPackets.");
+    _jobListLock.lock();
+    _jobProcesser->addJob(std::move(_jobList));
+    _jobListLock.unlock();
 
-    // Factory load jobs here.
-    _pktJobFactory.loadJobs(_hdrJobListMap);
-    _updateSessAckJobFactory.loadJobs(_hdrJobListMap);
-
-    for (auto& kv : _hdrJobListMap)
-    {
-        if (!kv.second.empty())
-        {
-            (kv.first)->addJob(kv.second);
-            kv.second.clear();
-        }
-    }
+    _jobProcesser->processJobs();
 }
 
 template <typename Sess> void FrontThread<Sess>::addConnToNotifier()
@@ -451,11 +336,7 @@ template <typename Sess> void FrontThread<Sess>::run()
                 } // switch
             }     // for
 
-            // Append packet which needs to be sent to connections.
             handleJobs();
-
-            // Dispatch packet to back threads.
-            dispatchPackets();
 
         } // while
     }

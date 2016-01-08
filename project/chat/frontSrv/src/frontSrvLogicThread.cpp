@@ -183,7 +183,7 @@ void FrontSrvLogicThread::handleJobs()
     }
 }
 
-void FrontSrvLogicThread::dispatchJob()
+void FrontSrvLogicThread::dispatchJobs()
 {
     _pktJobFactory.loadJobs(_hdrJobListMap);
     _rpcReqContainer.loadJobsWithoutCreate(_hdrJobListMap);
@@ -217,7 +217,7 @@ void FrontSrvLogicThread::run()
         }
 
         handleJobs();
-        dispatchJob();
+        dispatchJobs();
     }
 }
 

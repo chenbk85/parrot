@@ -47,7 +47,7 @@ class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
     void handleRpcResponse(
         std::list<parrot::RpcCliRspJobParam<ChatSession>>& pktList);
     void handleUpdateSessionAck(std::list<std::shared_ptr<const ChatSession>>&);
-    void dispatchJob();
+    void dispatchJobs();
 
   protected:
     FrontSrvMainThread* _mainThread;
