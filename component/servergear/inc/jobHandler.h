@@ -20,7 +20,7 @@ class JobHandler
     void addJob(std::list<std::unique_ptr<Job>>& jobList);
 
   protected:
-    virtual void handleJob() = 0;
+    virtual void handleJobs() = 0;
     virtual void afterAddJob() {}
 
   protected:

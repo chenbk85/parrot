@@ -14,6 +14,7 @@
 #include "threadJob.h"
 #include "jobHandler.h"
 #include "eventNotifier.h"
+#include "jobFactory.h"
 
 namespace chat
 {
@@ -22,13 +23,6 @@ class BackSrvMainThread;
 
 class BackSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
 {
-    using PktList = std::list<std::tuple<std::shared_ptr<parrot::RpcSession>,
-                                         std::unique_ptr<parrot::Json>,
-                                         std::unique_ptr<parrot::WsPacket>>>;
-
-    using RpcRspList = std::list<std::pair<std::shared_ptr<parrot::RpcSession>,
-                                           std::unique_ptr<parrot::WsPacket>>>;
-
   public:
     BackSrvLogicThread();
 
@@ -45,16 +39,18 @@ class BackSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
     void run() override;
 
   protected:
-    void handleJob() override;
+    void handleJobs() override;
 
   protected:
-    void handleRpcReq(PktList& pktList);
+    void handleRpcReq(std::list<parrot::RpcSrvReqJobParam>& pktList);
+    void dispatchJobs();
 
   protected:
     BackSrvMainThread* _mainThread;
     parrot::RpcSrvReqJobHdr _reqPktJobHdr;
     std::unique_ptr<parrot::EventNotifier> _notifier;
-    RpcRspList _rpcRspList;
+    parrot::RpcSrvRspJobFactory _rpcSrvRspJobFactory;
+    parrot::HdrJobListMap _hdrJobListMap;
     const BackSrvConfig* _config;
 };
 }

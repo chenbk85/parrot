@@ -45,9 +45,6 @@ class FrontThread : public PoolThread,
 
     using ConnMap =
         std::unordered_map<std::string, std::unique_ptr<WsServerConn<Sess>>>;
-    using PktJobFactory = JobFactory<SessionPktPair<Sess>, PacketJob<Sess>>;
-    using HdrJobListMap =
-        std::unordered_map<JobHandler*, std::list<std::unique_ptr<Job>>>;
 
   public:
     FrontThread();
@@ -70,7 +67,7 @@ class FrontThread : public PoolThread,
     void onTimeout(WsServerConn<Sess>*) override;
 
     // JobHandler
-    void handleJob() override;
+    void handleJobs() override;
 
   public:
     // WsPacketHandler
@@ -80,15 +77,16 @@ class FrontThread : public PoolThread,
                  std::unique_ptr<WsPacket>&&) override;
 
   protected:
-    void handleUpdateSession(JobHandler*, std::shared_ptr<const Sess>& ps);
-    void handlePacket(std::list<SessionPktPair<Sess>>& pktList);
+    void handleUpdateSession(std::list<UpdateSessionJobParam<Sess>>&);
+    void handlePacket(std::list<PacketJobParam<Sess>>& pktList);
     void dispatchPackets();
     void addConnToNotifier();
     void removeConn(WsServerConn<Sess>* conn);
     void updateTimeout(WsServerConn<Sess>* conn, std::time_t now);
 
   private:
-    JobFactory<SessionPktPair<Sess>, PacketJob<Sess>> _pktJobFactory;
+    PacketJobFactory<Sess> _pktJobFactory;
+    UpdateSessionAckJobFactory<Sess> _updateSessAckJobFactory;
     HdrJobListMap _hdrJobListMap;
     ConnMap _connMap;
 
@@ -111,6 +109,7 @@ FrontThread<Sess>::FrontThread()
       ConnHandler<WsServerConn<Sess>>(),
       WsPacketHandler<Sess, WsServerConn<Sess>>(),
       _pktJobFactory(),
+      _updateSessAckJobFactory(),
       _hdrJobListMap(),
       _connMap(),
       _notifier(nullptr),
@@ -123,9 +122,8 @@ FrontThread<Sess>::FrontThread()
 {
     using namespace std::placeholders;
 
-    _updateSessionHdr =
-        std::bind(&FrontThread::handleUpdateSession, this, _1, _2);
-    _pktJobHdr = std::bind(&FrontThread::handlePacket, this, _1);
+    _updateSessionHdr = std::bind(&FrontThread::handleUpdateSession, this, _1);
+    _pktJobHdr        = std::bind(&FrontThread::handlePacket, this, _1);
 }
 
 template <typename Sess>
@@ -155,28 +153,32 @@ template <typename Sess> void FrontThread<Sess>::stop()
 }
 
 template <typename Sess>
-void FrontThread<Sess>::handleUpdateSession(JobHandler* hdr,
-                                            std::shared_ptr<const Sess>& ps)
+void FrontThread<Sess>::handleUpdateSession(
+    std::list<UpdateSessionJobParam<Sess>>& newSessList)
 {
-    auto it = _connMap.find(ps->getUniqueSessionId());
-
-    if (it == _connMap.end())
+    auto it = _connMap.end();
+    for (auto& kv : newSessList)
     {
-        LOG_WARN("FrontThread::handleUpdateSession: Failed to bind conn key "
-                 << ps->getUniqueSessionId() << ". Sess is " << ps->toString()
-                 << ".");
-        return;
-    }
+        it = _connMap.find((kv.second)->getUniqueSessionId());
+        if (it == _connMap.end())
+        {
+            // If the session is not here, the session must be disconnected,
+            // and uplayer will receive session removed event. So we will not
+            // notify uplayer that updating session is failed.
+            LOG_WARN(
+                "FrontThread::handleUpdateSession: Failed to bind conn key "
+                << (kv.second)->getUniqueSessionId() << ". Sess is "
+                << (kv.second)->toString() << ".");
+            return;
+        }
 
-    it->second->updateSession(ps);
-    std::unique_ptr<UpdateSessionAckJob<Sess>> ackJob(
-        new UpdateSessionAckJob<Sess>());
-    ackJob->bind(std::move(ps));
-    hdr->addJob(std::move(ackJob));
+        it->second->updateSession(kv.second);
+        _updateSessAckJobFactory.add(kv.first, std::move(kv.second));
+    }
 }
 
 template <typename Sess>
-void FrontThread<Sess>::handlePacket(std::list<SessionPktPair<Sess>>& pktList)
+void FrontThread<Sess>::handlePacket(std::list<PacketJobParam<Sess>>& pktList)
 {
     typename ConnMap::iterator it;
     for (auto& s : pktList)
@@ -201,7 +203,7 @@ void FrontThread<Sess>::handlePacket(std::list<SessionPktPair<Sess>>& pktList)
     }
 }
 
-template <typename Sess> void FrontThread<Sess>::handleJob()
+template <typename Sess> void FrontThread<Sess>::handleJobs()
 {
     std::list<std::unique_ptr<Job>> jobList;
     _jobListLock.lock();
@@ -286,7 +288,7 @@ void FrontThread<Sess>::onPacket(WsServerConn<Sess>* conn,
     }
 
     _pktJobFactory.add(
-        hdr, SessionPktPair<Sess>(std::move(session), std::move(pkt)));
+        hdr, PacketJobParam<Sess>(std::move(session), std::move(pkt)));
 }
 
 template <typename Sess>
@@ -304,7 +306,7 @@ void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
     }
 
     _pktJobFactory.add(
-        hdr, SessionPktPair<Sess>(std::move(session), std::move(pkt)));
+        hdr, PacketJobParam<Sess>(std::move(session), std::move(pkt)));
 
     removeConn(conn);
     LOG_INFO("FrontThread::onClose: Err is " << (uint32_t)(pkt->getCloseCode())
@@ -318,6 +320,7 @@ template <typename Sess> void FrontThread<Sess>::dispatchPackets()
 
     // Factory load jobs here.
     _pktJobFactory.loadJobs(_hdrJobListMap);
+    _updateSessAckJobFactory.loadJobs(_hdrJobListMap);
 
     for (auto& kv : _hdrJobListMap)
     {
@@ -449,7 +452,7 @@ template <typename Sess> void FrontThread<Sess>::run()
             }     // for
 
             // Append packet which needs to be sent to connections.
-            handleJob();
+            handleJobs();
 
             // Dispatch packet to back threads.
             dispatchPackets();

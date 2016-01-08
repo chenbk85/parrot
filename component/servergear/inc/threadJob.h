@@ -4,6 +4,8 @@
 #include <functional>
 #include <memory>
 #include <tuple>
+#include <list>
+#include <unordered_map>
 
 #include "codes.h"
 #include "json.h"
@@ -13,6 +15,10 @@
 
 namespace parrot
 {
+class WsPacket;
+class JobHandler;
+template <typename T, typename J> class JobFactory;
+
 template <uint32_t JOBTYPE, typename... Ts> class ThreadJob : public Job
 {
   public:
@@ -42,93 +48,99 @@ template <uint32_t JOBTYPE, typename... Ts> class ThreadJob : public Job
     std::tuple<Ts...> _args;
 };
 
-class WsPacket;
-class JobHandler;
-
-//
+// Packet job & handler & factory.
 //
 //
 template <typename Sess>
-using SessionPktPair =
+using PacketJobParam =
     std::pair<std::shared_ptr<const Sess>, std::unique_ptr<WsPacket>>;
 
-//
-//
-//
 template <typename Sess>
-using PacketJob = ThreadJob<JOB_PACKET, std::list<SessionPktPair<Sess>>>;
+using PacketJob = ThreadJob<JOB_PACKET, std::list<PacketJobParam<Sess>>>;
 
-//
-//
-//
 template <typename Sess>
-using PacketJobHdr = std::function<void(std::list<SessionPktPair<Sess>>&)>;
+using PacketJobHdr = std::function<void(std::list<PacketJobParam<Sess>>&)>;
 
+template <typename Sess>
+using PacketJobFactory = JobFactory<PacketJobParam<Sess>, PacketJob<Sess>>;
+
+// Rpc server request job & handler & factory.
 // <RpcSession, ClientSession, WsPacket>
 //
-//
-using RpcSrvReqJob =
-    ThreadJob<JOB_RPC_SRV_REQ,
-              std::list<std::tuple<std::shared_ptr<RpcSession>,
-                                   std::unique_ptr<Json>,
-                                   std::unique_ptr<WsPacket>>>>;
-using RpcSrvReqJobHdr =
-    std::function<void(std::list<std::tuple<std::shared_ptr<RpcSession>,
-                                            std::unique_ptr<Json>,
-                                            std::unique_ptr<WsPacket>>>&)>;
+using RpcSrvReqJobParam = std::tuple<std::shared_ptr<RpcSession>,
+                                     std::unique_ptr<Json>,
+                                     std::unique_ptr<WsPacket>>;
+using RpcSrvReqJob        = ThreadJob<JOB_RPC_SRV_REQ, std::list<RpcSrvReqJobParam>>;
+using RpcSrvReqJobHdr     = std::function<void(std::list<RpcSrvReqJobParam>&)>;
+using RpcSrvReqJobFactory = JobFactory<RpcSrvReqJobParam, RpcSrvReqJob>;
 
-using RpcSrvRspJob = ThreadJob<JOB_RPC_SRV_RSP,
-                               std::list<std::pair<std::shared_ptr<RpcSession>,
-                                                   std::unique_ptr<WsPacket>>>>;
-using RpcSrvRspJobHdr =
-    std::function<void(std::list<std::pair<std::shared_ptr<RpcSession>,
-                                           std::unique_ptr<WsPacket>>>&)>;
+// Rpc server response job & handler & factory.
+//
+//
+using RpcSrvRspJobParam =
+    std::pair<std::shared_ptr<RpcSession>, std::unique_ptr<WsPacket>>;
+using RpcSrvRspJob        = ThreadJob<JOB_RPC_SRV_RSP, std::list<RpcSrvRspJobParam>>;
+using RpcSrvRspJobHdr     = std::function<void(std::list<RpcSrvRspJobParam>&)>;
+using RpcSrvRspJobFactory = JobFactory<RpcSrvRspJobParam, RpcSrvRspJob>;
+
 //
 //
 //
+template <typename Sess>
+using RpcCliRspJobParam =
+    std::tuple<eCodes, std::shared_ptr<const Sess>, std::unique_ptr<WsPacket>>;
+
 template <typename Sess>
 using RpcCliRspJob =
-    ThreadJob<JOB_RPC_CLI_RSP,
-              std::list<std::tuple<eCodes,
-                                   std::shared_ptr<const Sess>,
-                                   std::unique_ptr<WsPacket>>>>;
+    ThreadJob<JOB_RPC_CLI_RSP, std::list<RpcCliRspJobParam<Sess>>>;
 
-//
-//
-//
 template <typename Sess>
 using RpcCliRspJobHdr =
-    std::function<void(std::list<std::tuple<eCodes,
-                                            std::shared_ptr<const Sess>,
-                                            std::unique_ptr<WsPacket>>>&)>;
+    std::function<void(std::list<RpcCliRspJobParam<Sess>>&)>;
+
+template <typename Sess>
+using RpcCliRspJobFactory =
+    JobFactory<RpcCliRspJobParam<Sess>, RpcCliRspJob<Sess>>;
 
 //
 //
 //
+template <typename Sess>
+using UpdateSessionJobParam =
+    std::pair<JobHandler*, std::shared_ptr<const Sess>>;
+
 template <typename Sess>
 using UpdateSessionJob =
-    ThreadJob<JOB_UPDATE_SESSION, JobHandler*, std::shared_ptr<const Sess>>;
+    ThreadJob<JOB_UPDATE_SESSION, std::list<UpdateSessionJobParam<Sess>>>;
 
-//
-//
-//
 template <typename Sess>
 using UpdateSessionJobHdr =
-    std::function<void(JobHandler*, std::shared_ptr<const Sess>&)>;
+    std::function<void(std::list<UpdateSessionJobParam<Sess>>&)>;
+
+template <typename Sess>
+using UpdateSessionJobFactory =
+    JobFactory<UpdateSessionJobParam<Sess>, UpdateSessionJob<Sess>>;
 
 //
 //
 //
 template <typename Sess>
 using UpdateSessionAckJob =
-    ThreadJob<JOB_UPDATE_SESSION_ACK, std::shared_ptr<const Sess>>;
+    ThreadJob<JOB_UPDATE_SESSION_ACK, std::list<std::shared_ptr<const Sess>>>;
+
+template <typename Sess>
+using UpdateSessionAckJobHdr =
+    std::function<void(std::list<std::shared_ptr<const Sess>>&)>;
+
+template <typename Sess>
+using UpdateSessionAckJobFactory =
+    JobFactory<std::shared_ptr<const Sess>, UpdateSessionAckJob<Sess>>;
 
 //
 //
 //
-template <typename Sess>
-using UpdateSessionAckJobHdr =
-    std::function<void(std::shared_ptr<const Sess>&)>;
+using HdrJobListMap =
+    std::unordered_map<JobHandler*, std::list<std::unique_ptr<Job>>>;
 }
 
 #endif

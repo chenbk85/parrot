@@ -36,14 +36,6 @@ class RpcClientThread : public ThreadBase,
     using ConnMap =
         std::unordered_map<std::string, std::shared_ptr<RpcClientConn<Sess>>>;
 
-    using RpcCliRspJobParam = std::tuple<eCodes,
-                                         std::shared_ptr<const Sess>,
-                                         std::unique_ptr<WsPacket>>;
-    using RpcCliRspJobFactory =
-        JobFactory<RpcCliRspJobParam, RpcCliRspJob<Sess>>;
-    using HdrJobListMap =
-        std::unordered_map<JobHandler*, std::list<std::unique_ptr<Job>>>;
-
   public:
     RpcClientThread(const Config& cfg, const WsConfig& wsCfg);
 
@@ -66,7 +58,7 @@ class RpcClientThread : public ThreadBase,
 
   private:
     void afterAddJob() override;
-    void handleJob() override;
+    void handleJobs() override;
     void onTimeout(WsClientConn<RpcSession>*) override;
     void beforeStart() override;
     void run() override;
@@ -77,7 +69,7 @@ class RpcClientThread : public ThreadBase,
     // Save connected client to this map.
     ConnMap _connMap;
 
-    RpcCliRspJobFactory _rpcCliRspJobFactory;
+    RpcCliRspJobFactory<Sess> _rpcCliRspJobFactory;
     HdrJobListMap _hdrJobListMap;
 
     std::unique_ptr<EventNotifier> _notifier;
@@ -143,7 +135,7 @@ void RpcClientThread<Sess>::addRsp(JobHandler* hdr,
                                    std::unique_ptr<WsPacket>&& pkt)
 {
     _rpcCliRspJobFactory.add(
-        hdr, RpcCliRspJobParam(code, std::move(session), std::move(pkt)));
+        hdr, RpcCliRspJobParam<Sess>(code, std::move(session), std::move(pkt)));
 }
 
 template <typename Sess> void RpcClientThread<Sess>::doConnect()
@@ -227,7 +219,7 @@ template <typename Sess> void RpcClientThread<Sess>::beforeStart()
     }
 }
 
-template <typename Sess> void RpcClientThread<Sess>::handleJob()
+template <typename Sess> void RpcClientThread<Sess>::handleJobs()
 {
     std::list<std::unique_ptr<Job>> jobList;
     _jobListLock.lock();
@@ -250,7 +242,7 @@ template <typename Sess> void RpcClientThread<Sess>::handleJob()
                 if (mit == _connMap.end())
                 {
                     LOG_WARN(
-                        "RpcClientThread::handleJob: Failed to find rpc server "
+                        "RpcClientThread::handleJobs: Failed to find rpc server "
                         << req->getDestSrvId() << ".");
                     addRsp(req->getRspHandler(), eCodes::ERR_RemoteNotConnected,
                            req->getSession(),
@@ -339,7 +331,7 @@ template <typename Sess> void RpcClientThread<Sess>::run()
             }     // for
 
             // Append packet which needs to be sent to connections.
-            handleJob();
+            handleJobs();
 
             // Send responses to the handler.
             handleRsp();

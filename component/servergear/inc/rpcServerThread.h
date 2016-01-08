@@ -39,14 +39,6 @@ class RpcServerThread : public ThreadBase,
     using RspPktList = std::list<
         std::pair<std::shared_ptr<RpcSession>, std::unique_ptr<WsPacket>>>;
 
-    using RpcSrvReqJobParam = std::tuple<std::shared_ptr<RpcSession>,
-                                      std::unique_ptr<Json>,
-                                      std::unique_ptr<WsPacket>>;
-
-    using RpcSrvReqJobFactory = JobFactory<RpcSrvReqJobParam, RpcSrvReqJob>;
-    using HdrJobListMap =
-        std::unordered_map<JobHandler*, std::list<std::unique_ptr<Job>>>;
-
     using ConnMap =
         std::unordered_map<RpcServerConn*, std::unique_ptr<RpcServerConn>>;
 
@@ -78,7 +70,7 @@ class RpcServerThread : public ThreadBase,
     void onTimeout(WsServerConn<RpcSession>*) override;
 
     // JobHandler
-    void handleJob() override;
+    void handleJobs() override;
 
   private:
     void init();

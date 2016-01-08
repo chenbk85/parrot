@@ -177,7 +177,7 @@ void RpcServerThread::onTimeout(WsServerConn<RpcSession>* conn)
     removeConn(static_cast<RpcServerConn*>(conn->getDerivedPtr()));
 }
 
-void RpcServerThread::handleJob()
+void RpcServerThread::handleJobs()
 {
     std::list<std::unique_ptr<Job>> jobList;
     _jobListLock.lock();
@@ -267,7 +267,7 @@ void RpcServerThread::run()
             }     // for
 
             // Append packet which needs to be sent to connections.
-            handleJob();
+            handleJobs();
 
             // Dispatch packet to back threads.
             dispatchPackets();

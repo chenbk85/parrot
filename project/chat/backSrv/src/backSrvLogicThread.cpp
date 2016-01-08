@@ -26,7 +26,8 @@ BackSrvLogicThread::BackSrvLogicThread()
 #elif defined(_WIN32)
 //      _notifier(new parrot::SimpleEventNotifier()),
 #endif
-      _rpcRspList(),
+      _rpcSrvRspJobFactory(),
+      _hdrJobListMap(),
       _config(nullptr)
 {
     using namespace std::placeholders;
@@ -53,22 +54,21 @@ void BackSrvLogicThread::afterAddJob()
     _notifier->stopWaiting();
 }
 
-void BackSrvLogicThread::handleRpcReq(PktList& pktList)
+void BackSrvLogicThread::handleRpcReq(
+    std::list<parrot::RpcSrvReqJobParam>& pktList)
 {
     // tuple<RpcSession, CliSessionJson, WsPacket>
     for (auto& p : pktList)
     {
         auto& pkt = std::get<2>(p);
-        _rpcRspList.emplace_back(std::move(std::get<0>(p)), std::move(pkt));
+        _rpcSrvRspJobFactory.add(
+            _mainThread->getRpcSrvThread(),
+            parrot::RpcSrvRspJobParam(std::move(std::get<0>(p)),
+                                      std::move(pkt)));
     }
-
-    std::unique_ptr<parrot::RpcSrvRspJob> rspJob(new parrot::RpcSrvRspJob());
-    rspJob->bind(std::move(_rpcRspList));
-    _mainThread->getRpcSrvThread()->addJob(std::move(rspJob));
-    _rpcRspList.clear();
 }
 
-void BackSrvLogicThread::handleJob()
+void BackSrvLogicThread::handleJobs()
 {
     std::list<std::unique_ptr<parrot::Job>> jobList;
     _jobListLock.lock();
@@ -97,6 +97,20 @@ void BackSrvLogicThread::handleJob()
     }
 }
 
+void BackSrvLogicThread::dispatchJobs()
+{
+    _rpcSrvRspJobFactory.loadJobs(_hdrJobListMap);
+
+    for (auto& kv : _hdrJobListMap)
+    {
+        if (!kv.second.empty())
+        {
+            (kv.first)->addJob(kv.second);
+            kv.second.clear();
+        }
+    }
+}
+
 void BackSrvLogicThread::run()
 {
     parrot::IoEvent* ev = nullptr;
@@ -115,7 +129,7 @@ void BackSrvLogicThread::run()
             ev->handleIoEvent();
         }
 
-        handleJob();
+        handleJobs();
     }
 }
 

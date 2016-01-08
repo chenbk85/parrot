@@ -21,7 +21,6 @@ FrontSrvLogicThread::FrontSrvLogicThread()
     : PoolThread(),
       JobHandler(),
       _mainThread(nullptr),
-      _packetJobHdr(),
 #if defined(__linux__)
       _notifier(new parrot::Epoll(1)),
 #elif defined(__APPLE__)
@@ -29,12 +28,20 @@ FrontSrvLogicThread::FrontSrvLogicThread()
 #elif defined(_WIN32)
 //      _notifier(new parrot::SimpleEventNotifier()),
 #endif
-      _rpcReqList(),
-      _clientPktMap(),
+      _rpcReqContainer(),
+      _pktJobFactory(),
+      _hdrJobListMap(),
+      _updateSessAckJobHdr(),
+      _packetJobHdr(),
+      _rpcCliRspJobHdr(),
       _config(nullptr)
 {
     using namespace std::placeholders;
     _packetJobHdr = std::bind(&FrontSrvLogicThread::handlePacket, this, _1);
+    _updateSessAckJobHdr =
+        std::bind(&FrontSrvLogicThread::handleUpdateSessionAck, this, _1);
+    _rpcCliRspJobHdr =
+        std::bind(&FrontSrvLogicThread::handleRpcResponse, this, _1);
 }
 
 void FrontSrvLogicThread::setConfig(const FrontSrvConfig* cfg)
@@ -58,7 +65,7 @@ void FrontSrvLogicThread::afterAddJob()
 }
 
 void FrontSrvLogicThread::handlePacket(
-    std::list<parrot::SessionPktPair<ChatSession>>& pktList)
+    std::list<parrot::PacketJobParam<ChatSession>>& pktList)
 {
     for (auto& sp : pktList)
     {
@@ -81,16 +88,11 @@ void FrontSrvLogicThread::handlePacket(
         //         std::unique_ptr<parrot::WsPacket>(new parrot::WsPacket()),
         //         this));
 
-        _rpcReqList.emplace_back(
-            std::unique_ptr<parrot::RpcRequest<ChatSession>>(
-                new parrot::RpcRequest<ChatSession>(
-                    "backSrv001", sp.first,
-                    std::unique_ptr<parrot::WsPacket>(new parrot::WsPacket()),
-                    this)));
+        std::unique_ptr<parrot::Job> reqJob(new parrot::RpcRequest<ChatSession>(
+            "backSrv001", sp.first,
+            std::unique_ptr<parrot::WsPacket>(new parrot::WsPacket()), this));
+        _rpcReqContainer.add(_mainThread->getRpcCliThread(), std::move(reqJob));
     }
-
-    _mainThread->getRpcCliThread()->addJob(_rpcReqList);
-    PARROT_ASSERT(_rpcReqList.empty());
 
     // for (auto& kv : _clientPktMap)
     // {
@@ -102,7 +104,8 @@ void FrontSrvLogicThread::handlePacket(
     // }
 }
 
-void FrontSrvLogicThread::handleRpcResponse(RpcRspList& rspList)
+void FrontSrvLogicThread::handleRpcResponse(
+    std::list<parrot::RpcCliRspJobParam<ChatSession>>& rspList)
 {
     parrot::eCodes code;
 
@@ -122,21 +125,18 @@ void FrontSrvLogicThread::handleRpcResponse(RpcRspList& rspList)
         }
 
         auto& session = std::get<1>(p);
-        _clientPktMap[session->getFrontJobHdr()].emplace_back(
-            std::move(session), std::move(std::get<2>(p)));
-    }
-
-    for (auto& kv : _clientPktMap)
-    {
-        std::unique_ptr<parrot::PacketJob<ChatSession>> job(
-            new parrot::PacketJob<ChatSession>());
-        job->bind(std::move(kv.second));
-        (kv.first)->addJob(std::move(job));
-        kv.second.clear();
+        _pktJobFactory.add(session->getFrontJobHdr(),
+                           parrot::PacketJobParam<ChatSession>(
+                               std::move(session), std::move(std::get<2>(p))));
     }
 }
 
-void FrontSrvLogicThread::handleJob()
+void FrontSrvLogicThread::handleUpdateSessionAck(
+    std::list<std::shared_ptr<const ChatSession>>&)
+{
+}
+
+void FrontSrvLogicThread::handleJobs()
 {
     std::list<std::unique_ptr<parrot::Job>> jobList;
     _jobListLock.lock();
@@ -158,10 +158,19 @@ void FrontSrvLogicThread::handleJob()
 
             case parrot::JOB_RPC_CLI_RSP:
             {
-                std::unique_ptr<parrot::PacketJob<ChatSession>> tj(
-                    static_cast<parrot::PacketJob<ChatSession>*>(
+                std::unique_ptr<parrot::RpcCliRspJob<ChatSession>> tj(
+                    static_cast<parrot::RpcCliRspJob<ChatSession>*>(
                         (j.release())->getDerivedPtr()));
-                tj->call(_packetJobHdr);
+                tj->call(_rpcCliRspJobHdr);
+            }
+            break;
+
+            case parrot::JOB_UPDATE_SESSION_ACK:
+            {
+                std::unique_ptr<parrot::UpdateSessionAckJob<ChatSession>> tj(
+                    static_cast<parrot::UpdateSessionAckJob<ChatSession>*>(
+                        (j.release())->getDerivedPtr()));
+                tj->call(_updateSessAckJobHdr);
             }
             break;
 
@@ -170,6 +179,21 @@ void FrontSrvLogicThread::handleJob()
                 PARROT_ASSERT(false);
             }
             break;
+        }
+    }
+}
+
+void FrontSrvLogicThread::dispatchJob()
+{
+    _pktJobFactory.loadJobs(_hdrJobListMap);
+    _rpcReqContainer.loadJobsWithoutCreate(_hdrJobListMap);
+
+    for (auto& kv : _hdrJobListMap)
+    {
+        if (!kv.second.empty())
+        {
+            (kv.first)->addJob(kv.second);
+            kv.second.clear();
         }
     }
 }
@@ -192,7 +216,8 @@ void FrontSrvLogicThread::run()
             ev->handleIoEvent();
         }
 
-        handleJob();
+        handleJobs();
+        dispatchJob();
     }
 }
 

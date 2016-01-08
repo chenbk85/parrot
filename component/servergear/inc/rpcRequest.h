@@ -12,6 +12,7 @@
 #include "job.h"
 #include "timeoutGuard.h"
 #include "doubleLinkedListNode.h"
+#include "jobFactory.h"
 
 namespace parrot
 {
@@ -109,7 +110,8 @@ template <typename Sess> JobHandler* RpcRequest<Sess>::getRspHandler() const
     return _rspHandler;
 }
 
-template <typename Sess> std::shared_ptr<const Sess>& RpcRequest<Sess>::getSession()
+template <typename Sess>
+std::shared_ptr<const Sess>& RpcRequest<Sess>::getSession()
 {
     return _session;
 }
@@ -122,6 +124,8 @@ template <typename Sess> std::string RpcRequest<Sess>::toString()
          << _session->toString();
     return ostr.str();
 }
+
+template <typename Sess> using RpcRequestContainer = JobFactory<std::unique_ptr<Job>, Job>;
 }
 
 #endif

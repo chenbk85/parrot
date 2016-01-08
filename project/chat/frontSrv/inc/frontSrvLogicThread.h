@@ -24,17 +24,6 @@ class FrontSrvMainThread;
 
 class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
 {
-    using RpcRspList = std::list<std::tuple<parrot::eCodes,
-                                            std::shared_ptr<ChatSession>,
-                                            std::unique_ptr<parrot::WsPacket>>>;
-
-    using ClientPktMap =
-        std::unordered_map<parrot::JobHandler*,
-                           std::list<parrot::SessionPktPair<ChatSession>>>;
-
-    using RpcReqList =
-        std::list<std::unique_ptr<parrot::Job>>;
-
   public:
     FrontSrvLogicThread();
 
@@ -51,18 +40,27 @@ class FrontSrvLogicThread : public parrot::PoolThread, public parrot::JobHandler
     void run() override;
 
   protected:
-    void handleJob() override;
+    void handleJobs() override;
 
   protected:
-    void handlePacket(std::list<parrot::SessionPktPair<ChatSession>>& pktList);
-    void handleRpcResponse(RpcRspList& pktList);
+    void handlePacket(std::list<parrot::PacketJobParam<ChatSession>>& pktList);
+    void handleRpcResponse(
+        std::list<parrot::RpcCliRspJobParam<ChatSession>>& pktList);
+    void handleUpdateSessionAck(std::list<std::shared_ptr<const ChatSession>>&);
+    void dispatchJob();
 
   protected:
     FrontSrvMainThread* _mainThread;
-    parrot::PacketJobHdr<ChatSession> _packetJobHdr;
     std::unique_ptr<parrot::EventNotifier> _notifier;
-    RpcReqList _rpcReqList;
-    ClientPktMap _clientPktMap;
+
+    parrot::RpcRequestContainer<ChatSession> _rpcReqContainer;
+    parrot::PacketJobFactory<ChatSession> _pktJobFactory;
+    parrot::HdrJobListMap _hdrJobListMap;
+
+    parrot::UpdateSessionAckJobHdr<ChatSession> _updateSessAckJobHdr;
+    parrot::PacketJobHdr<ChatSession> _packetJobHdr;
+    parrot::RpcCliRspJobHdr<ChatSession> _rpcCliRspJobHdr;
+
     const FrontSrvConfig* _config;
 };
 }
