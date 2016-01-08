@@ -15,7 +15,7 @@ RpcServerThread::RpcServerThread(const Config* cfg)
       ConnHandler<RpcServerConn>(),
       _connMap(),
       _registeredConnMap(),
-    _jobProcesser(),
+      _jobProcesser(),
       _notifier(),
       _timeoutMgr(),
       _now(0),
@@ -28,7 +28,7 @@ RpcServerThread::RpcServerThread(const Config* cfg)
 void RpcServerThread::init()
 {
     _jobProcesser.reset(new RpcServerJobProcesser(this));
-    
+
     _timeoutMgr.reset(new TimeoutManager<WsServerConn<RpcSession>>(
         this, _config->_rpcClientConnTimeout));
 
