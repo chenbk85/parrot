@@ -134,6 +134,7 @@ void FrontSrvLogicThread::handleRpcResponse(
 void FrontSrvLogicThread::handleUpdateSessionAck(
     std::list<std::shared_ptr<const ChatSession>>&)
 {
+    // TODO: impl this function.
 }
 
 void FrontSrvLogicThread::handleJobs()

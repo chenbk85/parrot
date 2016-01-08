@@ -18,6 +18,7 @@
 #include "timeoutHandler.h"
 #include "config.h"
 #include "wsConfig.h"
+#include "threadJob.h"
 
 namespace parrot
 {
@@ -126,9 +127,11 @@ void RpcClientConn<Sess>::onTimeout(RpcRequest<Sess>* req)
              << req->toString() << ".");
 
     _reqMap.erase(req->getReqId());
-    _rpcClientThread->addRsp(req->getRspHandler(), eCodes::ERR_Timeout,
-                             req->getSession(),
-                             std::unique_ptr<WsPacket>(new WsPacket()));
+    _rpcClientThread->addRsp(
+        req->getRspHandler(),
+        RpcCliRspJobParam<Sess>(eCodes::ERR_Timeout,
+                                std::move(req->getSession()),
+                                std::unique_ptr<WsPacket>(new WsPacket())));
 }
 
 template <typename Sess>
@@ -156,8 +159,10 @@ void RpcClientConn<Sess>::onResponse(std::unique_ptr<WsPacket>&& pkt)
     LOG_INFO("RpcClientConn::onResponse: Received response for rpc request: "
              << it->second->toString() << ".");
 
-    _rpcClientThread->addRsp(it->second->getRspHandler(), eCodes::ST_Ok,
-                             it->second->getSession(), std::move(pkt));
+    _rpcClientThread->addRsp(it->second->getRspHandler(),
+                             RpcCliRspJobParam<Sess>(eCodes::ST_Ok,
+                                                     it->second->getSession(),
+                                                     std::move(pkt)));
     _timeoutMgr->remove(it->second.get());
     _reqMap.erase(it);
 }
