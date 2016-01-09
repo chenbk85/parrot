@@ -9,7 +9,7 @@
 #include "jobFactory.h"
 #include "chatSession.h"
 #include "rpcRequest.h"
-#include "logicThread.h"
+#include "logicPoolThread.h"
 
 namespace chat
 {
@@ -21,7 +21,7 @@ class FrontSrvJobProcesser : public parrot::JobProcesser
     FrontSrvJobProcesser();
 
   public:
-    void setLogicThread(parrot::LogicThread* thread);
+    void setLogicThread(parrot::LogicPoolThread* thread);
 
   public:
     void processJobs() override;
@@ -44,7 +44,7 @@ class FrontSrvJobProcesser : public parrot::JobProcesser
     parrot::PacketJobHdr<ChatSession> _packetJobHdr;
     parrot::RpcCliRspJobHdr<ChatSession> _rpcCliRspJobHdr;
 
-    parrot::LogicThread* _logicThread;
+    parrot::LogicPoolThread* _logicThread;
 };
 }
 

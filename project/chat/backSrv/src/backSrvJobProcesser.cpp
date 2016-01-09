@@ -15,7 +15,7 @@ BackSrvJobProcesser::BackSrvJobProcesser()
     using namespace std::placeholders;
 }
 
-void BackSrvJobProcesser::setLogicThread(parrot::LogicThread* thread)
+void BackSrvJobProcesser::setLogicThread(parrot::LogicPoolThread* thread)
 {
     _logicThread = thread;
 }

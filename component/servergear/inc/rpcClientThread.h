@@ -45,8 +45,7 @@ class RpcClientThread : public ThreadBase,
 
   public:
     // Internal API. Client should not call this API.
-    void addRsp(JobHandler* hdr,
-                RpcCliRspJobParam<Sess> &&jobParam);
+    void addRsp(JobHandler* hdr, RpcCliRspJobParam<Sess>&& jobParam);
 
   public:
     void stop() override;
@@ -58,8 +57,6 @@ class RpcClientThread : public ThreadBase,
     void updateTimeout(WsClientConn<RpcSession>* conn, std::time_t now);
 
   private:
-    void afterAddJob() override;
-    void handleJobs() override;
     void onTimeout(WsClientConn<RpcSession>*) override;
     void beforeStart() override;
     void run() override;
@@ -87,7 +84,7 @@ RpcClientThread<Sess>::RpcClientThread(const Config& cfg, const WsConfig& wsCfg)
       JobHandler(),
       _disconnectedConnList(),
       _connMap(),
-    _jobProcesser(),
+      _jobProcesser(),
       _notifier(),
       _timeoutMgr(),
       _random(),
@@ -101,7 +98,7 @@ RpcClientThread<Sess>::RpcClientThread(const Config& cfg, const WsConfig& wsCfg)
 template <typename Sess> void RpcClientThread<Sess>::init()
 {
     _jobProcesser.reset(new RpcClientJobProcesser<Sess>(this));
-    
+
     _timeoutMgr.reset(new TimeoutManager<WsClientConn<RpcSession>>(
         this, _config._rpcClientHeartbeatInterval));
 
@@ -114,6 +111,8 @@ template <typename Sess> void RpcClientThread<Sess>::init()
 //    SimpleEventNotifier(_config->_frontThreadMaxConnCount));
 #endif
     _notifier->create();
+    setJobProcesser(_jobProcesser.get());
+    JobHandler::setEventNotifier(_notifier.get());
 }
 
 template <typename Sess> void RpcClientThread<Sess>::stop()
@@ -124,14 +123,9 @@ template <typename Sess> void RpcClientThread<Sess>::stop()
     LOG_INFO("RpcClientThread::stop: Done.");
 }
 
-template <typename Sess> void RpcClientThread<Sess>::afterAddJob()
-{
-    _notifier->stopWaiting();
-}
-
 template <typename Sess>
 void RpcClientThread<Sess>::addRsp(JobHandler* hdr,
-                                                  RpcCliRspJobParam<Sess> &&jobParam)
+                                   RpcCliRspJobParam<Sess>&& jobParam)
 {
     _jobProcesser->createRpcRspJob(hdr, std::move(jobParam));
 }
@@ -200,16 +194,6 @@ template <typename Sess> void RpcClientThread<Sess>::beforeStart()
         _notifier->addEvent(conn.get());
         _disconnectedConnList.push_back(std::move(conn));
     }
-}
-
-template <typename Sess> void RpcClientThread<Sess>::handleJobs()
-{
-    _jobListLock.lock();
-    _jobProcesser->addJob(std::move(_jobList));
-    _jobListLock.unlock();
-
-    _jobProcesser->processJobs();
-    _jobProcesser->dispatchJobs();
 }
 
 template <typename Sess> void RpcClientThread<Sess>::run()

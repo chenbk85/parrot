@@ -57,18 +57,12 @@ class RpcServerThread : public ThreadBase,
     void addReqPacket(JobHandler* hdr, RpcSrvReqJobParam&& jobParam);
 
   protected:
-    void afterAddNewConn() override;
-
-    void afterAddJob() override;
 
     // ThreadBase
     void run() override;
 
     // TimeoutHandler
     void onTimeout(WsServerConn<RpcSession>*) override;
-
-    // JobHandler
-    void handleJobs() override;
 
   private:
     void init();

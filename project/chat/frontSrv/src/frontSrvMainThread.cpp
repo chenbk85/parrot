@@ -35,13 +35,13 @@ FrontSrvMainThread* FrontSrvMainThread::getInstance()
     return _instance.get();
 }
 
-parrot::ThreadPool<parrot::LogicThread>&
+parrot::ThreadPool<parrot::LogicPoolThread>&
 FrontSrvMainThread::getLogicThreadPool()
 {
     return _logicThreadPool;
 }
 
-const FrontSrvConfig * FrontSrvMainThread::getConfig() const
+const FrontSrvConfig* FrontSrvMainThread::getConfig() const
 {
     return _config;
 }
@@ -57,7 +57,7 @@ void FrontSrvMainThread::beforeStart()
 {
     MainThread<ChatSession, ChatSession>::beforeStart();
     FrontSrvScheduler::createInstance();
-    FrontSrvRpcScheduler::createInstance();    
+    FrontSrvRpcScheduler::createInstance();
 
     auto& logicThreadsVec = _logicThreadPool.getThreadPoolVec();
     for (auto& t : logicThreadsVec)

@@ -24,7 +24,7 @@ FrontSrvJobProcesser::FrontSrvJobProcesser()
         std::bind(&FrontSrvJobProcesser::processRpcResponse, this, _1);
 }
 
-void FrontSrvJobProcesser::setLogicThread(parrot::LogicThread* thread)
+void FrontSrvJobProcesser::setLogicThread(parrot::LogicPoolThread* thread)
 {
     _logicThread = thread;
 }

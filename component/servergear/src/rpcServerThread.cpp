@@ -41,6 +41,9 @@ void RpcServerThread::init()
 //    SimpleEventNotifier(_config->_frontThreadMaxConnCount));
 #endif
     _notifier->create();
+    setJobProcesser(_jobProcesser.get());    
+    JobHandler::setEventNotifier(_notifier.get());
+    ConnHandler::setEventNotifier(_notifier.get());    
 }
 
 void RpcServerThread::stop()
@@ -112,31 +115,11 @@ void RpcServerThread::updateTimeout(RpcServerConn* conn, std::time_t now)
     _timeoutMgr->update(conn, now);
 }
 
-void RpcServerThread::afterAddJob()
-{
-    _notifier->stopWaiting();
-}
-
-void RpcServerThread::afterAddNewConn()
-{
-    _notifier->stopWaiting();
-}
-
 void RpcServerThread::onTimeout(WsServerConn<RpcSession>* conn)
 {
     LOG_WARN("RpcServerThread::onTimeout: Remote sid is "
              << conn->getSession()->toString() << ".");
     removeConn(static_cast<RpcServerConn*>(conn->getDerivedPtr()));
-}
-
-void RpcServerThread::handleJobs()
-{
-    _jobListLock.lock();
-    _jobProcesser->addJob(std::move(_jobList));
-    _jobListLock.unlock();
-
-    _jobProcesser->processJobs();
-    _jobProcesser->dispatchJobs();    
 }
 
 void RpcServerThread::run()

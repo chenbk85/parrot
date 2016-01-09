@@ -5,14 +5,13 @@
 #include "codes.h"
 #include "simpleEventNotifier.h"
 #include "macroFuncs.h"
-#include "logicThread.h"
+#include "logicPoolThread.h"
 
 namespace parrot
 {
-LogicThread::LogicThread(uint32_t eventCount)
-    : ThreadBase(),
+LogicPoolThread::LogicPoolThread(uint32_t eventCount)
+    : PoolThread(),
       JobHandler(),
-      _jobProcesser(),
 #if defined(__linux__)
       _notifier(new Epoll(eventCount))
 #elif defined(__APPLE__)
@@ -23,24 +22,25 @@ LogicThread::LogicThread(uint32_t eventCount)
 {
 }
 
-void LogicThread::setJobProcesser(std::unique_ptr<parrot::JobProcesser>&& p)
+void LogicPoolThread::setJobProcesser(std::unique_ptr<JobProcesser>&& p)
 {
     _jobProcesser = std::move(p);
 }
 
-void LogicThread::beforeStart()
+void LogicPoolThread::beforeStart()
 {
-    JobHandler::setJobProcesser(_jobProcesser.get());    
-    JobHandler::setEventNotifier(_notifier.get());    
+    JobHandler::setJobProcesser(_jobProcesser.get());
+    JobHandler::setEventNotifier(_notifier.get());
     _notifier->create();
 }
 
-void LogicThread::run()
+void LogicPoolThread::run()
 {
     parrot::IoEvent* ev = nullptr;
     uint32_t ret        = 0;
 
-    LOG_INFO("LogicThread::run. Tid is " << std::this_thread::get_id() << ".");
+    LOG_INFO("LogicPoolThread::run. Tid is " << std::this_thread::get_id()
+                                             << ".");
 
     while (!isStopping())
     {
@@ -56,11 +56,11 @@ void LogicThread::run()
     }
 }
 
-void LogicThread::stop()
+void LogicPoolThread::stop()
 {
     ThreadBase::stop();
     _notifier->stopWaiting();
     ThreadBase::join();
-    LOG_INFO("LogicThread::stop: Done.");
+    LOG_INFO("LogicPoolThread::stop: Done.");
 }
 }

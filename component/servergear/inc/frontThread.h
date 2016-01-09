@@ -62,16 +62,11 @@ class FrontThread : public PoolThread,
     void stop() override;
 
   protected:
-    void afterAddNewConn() override;
-    void afterAddJob() override;
-
     // ThreadBase
     void run() override;
 
     // TimeoutHandler
     void onTimeout(WsServerConn<Sess>*) override;
-
-    void handleJobs() override;
 
   public:
     // WsPacketHandler
@@ -112,15 +107,17 @@ FrontThread<Sess>::FrontThread()
       _connUniqueIdx(0),
       _config(nullptr)
 {
-    _jobProcesser.reset(new FrontThreadJobProcesser<Sess>(this));
 }
 
 template <typename Sess>
 void FrontThread<Sess>::updateByConfig(const Config* cfg)
 {
     _config = cfg;
+    
     _timeoutMgr.reset(new TimeoutManager<WsServerConn<Sess>>(
         this, _config->_frontClientConnTimeout));
+
+    _jobProcesser.reset(new FrontThreadJobProcesser<Sess>(this));
 
 #if defined(__linux__)
     _notifier.reset(new Epoll(_config->_frontThreadMaxConnCount));
@@ -131,6 +128,10 @@ void FrontThread<Sess>::updateByConfig(const Config* cfg)
 //    SimpleEventNotifier(_config->_frontThreadMaxConnCount));
 #endif
     _notifier->create();
+
+    setJobProcesser(_jobProcesser.get());    
+    JobHandler::setEventNotifier(_notifier.get());
+    ConnHandler<WsServerConn<Sess>>::setEventNotifier(_notifier.get());
 }
 
 template <typename Sess> void FrontThread<Sess>::stop()
@@ -139,18 +140,6 @@ template <typename Sess> void FrontThread<Sess>::stop()
     _notifier->stopWaiting();
     ThreadBase::join();
     LOG_INFO("FrontThread::stop: Done.");
-}
-
-template <typename Sess> void FrontThread<Sess>::afterAddJob()
-{
-    _notifier->stopWaiting();
-    LOG_DEBUG("FrontThread::afterAddJob.");
-}
-
-template <typename Sess> void FrontThread<Sess>::afterAddNewConn()
-{
-    _notifier->stopWaiting();
-    LOG_DEBUG("FrontThread::afterAddNewConn.");
 }
 
 template <typename Sess>
@@ -206,16 +195,6 @@ void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
     LOG_INFO("FrontThread::onClose: Err is " << (uint32_t)(pkt->getCloseCode())
                                              << ". Sess is "
                                              << session->toString() << ".");
-}
-
-template <typename Sess> void FrontThread<Sess>::handleJobs()
-{
-    _jobListLock.lock();
-    _jobProcesser->addJob(std::move(_jobList));
-    _jobListLock.unlock();
-
-    _jobProcesser->processJobs();
-    _jobProcesser->dispatchJobs();
 }
 
 template <typename Sess> void FrontThread<Sess>::addConnToNotifier()

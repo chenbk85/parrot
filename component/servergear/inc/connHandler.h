@@ -5,24 +5,39 @@
 #include <memory>
 #include <mutex>
 
+#include "eventNotifier.h"
+
 namespace parrot
 {
 template <typename Conn> class ConnHandler
 {
   public:
-    ConnHandler() = default;
+    ConnHandler();
     virtual ~ConnHandler() = default;
 
   public:
     void addConn(std::list<std::unique_ptr<Conn>>& connList);
 
   protected:
-    virtual void afterAddNewConn() {}
+    void setEventNotifier(EventNotifier* n);
 
   protected:
     std::mutex _newConnListLock;
     std::list<std::unique_ptr<Conn>> _newConnList;
+    EventNotifier* _notifier;
 };
+
+template <typename Conn>
+ConnHandler<Conn>::ConnHandler()
+    : _newConnListLock(), _newConnList(), _notifier(nullptr)
+{
+}
+
+template <typename Conn>
+void ConnHandler<Conn>::setEventNotifier(EventNotifier* n)
+{
+    _notifier = n;
+}
 
 template <typename Conn>
 void ConnHandler<Conn>::addConn(std::list<std::unique_ptr<Conn>>& connList)
@@ -31,7 +46,7 @@ void ConnHandler<Conn>::addConn(std::list<std::unique_ptr<Conn>>& connList)
     _newConnList.splice(_newConnList.end(), connList);
     _newConnListLock.unlock();
 
-    afterAddNewConn();
+    _notifier->stopWaiting();
 }
 }
 

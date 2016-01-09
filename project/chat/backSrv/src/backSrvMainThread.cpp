@@ -30,7 +30,8 @@ BackSrvMainThread* BackSrvMainThread::getInstance()
     return _instance.get();
 }
 
-parrot::ThreadPool<parrot::LogicThread>& BackSrvMainThread::getLogicThreadPool()
+parrot::ThreadPool<parrot::LogicPoolThread>&
+BackSrvMainThread::getLogicThreadPool()
 {
     return _logicThreadPool;
 }

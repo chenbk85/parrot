@@ -9,10 +9,13 @@
 
 namespace parrot
 {
+class JobProcesser;
+class EventNotifier;
+
 class JobHandler
 {
   public:
-    JobHandler() = default;
+    JobHandler();
     virtual ~JobHandler() = default;
 
   public:
@@ -20,12 +23,17 @@ class JobHandler
     void addJob(std::list<std::unique_ptr<Job>>& jobList);
 
   protected:
-    virtual void handleJobs() = 0;
-    virtual void afterAddJob() {}
+    void setJobProcesser(JobProcesser* jp);
+    void setEventNotifier(EventNotifier* n);
+
+  protected:
+    virtual void handleJobs();
 
   protected:
     std::mutex _jobListLock;
     std::list<std::unique_ptr<Job>> _jobList;
+    JobProcesser* _baseJobProcesser;
+    EventNotifier* _notifier;
 };
 }
 
