@@ -32,8 +32,10 @@ class JobHandler
   protected:
     std::mutex _jobListLock;
     std::list<std::unique_ptr<Job>> _jobList;
+
+  private:
     JobProcesser* _baseJobProcesser;
-    EventNotifier* _notifier;
+    EventNotifier* _baseNotifier;
 };
 }
 

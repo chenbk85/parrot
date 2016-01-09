@@ -7,7 +7,10 @@ namespace parrot
 {
 
 JobHandler::JobHandler()
-    : _jobListLock(), _jobList(), _baseJobProcesser(nullptr), _notifier(nullptr)
+    : _jobListLock(),
+      _jobList(),
+      _baseJobProcesser(nullptr),
+      _baseNotifier(nullptr)
 {
 }
 
@@ -18,7 +21,7 @@ void JobHandler::setJobProcesser(JobProcesser* jp)
 
 void JobHandler::setEventNotifier(EventNotifier* n)
 {
-    _notifier = n;
+    _baseNotifier = n;
 }
 
 void JobHandler::addJob(std::unique_ptr<Job>&& job)
@@ -27,7 +30,7 @@ void JobHandler::addJob(std::unique_ptr<Job>&& job)
     _jobList.push_back(std::move(job));
     _jobListLock.unlock();
 
-    _notifier->stopWaiting();
+    _baseNotifier->stopWaiting();
 }
 
 void JobHandler::addJob(std::list<std::unique_ptr<Job>>& jobList)
@@ -36,7 +39,7 @@ void JobHandler::addJob(std::list<std::unique_ptr<Job>>& jobList)
     _jobList.splice(_jobList.end(), jobList);
     _jobListLock.unlock();
 
-    _notifier->stopWaiting();
+    _baseNotifier->stopWaiting();
 }
 
 void JobHandler::handleJobs()

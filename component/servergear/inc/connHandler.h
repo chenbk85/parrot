@@ -24,19 +24,21 @@ template <typename Conn> class ConnHandler
   protected:
     std::mutex _newConnListLock;
     std::list<std::unique_ptr<Conn>> _newConnList;
-    EventNotifier* _notifier;
+
+  private:
+    EventNotifier* _baseNotifier;
 };
 
 template <typename Conn>
 ConnHandler<Conn>::ConnHandler()
-    : _newConnListLock(), _newConnList(), _notifier(nullptr)
+    : _newConnListLock(), _newConnList(), _baseNotifier(nullptr)
 {
 }
 
 template <typename Conn>
 void ConnHandler<Conn>::setEventNotifier(EventNotifier* n)
 {
-    _notifier = n;
+    _baseNotifier = n;
 }
 
 template <typename Conn>
@@ -46,7 +48,7 @@ void ConnHandler<Conn>::addConn(std::list<std::unique_ptr<Conn>>& connList)
     _newConnList.splice(_newConnList.end(), connList);
     _newConnListLock.unlock();
 
-    _notifier->stopWaiting();
+    _baseNotifier->stopWaiting();
 }
 }
 
