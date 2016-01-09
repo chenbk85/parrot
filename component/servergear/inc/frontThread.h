@@ -215,6 +215,7 @@ template <typename Sess> void FrontThread<Sess>::handleJobs()
     _jobListLock.unlock();
 
     _jobProcesser->processJobs();
+    _jobProcesser->dispatchJobs();
 }
 
 template <typename Sess> void FrontThread<Sess>::addConnToNotifier()
@@ -337,7 +338,6 @@ template <typename Sess> void FrontThread<Sess>::run()
             }     // for
 
             handleJobs();
-
         } // while
     }
     catch (const std::system_error& e)

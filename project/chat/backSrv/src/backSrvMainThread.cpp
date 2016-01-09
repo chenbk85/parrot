@@ -1,9 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-#include <unordered_map>
-#include <unordered_set>
 
+#include "backSrvJobProcesser.h"
 #include "backSrvMainThread.h"
 #include "backSrvConfig.h"
 #include "jobHandler.h"
@@ -31,28 +30,14 @@ BackSrvMainThread* BackSrvMainThread::getInstance()
     return _instance.get();
 }
 
-parrot::ThreadPool<BackSrvLogicThread>&
-BackSrvMainThread::getLogicThreadPool()
+parrot::ThreadPool<parrot::LogicThread>& BackSrvMainThread::getLogicThreadPool()
 {
     return _logicThreadPool;
 }
 
-const BackSrvConfig * BackSrvMainThread::getConfig() const
+const BackSrvConfig* BackSrvMainThread::getConfig() const
 {
     return _config;
-}
-
-void BackSrvMainThread::beforeStart()
-{
-    MainThread<ChatSession, ChatSession>::beforeStart();
-    BackSrvRpcScheduler::createInstance();
-    
-    auto& logicThreadsVec = _logicThreadPool.getThreadPoolVec();
-    for (auto& t : logicThreadsVec)
-    {
-        t->setConfig(_config);
-        t->setMainThread(this);
-    }
 }
 
 void BackSrvMainThread::createUserThreads()
@@ -60,6 +45,20 @@ void BackSrvMainThread::createUserThreads()
     _logicThreadPool.create();
     _logicThreadPool.start();
     LOG_INFO("BackSrvMainThread::createUserThreads. Done.");
+}
+
+void BackSrvMainThread::beforeStart()
+{
+    MainThread<ChatSession, ChatSession>::beforeStart();
+    BackSrvRpcScheduler::createInstance();
+
+    auto& logicThreadsVec = _logicThreadPool.getThreadPoolVec();
+    for (auto& t : logicThreadsVec)
+    {
+        std::unique_ptr<BackSrvJobProcesser> jp(new BackSrvJobProcesser());
+        jp->setLogicThread(t.get());
+        t->setJobProcesser(std::move(jp));
+    }
 }
 
 void BackSrvMainThread::stopUserThreads()

@@ -204,12 +204,12 @@ template <typename Sess> void RpcClientThread<Sess>::beforeStart()
 
 template <typename Sess> void RpcClientThread<Sess>::handleJobs()
 {
-    std::list<std::unique_ptr<Job>> jobList;
     _jobListLock.lock();
     _jobProcesser->addJob(std::move(_jobList));
     _jobListLock.unlock();
 
     _jobProcesser->processJobs();
+    _jobProcesser->dispatchJobs();
 }
 
 template <typename Sess> void RpcClientThread<Sess>::run()

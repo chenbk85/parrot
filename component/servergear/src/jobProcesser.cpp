@@ -9,6 +9,8 @@ void JobProcesser::addJob(std::list<std::unique_ptr<Job>>&& jobList)
 
 void JobProcesser::dispatchJobs()
 {
+    loadJobs();
+    
     for (auto& kv : _hdrJobListMap)
     {
         if (!kv.second.empty())
@@ -17,5 +19,7 @@ void JobProcesser::dispatchJobs()
             kv.second.clear();
         }
     }
+
+    _jobList.clear();
 }
 }

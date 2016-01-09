@@ -19,15 +19,13 @@ class JobProcesser
 
   public:
     void addJob(std::list<std::unique_ptr<Job>>&& jobList);
+    void dispatchJobs();    
 
   public:
     virtual void processJobs() = 0;
 
   protected:
     virtual void loadJobs() = 0;
-
-  protected:
-    void dispatchJobs();
 
   protected:
     std::list<std::unique_ptr<Job>> _jobList;

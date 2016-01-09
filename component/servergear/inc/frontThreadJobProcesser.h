@@ -98,12 +98,6 @@ template <typename Sess> void FrontThreadJobProcesser<Sess>::processJobs()
             break;
         }
     }
-
-    //
-    loadJobs();
-
-    //
-    dispatchJobs();
 }
 
 template <typename Sess> void FrontThreadJobProcesser<Sess>::loadJobs()

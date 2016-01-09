@@ -6,7 +6,7 @@
 #include "mainThread.h"
 #include "threadPool.h"
 #include "chatSession.h"
-#include "backSrvLogicThread.h"
+#include "logicThread.h"
 
 namespace chat
 {
@@ -28,7 +28,7 @@ class BackSrvMainThread : public parrot::MainThread<ChatSession, ChatSession>
     ~BackSrvMainThread() = default;
 
   public:
-    parrot::ThreadPool<BackSrvLogicThread>& getLogicThreadPool();
+    parrot::ThreadPool<parrot::LogicThread>& getLogicThreadPool();
     const BackSrvConfig * getConfig() const;    
 
   protected:
@@ -37,7 +37,7 @@ class BackSrvMainThread : public parrot::MainThread<ChatSession, ChatSession>
     void stopUserThreads() override;
 
   protected:
-    parrot::ThreadPool<BackSrvLogicThread> _logicThreadPool;
+    parrot::ThreadPool<parrot::LogicThread> _logicThreadPool;
     const BackSrvConfig* _config;
 };
 }

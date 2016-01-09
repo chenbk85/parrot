@@ -25,9 +25,9 @@ endif
 
 COMPLIER             := $(CCACHE) g++ -std=c++11
 ifdef RELEASE
-    CPPFLAGS         := -Wall -Wextra -Werror -O3 -Wnon-virtual-dtor -fno-strict-aliasing -DRELEASE
+    CPPFLAGS         := -Wall -Wextra -O3 -Wnon-virtual-dtor -Wpedantic -fno-strict-aliasing -DRELEASE
 else
-    CPPFLAGS         := -g -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing -DDEBUG
+    CPPFLAGS         := -g -Wall -Wextra -Werror -Wshadow -Wnon-virtual-dtor -Wpedantic -fno-strict-aliasing -DDEBUG
 endif
 LINKER               := g++
 LDFLAGS              := -Wl,-rpath,$(PRJ_ROOT)/lib -L$(PRJ_ROOT)/lib

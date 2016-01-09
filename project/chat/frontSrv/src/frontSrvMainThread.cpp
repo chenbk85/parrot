@@ -4,7 +4,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "frontSrvLogicThread.h"
+#include "logicThread.h"
+#include "jobProcesser.h"
+#include "frontSrvJobProcesser.h"
 #include "frontSrvMainThread.h"
 #include "frontSrvConfig.h"
 #include "jobHandler.h"
@@ -33,7 +35,7 @@ FrontSrvMainThread* FrontSrvMainThread::getInstance()
     return _instance.get();
 }
 
-parrot::ThreadPool<FrontSrvLogicThread>&
+parrot::ThreadPool<parrot::LogicThread>&
 FrontSrvMainThread::getLogicThreadPool()
 {
     return _logicThreadPool;
@@ -42,6 +44,13 @@ FrontSrvMainThread::getLogicThreadPool()
 const FrontSrvConfig * FrontSrvMainThread::getConfig() const
 {
     return _config;
+}
+
+void FrontSrvMainThread::createUserThreads()
+{
+    _logicThreadPool.create();
+    _logicThreadPool.start();
+    LOG_INFO("FrontSrvMainThread::createUserThreads. Done.");
 }
 
 void FrontSrvMainThread::beforeStart()
@@ -53,16 +62,10 @@ void FrontSrvMainThread::beforeStart()
     auto& logicThreadsVec = _logicThreadPool.getThreadPoolVec();
     for (auto& t : logicThreadsVec)
     {
-        t->setConfig(_config);
-        t->setMainThread(this);
+        std::unique_ptr<FrontSrvJobProcesser> jp(new FrontSrvJobProcesser());
+        jp->setLogicThread(t.get());
+        t->setJobProcesser(std::move(jp));
     }
-}
-
-void FrontSrvMainThread::createUserThreads()
-{
-    _logicThreadPool.create();
-    _logicThreadPool.start();
-    LOG_INFO("FrontSrvMainThread::createUserThreads. Done.");
 }
 
 void FrontSrvMainThread::stopUserThreads()

@@ -136,6 +136,7 @@ void RpcServerThread::handleJobs()
     _jobListLock.unlock();
 
     _jobProcesser->processJobs();
+    _jobProcesser->dispatchJobs();    
 }
 
 void RpcServerThread::run()

@@ -26,12 +26,12 @@ ENDIF()
 
 # Compiler and its flags.
 IF(CMAKE_HOST_APPLE)
-  SET(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing")
-  SET(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
+  SET(CMAKE_CXX_FLAGS "-std=c++11 -stdlib=libc++ -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing -pedantic")
+  SET(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG -Werror -Wshadow")
   SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -DRELEASE")
 ELSE(CMAKE_HOST_APPLE)
-  SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Werror -Wnon-virtual-dtor -fno-strict-aliasing")
-  SET(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG")
+  SET(CMAKE_CXX_FLAGS "-std=c++11 -Wall -Wextra -Wnon-virtual-dtor -fno-strict-aliasing -pedantic")
+  SET(CMAKE_CXX_FLAGS_DEBUG "-g -DDEBUG -Werror -Wshadow")
   SET(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -DRELEASE")
 ENDIF(CMAKE_HOST_APPLE)
 
