@@ -20,7 +20,7 @@ void BackSrvJobProcesser::setLogicThread(parrot::LogicThread* thread)
     _logicThread = thread;
 }
 
-void BackSrvLogicThread::handleRpcReq(
+void BackSrvJobProcesser::processRpcReq(
     std::list<parrot::RpcSrvReqJobParam>& pktList)
 {
     // tuple<RpcSession, CliSessionJson, WsPacket>
