@@ -8,16 +8,20 @@ namespace parrot
 class RpcSession
 {
   public:
-    RpcSession() = default;
+    RpcSession();
     
   public:
     const std::string& getRemoteSid() const;
     void setRemoteSid(const std::string &sid);
 
+    void setConnPtr(void*);
+    void* getConnPtr() const;
+    
     std::string toString() const;
     
   private:
     std::string _remoteSid;
+    void * _connPtr;
 };
 }
 

@@ -34,7 +34,9 @@ struct Config;
 template <typename FrontSession, typename RpcReqSession> class MainThread
 {
   public:
-    using FrontConnDispatcher = ConnDispatcher<WsServerConn<FrontSession>,
+    using FrontConn           = WsServerConn<FrontSession>;
+    using FrontConnDispatcher = ConnDispatcher<FrontConn,
+                                               FrontConn,
                                                WsConfig,
                                                ConnFactory,
                                                ConnManager>;
@@ -151,7 +153,8 @@ void MainThread<FrontSession, RpcReqSession>::createSysThreads()
         _frontThreadPool->setCount(_config->_frontThreadPoolSize);
         _frontThreadPool->create();
 
-        std::vector<ConnManager<WsServerConn<FrontSession>>*> vec;
+        std::vector<ConnManager<WsServerConn<FrontSession>,
+                                WsServerConn<FrontSession>>*> vec;
         auto& threadVec = _frontThreadPool->getThreadPoolVec();
         for (auto& t : threadVec)
         {

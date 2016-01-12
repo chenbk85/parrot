@@ -16,7 +16,7 @@ template <typename Sess> class FrontThreadJobProcesser : public JobProcesser
     explicit FrontThreadJobProcesser(FrontThread<Sess>*);
 
   public:
-    void createPacketJobs(JobManager*, PacketJobParam<Sess> &&jobParam);
+    void createPacketJobs(JobManager*, PacketJobParam<Sess>&& jobParam);
 
   public:
     void processJobs() override;

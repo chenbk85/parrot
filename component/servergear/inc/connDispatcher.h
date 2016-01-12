@@ -17,9 +17,10 @@
 namespace parrot
 {
 template <typename Conn,
+          typename TGuard,
           typename Cfg,
           template <typename, typename> class ConnFactory,
-          template <typename> class ConnManager>
+          template <typename, typename> class ConnManager>
 class ConnDispatcher : public Listener
 {
   public:
@@ -32,11 +33,13 @@ class ConnDispatcher : public Listener
     }
 
   public:
-    inline void setConnManager(std::vector<ConnManager<Conn>*>&& connManagerVec)
+    inline void
+    setConnManager(std::vector<ConnManager<Conn, TGuard>*>&& connManagerVec)
     {
         _connManagerVec = std::move(connManagerVec);
     }
-    inline void setConnHandler(std::vector<ConnManager<Conn>*>& connManagerVec)
+    inline void
+    setConnHandler(std::vector<ConnManager<Conn, TGuard>*>& connManagerVec)
     {
         _connManagerVec = connManagerVec;
     }
@@ -89,7 +92,7 @@ class ConnDispatcher : public Listener
     }
 
   protected:
-    std::vector<ConnManager<Conn>*> _connManagerVec;
+    std::vector<ConnManager<Conn, TGuard>*> _connManagerVec;
     uint32_t _connManagerVecIdx;
     uint64_t _connUniqueIdIdx;
 };

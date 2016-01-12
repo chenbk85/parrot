@@ -27,21 +27,24 @@
 #include "wsServerConn.h"
 #include "jobFactory.h"
 #include "rpcServerJobProcesser.h"
+#include "rpcServerConnManager.h"
 
 namespace parrot
 {
 struct Config;
 class RpcServerJobProcesser;
+class RpcServerConnManager;
 
 class RpcServerThread : public ThreadBase,
-                        public TimeoutHandler<WsServerConn<RpcSession>>,
                         public JobManager,
-                        public ConnHandler<RpcServerConn>
+                        public RpcServerConnManager
 {
     friend class RpcServerJobProcesser;
 
-    using ConnMap =
-        std::unordered_map<RpcServerConn*, std::unique_ptr<RpcServerConn>>;
+//    using ConnMap =
+//        std::unordered_map<RpcServerConn*, std::unique_ptr<RpcServerConn>>;
+
+    using RSConnMgr = RpcServerConnManager;
 
   public:
     explicit RpcServerThread(const Config* cfg);
@@ -51,8 +54,8 @@ class RpcServerThread : public ThreadBase,
     // ThreadBase
     void stop() override;
 
-    void registerConn(const std::string& sid, RpcServerConn* conn);
-    void removeConn(RpcServerConn* conn);
+//    void registerConn(const std::string& sid, RpcServerConn* conn);
+//    void removeConn(RpcServerConn* conn);
 
     void addReqPacket(JobManager* mgr, RpcSrvReqJobParam&& jobParam);
 
@@ -62,26 +65,26 @@ class RpcServerThread : public ThreadBase,
     void run() override;
 
     // TimeoutHandler
-    void onTimeout(WsServerConn<RpcSession>*) override;
+//    void onTimeout(WsServerConn<RpcSession>*) override;
 
   private:
     void init();
-    void addConnToNotifier();
-    void updateTimeout(RpcServerConn* conn, std::time_t now);
+//    void addConnToNotifier();
+//    void updateTimeout(RpcServerConn* conn, std::time_t now);
 
   private:
-    ConnMap _connMap;
+//    ConnMap _connMap;
     // <Remote sid, RpcServerConn>
-    std::unordered_map<std::string, RpcServerConn*> _registeredConnMap;
+//    std::unordered_map<std::string, RpcServerConn*> _registeredConnMap;
 
     std::unique_ptr<RpcServerJobProcesser> _jobProcesser;
 
     std::unique_ptr<EventNotifier> _notifier;
-    std::unique_ptr<TimeoutManager<WsServerConn<RpcSession>>> _timeoutMgr;
+//    std::unique_ptr<TimeoutManager<WsServerConn<RpcSession>>> _timeoutMgr;
 
     std::time_t _now;
 
-    MtRandom _random;
+    //  MtRandom _random;
 
     const Config* _config;
 };

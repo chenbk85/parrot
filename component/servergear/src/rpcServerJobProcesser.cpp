@@ -23,7 +23,7 @@ void RpcServerJobProcesser::processRpcRsp(
     std::list<RpcSrvRspJobParam>& jobParamList)
 {
     std::unordered_map<std::string, RpcServerConn*>::iterator it;
-    auto& registeredConnMap = _rpcSrvThread->_registeredConnMap;
+    auto& registeredConnMap = _rpcSrvThread->getRegisteredConnMap();
     for (auto& s : jobParamList)
     {
         it = registeredConnMap.find((s.first)->getRemoteSid());
