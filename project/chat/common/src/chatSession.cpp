@@ -11,6 +11,7 @@ ChatSession::ChatSession()
       _ipAddr(),
       _jsonStr(),
       _frontJobMgr(nullptr),
+      _connPtr(nullptr),
       _port(0)
 {
 }
@@ -46,6 +47,17 @@ parrot::JobManager* ChatSession::getFrontJobMgr() const
 {
     PARROT_ASSERT(_frontJobMgr != nullptr);
     return _frontJobMgr;
+}
+
+void ChatSession::setConnPtr(void* conn)
+{
+    _connPtr = conn;
+}
+
+void* ChatSession::getConnPtr() const
+{
+    PARROT_ASSERT(_connPtr != nullptr);
+    return _connPtr;
 }
 
 void ChatSession::setIpAddrPort(const std::string& ip, uint16_t port)

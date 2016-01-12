@@ -13,7 +13,6 @@
 #include "timeoutManager.h"
 #include "eventNotifier.h"
 #include "wsPacket.h"
-#include "connHandler.h"
 #include "epoll.h"
 #include "kqueue.h"
 #include "rpcSession.h"

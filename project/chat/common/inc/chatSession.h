@@ -24,11 +24,14 @@ class ChatSession
                                uint32_t cid);
     const std::string& getUniqueSessionId() const;
 
-    void setFrontJobMgr(parrot::JobManager *hdr);
-    parrot::JobManager * getFrontJobMgr() const;
+    void setFrontJobMgr(parrot::JobManager* hdr);
+    parrot::JobManager* getFrontJobMgr() const;
+
+    void setConnPtr(void*);
+    void* getConnPtr() const;
 
     void setIpAddrPort(const std::string& ip, uint16_t port);
-    const std::string &getIpAddr() const;
+    const std::string& getIpAddr() const;
     uint16_t getPort() const;
 
     const std::string& getJsonStr() const;
@@ -44,7 +47,8 @@ class ChatSession
     std::string _uid;
     std::string _ipAddr;
     std::string _jsonStr;
-    parrot::JobManager *_frontJobMgr;
+    parrot::JobManager* _frontJobMgr;
+    void* _connPtr;
     uint16_t _port;
 };
 }

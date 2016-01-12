@@ -12,7 +12,7 @@
 #include "eventNotifier.h"
 #include "listener.h"
 #include "connFactory.h"
-#include "connHandler.h"
+#include "connManager.h"
 #include "connDispatcher.h"
 #include "frontThread.h"
 #include "wsServerConn.h"
@@ -37,7 +37,7 @@ template <typename FrontSession, typename RpcReqSession> class MainThread
     using FrontConnDispatcher = ConnDispatcher<WsServerConn<FrontSession>,
                                                WsConfig,
                                                ConnFactory,
-                                               ConnHandler>;
+                                               ConnManager>;
     using FrontThreadPool = ThreadPool<FrontThread<FrontSession>>;
 
   public:
@@ -151,14 +151,14 @@ void MainThread<FrontSession, RpcReqSession>::createSysThreads()
         _frontThreadPool->setCount(_config->_frontThreadPoolSize);
         _frontThreadPool->create();
 
-        std::vector<ConnHandler<WsServerConn<FrontSession>>*> vec;
+        std::vector<ConnManager<WsServerConn<FrontSession>>*> vec;
         auto& threadVec = _frontThreadPool->getThreadPoolVec();
         for (auto& t : threadVec)
         {
             t->updateByConfig(_config);
             vec.push_back(t.get());
         }
-        _connDispatcher->setConnHandler(std::move(vec));
+        _connDispatcher->setConnManager(std::move(vec));
     }
 
     // Create rpc server thread.

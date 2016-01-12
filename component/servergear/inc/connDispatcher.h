@@ -11,7 +11,7 @@
 #include "ipHelper.h"
 #include "macroFuncs.h"
 #include "connFactory.h"
-#include "connHandler.h"
+#include "connManager.h"
 #include "urlParser.h"
 
 namespace parrot
@@ -19,26 +19,26 @@ namespace parrot
 template <typename Conn,
           typename Cfg,
           template <typename, typename> class ConnFactory,
-          template <typename> class ConnHandler>
+          template <typename> class ConnManager>
 class ConnDispatcher : public Listener
 {
   public:
     ConnDispatcher(uint16_t listenPort, const std::string& listenIp)
         : Listener(listenPort, listenIp),
-          _connHandlerVec(),
-          _connHandlerVecIdx(0),
+          _connManagerVec(),
+          _connManagerVecIdx(0),
           _connUniqueIdIdx(0)
     {
     }
 
   public:
-    inline void setConnHandler(std::vector<ConnHandler<Conn>*>&& connHandlerVec)
+    inline void setConnManager(std::vector<ConnManager<Conn>*>&& connManagerVec)
     {
-        _connHandlerVec = std::move(connHandlerVec);
+        _connManagerVec = std::move(connManagerVec);
     }
-    inline void setConnHandler(std::vector<ConnHandler<Conn>*>& connHandlerVec)
+    inline void setConnHandler(std::vector<ConnManager<Conn>*>& connManagerVec)
     {
-        _connHandlerVec = connHandlerVec;
+        _connManagerVec = connManagerVec;
     }
 
   protected:
@@ -80,17 +80,17 @@ class ConnDispatcher : public Listener
 
         if (!connList.empty())
         {
-            _connHandlerVec[_connHandlerVecIdx]->addConn(connList);
-            _connHandlerVecIdx =
-                (_connHandlerVecIdx + 1) % _connHandlerVec.size();
+            _connManagerVec[_connManagerVecIdx]->addConn(connList);
+            _connManagerVecIdx =
+                (_connManagerVecIdx + 1) % _connManagerVec.size();
         }
 
         return eIoAction::Read;
     }
 
   protected:
-    std::vector<ConnHandler<Conn>*> _connHandlerVec;
-    uint32_t _connHandlerVecIdx;
+    std::vector<ConnManager<Conn>*> _connManagerVec;
+    uint32_t _connManagerVecIdx;
     uint64_t _connUniqueIdIdx;
 };
 }

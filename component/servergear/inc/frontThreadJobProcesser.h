@@ -110,11 +110,11 @@ template <typename Sess>
 void FrontThreadJobProcesser<Sess>::processUpdateSession(
     std::list<UpdateSessionJobParam<Sess>>& newSessList)
 {
-    auto& connMap = _frontThread->_connMap;
+    auto& connMap = _frontThread->getConnMap();
     auto it = connMap.end();
     for (auto& kv : newSessList)
     {
-        it = connMap.find((kv.second)->getUniqueSessionId());
+        it = connMap.find((kv.second)->getConnPtr());
         if (it == connMap.end())
         {
             // If the session is not here, the session must be disconnected,
@@ -141,7 +141,7 @@ void FrontThreadJobProcesser<Sess>::processPacket(
 
     for (auto& s : pktList)
     {
-        it = connMap.find((s.first)->getUniqueSessionId());
+        it = connMap.find((s.first)->getConnPtr());
         if (it == connMap.end())
         {
             LOG_DEBUG("FrontThreadJobProcesser::processPacket: Failed to find "
