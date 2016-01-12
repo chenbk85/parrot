@@ -3,7 +3,7 @@
 
 #include <memory>
 #include <cstdint>
-#include "jobHandler.h"
+#include "jobManager.h"
 
 namespace parrot
 {
@@ -21,9 +21,9 @@ template <typename Sess> class Scheduler
   public:
     static Scheduler* getInstance();
 
-    virtual JobHandler* getHandler(uint64_t route,
+    virtual JobManager* getJobManager(uint64_t route,
                                    std::shared_ptr<const Sess>) = 0;
-    virtual JobHandler* getOnCloseHandler(std::shared_ptr<const Sess>) = 0;
+    virtual JobManager* getOnCloseJobManager(std::shared_ptr<const Sess>) = 0;
 };
 
 template <typename Sess>

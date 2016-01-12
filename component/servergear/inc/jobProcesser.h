@@ -6,11 +6,11 @@
 #include <unordered_map>
 
 #include "job.h"
-#include "jobHandler.h"
 #include "threadJob.h"
 
 namespace parrot
 {
+class JobManager;
 class JobProcesser
 {
   public:
@@ -19,7 +19,7 @@ class JobProcesser
 
   public:
     void addJob(std::list<std::unique_ptr<Job>>&& jobList);
-    void dispatchJobs();    
+    void dispatchJobs();
 
   public:
     virtual void processJobs() = 0;
@@ -29,7 +29,7 @@ class JobProcesser
 
   protected:
     std::list<std::unique_ptr<Job>> _jobList;
-    HdrJobListMap _hdrJobListMap;
+    JobMgrListMap _jobMgrListMap;
 };
 }
 

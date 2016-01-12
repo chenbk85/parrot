@@ -10,7 +10,7 @@
 
 namespace parrot
 {
-class JobHandler;
+class JobManager;
 class RpcServerThread;
 
 class RpcServerJobProcesser : public JobProcesser
@@ -19,7 +19,7 @@ class RpcServerJobProcesser : public JobProcesser
     explicit RpcServerJobProcesser(RpcServerThread* thread);
 
   public:
-    void createRpcReqJob(JobHandler* hdr, RpcSrvReqJobParam&& jobParam);
+    void createRpcReqJob(JobManager* mgr, RpcSrvReqJobParam&& jobParam);
 
   public:
     void processJobs() override;

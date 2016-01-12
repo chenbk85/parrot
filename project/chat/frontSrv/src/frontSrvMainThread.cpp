@@ -9,7 +9,6 @@
 #include "frontSrvJobProcesser.h"
 #include "frontSrvMainThread.h"
 #include "frontSrvConfig.h"
-#include "jobHandler.h"
 #include "logger.h"
 #include "frontSrvScheduler.h"
 #include "frontSrvRpcScheduler.h"

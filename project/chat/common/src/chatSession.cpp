@@ -5,12 +5,12 @@
 namespace chat
 {
 ChatSession::ChatSession()
-    : _hdrMap(),
+    : _mgrMap(),
       _uniqueSessionId(),
       _uid(),
       _ipAddr(),
       _jsonStr(),
-      _frontJobHdr(nullptr),
+      _frontJobMgr(nullptr),
       _port(0)
 {
 }
@@ -37,15 +37,15 @@ const std::string& ChatSession::getUniqueSessionId() const
     return _uniqueSessionId;
 }
 
-void ChatSession::setFrontJobHdr(parrot::JobHandler* hdr)
+void ChatSession::setFrontJobMgr(parrot::JobManager* mgr)
 {
-    _frontJobHdr = hdr;
+    _frontJobMgr = mgr;
 }
 
-parrot::JobHandler* ChatSession::getFrontJobHdr() const
+parrot::JobManager* ChatSession::getFrontJobMgr() const
 {
-    PARROT_ASSERT(_frontJobHdr != nullptr);
-    return _frontJobHdr;
+    PARROT_ASSERT(_frontJobMgr != nullptr);
+    return _frontJobMgr;
 }
 
 void ChatSession::setIpAddrPort(const std::string& ip, uint16_t port)
@@ -69,15 +69,15 @@ const std::string& ChatSession::getJsonStr() const
     return _jsonStr;
 }
 
-void ChatSession::setRouteHdr(uint64_t route, parrot::JobHandler* hdr)
+void ChatSession::setRouteJobMgr(uint64_t route, parrot::JobManager* mgr)
 {
-    _hdrMap[route] = hdr;
+    _mgrMap[route] = mgr;
 }
 
-parrot::JobHandler* ChatSession::getRouteHdr(uint64_t route) const
+parrot::JobManager* ChatSession::getRouteJobMgr(uint64_t route) const
 {
-    auto it = _hdrMap.find(route);
-    if (it == _hdrMap.end())
+    auto it = _mgrMap.find(route);
+    if (it == _mgrMap.end())
     {
         return nullptr;
     }

@@ -7,7 +7,7 @@
 #include "codes.h"
 #include "threadBase.h"
 #include "mtRandom.h"
-#include "jobHandler.h"
+#include "jobManager.h"
 #include "threadJob.h"
 #include "timeoutHandler.h"
 #include "timeoutManager.h"
@@ -33,7 +33,7 @@ template <typename Sess> class RpcClientJobProcesser;
 template <typename Sess>
 class RpcClientThread : public ThreadBase,
                         public TimeoutHandler<WsClientConn<RpcSession>>,
-                        public JobHandler
+                        public JobManager
 {
     using ConnMap =
         std::unordered_map<std::string, std::shared_ptr<RpcClientConn<Sess>>>;
@@ -45,7 +45,7 @@ class RpcClientThread : public ThreadBase,
 
   public:
     // Internal API. Client should not call this API.
-    void addRsp(JobHandler* hdr, RpcCliRspJobParam<Sess>&& jobParam);
+    void addRsp(JobManager* mgr, RpcCliRspJobParam<Sess>&& jobParam);
 
   public:
     void stop() override;
@@ -81,7 +81,7 @@ template <typename Sess>
 RpcClientThread<Sess>::RpcClientThread(const Config& cfg, const WsConfig& wsCfg)
     : ThreadBase(),
       TimeoutHandler<WsClientConn<RpcSession>>(),
-      JobHandler(),
+      JobManager(),
       _disconnectedConnList(),
       _connMap(),
       _jobProcesser(),
@@ -112,7 +112,7 @@ template <typename Sess> void RpcClientThread<Sess>::init()
 #endif
     _notifier->create();
     setJobProcesser(_jobProcesser.get());
-    JobHandler::setEventNotifier(_notifier.get());
+    JobManager::setEventNotifier(_notifier.get());
 }
 
 template <typename Sess> void RpcClientThread<Sess>::stop()
@@ -124,10 +124,10 @@ template <typename Sess> void RpcClientThread<Sess>::stop()
 }
 
 template <typename Sess>
-void RpcClientThread<Sess>::addRsp(JobHandler* hdr,
+void RpcClientThread<Sess>::addRsp(JobManager* mgr,
                                    RpcCliRspJobParam<Sess>&& jobParam)
 {
-    _jobProcesser->createRpcRspJob(hdr, std::move(jobParam));
+    _jobProcesser->createRpcRspJob(mgr, std::move(jobParam));
 }
 
 template <typename Sess> void RpcClientThread<Sess>::doConnect()

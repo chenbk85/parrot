@@ -4,7 +4,7 @@
 #include <memory>
 #include <cstdint>
 
-#include "jobHandler.h"
+#include "jobManager.h"
 #include "scheduler.h"
 #include "chatSession.h"
 
@@ -24,11 +24,11 @@ class FrontSrvScheduler : public parrot::Scheduler<ChatSession>
     static void createInstance();
 
   public:
-    parrot::JobHandler* getHandler(uint64_t route,
-                                   std::shared_ptr<const ChatSession>) override;
+    parrot::JobManager*
+    getJobManager(uint64_t route, std::shared_ptr<const ChatSession>) override;
 
-    parrot::JobHandler*
-    getOnCloseHandler(std::shared_ptr<const ChatSession>) override;
+    parrot::JobManager*
+    getOnCloseJobManager(std::shared_ptr<const ChatSession>) override;
 };
 }
 

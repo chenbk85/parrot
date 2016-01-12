@@ -15,8 +15,8 @@ void FrontSrvScheduler::createInstance()
     _scheduler.reset(new FrontSrvScheduler());
 }
 
-parrot::JobHandler*
-FrontSrvScheduler::getHandler(uint64_t, std::shared_ptr<const ChatSession>)
+parrot::JobManager*
+FrontSrvScheduler::getJobManager(uint64_t, std::shared_ptr<const ChatSession>)
 {
     auto& logicThreadPool =
         FrontSrvMainThread::getInstance()->getLogicThreadPool();
@@ -28,8 +28,8 @@ FrontSrvScheduler::getHandler(uint64_t, std::shared_ptr<const ChatSession>)
     return hdr;
 }
 
-parrot::JobHandler*
-FrontSrvScheduler::getOnCloseHandler(std::shared_ptr<const ChatSession>)
+parrot::JobManager*
+FrontSrvScheduler::getOnCloseJobManager(std::shared_ptr<const ChatSession>)
 {
     return nullptr;
 }

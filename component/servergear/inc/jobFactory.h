@@ -3,7 +3,7 @@
 
 #include <list>
 #include <memory>
-#include "jobHandler.h"
+#include "jobManager.h"
 #include "job.h"
 
 namespace parrot
@@ -11,41 +11,41 @@ namespace parrot
 
 template <typename T, typename J> class JobFactory
 {
-    using HdrJobListMap =
-        std::unordered_map<JobHandler*, std::list<std::unique_ptr<Job>>>;
+    using JobMgrListMap =
+        std::unordered_map<JobManager*, std::list<std::unique_ptr<Job>>>;
 
   public:
     JobFactory();
 
   public:
     // TODO: Add desc.
-    void add(JobHandler* hdr, T&& t);
+    void add(JobManager* hdr, T&& t);
 
     // TODO: Add desc.
-    void loadJobs(HdrJobListMap& hdrJobListMap);
+    void loadJobs(JobMgrListMap& jobMgrListMap);
 
     // TODO: Add desc.
-    void loadJobsWithoutCreate(HdrJobListMap& hdrJobListMap);
+    void loadJobsWithoutCreate(JobMgrListMap& jobMgrListMap);
 
   private:
-    std::unordered_map<JobHandler*, std::list<T>> _hdrMap;
+    std::unordered_map<JobManager*, std::list<T>> _jobMgrListMap;
 };
 
 /////////////////////////
-template <typename T, typename J> JobFactory<T, J>::JobFactory() : _hdrMap()
+template <typename T, typename J> JobFactory<T, J>::JobFactory() : _jobMgrListMap()
 {
 }
 
 template <typename T, typename J>
-void JobFactory<T, J>::add(JobHandler* hdr, T&& t)
+void JobFactory<T, J>::add(JobManager* mgr, T&& t)
 {
-    _hdrMap[hdr].emplace_back(std::forward<T>(t));
+    _jobMgrListMap[mgr].emplace_back(std::forward<T>(t));
 }
 
 template <typename T, typename J>
-void JobFactory<T, J>::loadJobs(HdrJobListMap& hdrJobListMap)
+void JobFactory<T, J>::loadJobs(JobMgrListMap& jobMgrListMap)
 {
-    for (auto& kv : _hdrMap)
+    for (auto& kv : _jobMgrListMap)
     {
         if (kv.second.empty())
         {
@@ -54,25 +54,25 @@ void JobFactory<T, J>::loadJobs(HdrJobListMap& hdrJobListMap)
 
         std::unique_ptr<J> job(new J());
         job->bind(std::move(kv.second));
-        hdrJobListMap[kv.first].push_back(std::move(job));
+        jobMgrListMap[kv.first].push_back(std::move(job));
     }
 }
 
 template <typename T, typename J>
-void JobFactory<T, J>::loadJobsWithoutCreate(HdrJobListMap& hdrJobListMap)
+void JobFactory<T, J>::loadJobsWithoutCreate(JobMgrListMap& jobMgrListMap)
 {
-    for (auto& kv : _hdrMap)
+    for (auto& kv : _jobMgrListMap)
     {
         if (kv.second.empty())
         {
             continue;
         }
 
-        auto& jobList = hdrJobListMap[kv.first];
+        auto& jobList = jobMgrListMap[kv.first];
         jobList.splice(jobList.end(), std::move(kv.second));
         kv.second.clear();
     }
 }
-};
+}
 
 #endif

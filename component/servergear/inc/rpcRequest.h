@@ -16,7 +16,7 @@
 
 namespace parrot
 {
-class JobHandler;
+class JobManager;
 
 template <typename Sess>
 class RpcRequest : public TimeoutGuard,
@@ -27,7 +27,7 @@ class RpcRequest : public TimeoutGuard,
     RpcRequest(const std::string& sid,
                std::shared_ptr<const Sess>& sess,
                std::unique_ptr<WsPacket>&& msg,
-               JobHandler* rspHandler);
+               JobManager* rspHandler);
 
   public:
     // Internal api.
@@ -39,7 +39,7 @@ class RpcRequest : public TimeoutGuard,
     ePacketType getPacketType() const;
     std::unique_ptr<WsPacket>& getPacket();
     std::string toString();
-    JobHandler* getRspHandler() const;
+    JobManager* getRspJobManager() const;
     std::shared_ptr<const Sess>& getSession();
 
   private:
@@ -47,14 +47,14 @@ class RpcRequest : public TimeoutGuard,
     std::shared_ptr<const Sess> _session;
     std::unique_ptr<WsPacket> _packet;
     uint64_t _rpcReqId;
-    JobHandler* _rspHandler;
+    JobManager* _rspJobMgr;
 };
 
 template <typename Sess>
 RpcRequest<Sess>::RpcRequest(const std::string& sid,
                              std::shared_ptr<const Sess>& session,
                              std::unique_ptr<WsPacket>&& msg,
-                             JobHandler* rspHandler)
+                             JobManager* rspJobMgr)
     : TimeoutGuard(),
       DoubleLinkedListNode<RpcRequest<Sess>>(),
       Job(JOB_RPC_CLI_REQ),
@@ -62,7 +62,7 @@ RpcRequest<Sess>::RpcRequest(const std::string& sid,
       _session(session),
       _packet(std::move(msg)),
       _rpcReqId(0),
-      _rspHandler(rspHandler)
+      _rspJobMgr(rspJobMgr)
 {
     // Inject session to sys json. So the remote knows who the identity of
     // requester.
@@ -105,9 +105,9 @@ std::unique_ptr<WsPacket>& RpcRequest<Sess>::getPacket()
     return _packet;
 }
 
-template <typename Sess> JobHandler* RpcRequest<Sess>::getRspHandler() const
+template <typename Sess> JobManager* RpcRequest<Sess>::getRspJobManager() const
 {
-    return _rspHandler;
+    return _rspJobMgr;
 }
 
 template <typename Sess>

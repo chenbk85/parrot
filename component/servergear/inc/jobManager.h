@@ -1,5 +1,5 @@
-#ifndef __COMPONENT_SERVERGEAR_INC_JOBHANDLER_H__
-#define __COMPONENT_SERVERGEAR_INC_JOBHANDLER_H__
+#ifndef __COMPONENT_SERVERGEAR_INC_JOBMANAGER_H__
+#define __COMPONENT_SERVERGEAR_INC_JOBMANAGER_H__
 
 #include <mutex>
 #include <list>
@@ -12,11 +12,11 @@ namespace parrot
 class JobProcesser;
 class EventNotifier;
 
-class JobHandler
+class JobManager
 {
   public:
-    JobHandler();
-    virtual ~JobHandler() = default;
+    JobManager();
+    virtual ~JobManager() = default;
 
   public:
     void addJob(std::unique_ptr<Job>&& job);

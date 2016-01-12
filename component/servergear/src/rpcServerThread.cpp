@@ -11,7 +11,7 @@ namespace parrot
 RpcServerThread::RpcServerThread(const Config* cfg)
     : ThreadBase(),
       TimeoutHandler<WsServerConn<RpcSession>>(),
-      JobHandler(),
+      JobManager(),
       ConnHandler<RpcServerConn>(),
       _connMap(),
       _registeredConnMap(),
@@ -42,7 +42,7 @@ void RpcServerThread::init()
 #endif
     _notifier->create();
     setJobProcesser(_jobProcesser.get());    
-    JobHandler::setEventNotifier(_notifier.get());
+    JobManager::setEventNotifier(_notifier.get());
     ConnHandler::setEventNotifier(_notifier.get());    
 }
 
@@ -73,10 +73,10 @@ void RpcServerThread::registerConn(const std::string& sid, RpcServerConn* conn)
               << conn->getSession()->toString() << ".");
 }
 
-void RpcServerThread::addReqPacket(JobHandler* hdr,
+void RpcServerThread::addReqPacket(JobManager* mgr,
                                    RpcSrvReqJobParam&& jobParam)
 {
-    _jobProcesser->createRpcReqJob(hdr, std::move(jobParam));
+    _jobProcesser->createRpcReqJob(mgr, std::move(jobParam));
 }
 
 void RpcServerThread::addConnToNotifier()

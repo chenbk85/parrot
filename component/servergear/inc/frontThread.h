@@ -16,7 +16,7 @@
 #include "config.h"
 #include "mtRandom.h"
 #include "poolThread.h"
-#include "jobHandler.h"
+#include "jobManager.h"
 #include "threadJob.h"
 #include "timeoutHandler.h"
 #include "timeoutManager.h"
@@ -37,15 +37,10 @@ template <typename Sess> class FrontThreadJobProcesser;
 template <typename Sess>
 class FrontThread : public PoolThread,
                     public TimeoutHandler<WsServerConn<Sess>>,
-                    public JobHandler,
+                    public JobManager,
                     public ConnHandler<WsServerConn<Sess>>,
                     public WsPacketHandler<Sess, WsServerConn<Sess>>
 {
-    enum class Constants
-    {
-        kPktListSize = 100
-    };
-
     using ConnMap =
         std::unordered_map<std::string, std::unique_ptr<WsServerConn<Sess>>>;
 
@@ -96,7 +91,7 @@ template <typename Sess>
 FrontThread<Sess>::FrontThread()
     : PoolThread(),
       TimeoutHandler<WsServerConn<Sess>>(),
-      JobHandler(),
+      JobManager(),
       ConnHandler<WsServerConn<Sess>>(),
       WsPacketHandler<Sess, WsServerConn<Sess>>(),
       _connMap(),
@@ -113,7 +108,7 @@ template <typename Sess>
 void FrontThread<Sess>::updateByConfig(const Config* cfg)
 {
     _config = cfg;
-    
+
     _timeoutMgr.reset(new TimeoutManager<WsServerConn<Sess>>(
         this, _config->_frontClientConnTimeout));
 
@@ -129,8 +124,8 @@ void FrontThread<Sess>::updateByConfig(const Config* cfg)
 #endif
     _notifier->create();
 
-    setJobProcesser(_jobProcesser.get());    
-    JobHandler::setEventNotifier(_notifier.get());
+    setJobProcesser(_jobProcesser.get());
+    JobManager::setEventNotifier(_notifier.get());
     ConnHandler<WsServerConn<Sess>>::setEventNotifier(_notifier.get());
 }
 
@@ -149,29 +144,29 @@ void FrontThread<Sess>::onPacket(WsServerConn<Sess>* conn,
     // A copy of shard_ptr. Need to move next.
     auto session = conn->getSession();
     auto route   = pkt->getRoute();
-    auto hdr = session->getRouteHdr(route);
-    if (!hdr)
+    auto mgr = session->getRouteJobMgr(route);
+    if (!mgr)
     {
-        hdr = Scheduler<Sess>::getInstance()->getHandler(route, session);
-        if (!hdr)
+        mgr = Scheduler<Sess>::getInstance()->getJobManager(route, session);
+        if (!mgr)
         {
-            LOG_WARN("FrontThread::onPacket: Failed to find handler "
+            LOG_WARN("FrontThread::onPacket: Failed to find job manager "
                      "for session "
                      << session->toString() << ". Route is " << route << ".");
             return;
         }
-        session->setRouteHdr(route, hdr);
+        session->setRouteJobMgr(route, mgr);
     }
 
-    if (!hdr)
+    if (!mgr)
     {
-        LOG_WARN("FrontThread::onPacket: Failed to find handler for session "
-                 << session->toString() << ". Route is " << pkt->getRoute()
-                 << ".");
+        LOG_WARN(
+            "FrontThread::onPacket: Failed to find job manager for session "
+            << session->toString() << ". Route is " << pkt->getRoute() << ".");
         return;
     }
     _jobProcesser->createPacketJobs(
-        hdr, PacketJobParam<Sess>(std::move(session), std::move(pkt)));
+        mgr, PacketJobParam<Sess>(std::move(session), std::move(pkt)));
 }
 
 template <typename Sess>
@@ -179,17 +174,17 @@ void FrontThread<Sess>::onClose(WsServerConn<Sess>* conn,
                                 std::unique_ptr<WsPacket>&& pkt)
 {
     auto session = conn->getSession(); // A copy of shared_ptr.
-    auto hdr = Scheduler<Sess>::getInstance()->getOnCloseHandler(session);
-    if (!hdr)
+    auto mgr = Scheduler<Sess>::getInstance()->getOnCloseJobManager(session);
+    if (!mgr)
     {
-        LOG_WARN("FrontThread::onClose: Failed to find hdr for session "
+        LOG_WARN("FrontThread::onClose: Failed to find mgr for session "
                  << session->toString() << ".");
         removeConn(conn);
         return;
     }
 
     _jobProcesser->createPacketJobs(
-        hdr, PacketJobParam<Sess>(std::move(session), std::move(pkt)));
+        mgr, PacketJobParam<Sess>(std::move(session), std::move(pkt)));
 
     removeConn(conn);
     LOG_INFO("FrontThread::onClose: Err is " << (uint32_t)(pkt->getCloseCode())
@@ -213,7 +208,7 @@ template <typename Sess> void FrontThread<Sess>::addConnToNotifier()
         sess->createUniqueSessionId(_config->_thisServer._serverId,
                                     getThreadIdStr(), _connUniqueIdx++);
         sess->setIpAddrPort(c->getRemoteAddr(), c->getRemotePort());
-        sess->setFrontJobHdr(this);
+        sess->setFrontJobMgr(this);
 
         c->setSession(std::move(sess));
         c->setNextAction(c->getDefaultAction());

@@ -16,7 +16,7 @@
 namespace parrot
 {
 class WsPacket;
-class JobHandler;
+class JobManager;
 template <typename T, typename J> class JobFactory;
 
 template <uint32_t JOBTYPE, typename... Ts> class ThreadJob : public Job
@@ -107,7 +107,7 @@ using RpcCliRspJobFactory =
 //
 template <typename Sess>
 using UpdateSessionJobParam =
-    std::pair<JobHandler*, std::shared_ptr<const Sess>>;
+    std::pair<JobManager*, std::shared_ptr<const Sess>>;
 
 template <typename Sess>
 using UpdateSessionJob =
@@ -139,8 +139,8 @@ using UpdateSessionAckJobFactory =
 //
 //
 //
-using HdrJobListMap =
-    std::unordered_map<JobHandler*, std::list<std::unique_ptr<Job>>>;
+using JobMgrListMap =
+    std::unordered_map<JobManager*, std::list<std::unique_ptr<Job>>>;
 }
 
 #endif

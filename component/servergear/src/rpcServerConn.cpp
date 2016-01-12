@@ -85,12 +85,12 @@ void RpcServerConn::onPacket(WsServerConn<RpcSession>*,
             return;
         }
 
-        auto hdr = Scheduler<RpcSession>::getInstance()->getHandler(
+        auto mgr = Scheduler<RpcSession>::getInstance()->getJobManager(
             pkt->getRoute(), getSession());
 
-        if (!hdr)
+        if (!mgr)
         {
-            LOG_WARN("RpcServerConn::handshake: Failed to find handler for "
+            LOG_WARN("RpcServerConn::handshake: Failed to find job manager for "
                      "route "
                      << pkt->getRoute() << ". Remote is " << getRemoteAddr()
                      << ". Session is " << getSession()->toString() << ".");
@@ -98,7 +98,7 @@ void RpcServerConn::onPacket(WsServerConn<RpcSession>*,
         }
 
         _rpcSrvThread->addReqPacket(
-            hdr, RpcSrvReqJobParam(std::move(getSession()),
+            mgr, RpcSrvReqJobParam(std::move(getSession()),
                                    std::move(cliSession), std::move(pkt)));
     }
 }

@@ -13,8 +13,6 @@
 
 namespace chat
 {
-class JobHandler;
-
 class FrontSrvJobProcesser : public parrot::JobProcesser
 {
   public:

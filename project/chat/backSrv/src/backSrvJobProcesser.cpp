@@ -60,6 +60,6 @@ void BackSrvJobProcesser::processJobs()
 
 void BackSrvJobProcesser::loadJobs()
 {
-    _rpcSrvRspJobFactory.loadJobs(_hdrJobListMap);
+    _rpcSrvRspJobFactory.loadJobs(_jobMgrListMap);
 }
 }

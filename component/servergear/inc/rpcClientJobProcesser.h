@@ -11,7 +11,7 @@
 
 namespace parrot
 {
-class JobHandler;
+class JobManager;
 template <typename Sess> class RpcClientThread;
 
 template <typename Sess> class RpcClientJobProcesser : public JobProcesser
@@ -20,7 +20,7 @@ template <typename Sess> class RpcClientJobProcesser : public JobProcesser
     explicit RpcClientJobProcesser(RpcClientThread<Sess>*);
 
   public:
-    void createRpcRspJob(JobHandler* hdr, RpcCliRspJobParam<Sess>&& jobParam);
+    void createRpcRspJob(JobManager* hdr, RpcCliRspJobParam<Sess>&& jobParam);
 
   public:
     void processJobs() override;
@@ -47,9 +47,9 @@ RpcClientJobProcesser<Sess>::RpcClientJobProcesser(
 
 template <typename Sess>
 void RpcClientJobProcesser<Sess>::createRpcRspJob(
-    JobHandler* hdr, RpcCliRspJobParam<Sess>&& jobParam)
+    JobManager* mgr, RpcCliRspJobParam<Sess>&& jobParam)
 {
-    _rpcCliRspJobFactory.add(hdr, std::move(jobParam));
+    _rpcCliRspJobFactory.add(mgr, std::move(jobParam));
 }
 
 template <typename Sess>
@@ -67,7 +67,7 @@ void RpcClientJobProcesser<Sess>::handleRpcCliReq(
             << req->getDestSrvId() << ".");
 
         createRpcRspJob(
-            req->getRspHandler(),
+            req->getRspJobManager(),
             RpcCliRspJobParam<Sess>(eCodes::ERR_RemoteNotConnected,
                                     std::move(req->getSession()),
                                     std::unique_ptr<WsPacket>(new WsPacket())));
@@ -108,7 +108,7 @@ template <typename Sess> void RpcClientJobProcesser<Sess>::processJobs()
 
 template <typename Sess> void RpcClientJobProcesser<Sess>::loadJobs()
 {
-    _rpcCliRspJobFactory.loadJobs(_hdrJobListMap);
+    _rpcCliRspJobFactory.loadJobs(_jobMgrListMap);
 }
 }
 

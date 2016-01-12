@@ -4,7 +4,7 @@
 #include <memory>
 #include <cstdint>
 
-#include "jobHandler.h"
+#include "jobManager.h"
 #include "scheduler.h"
 #include "rpcSession.h"
 
@@ -22,12 +22,12 @@ class BackSrvRpcScheduler : public parrot::Scheduler<parrot::RpcSession>
     static void createInstance();
 
   public:
-    parrot::JobHandler*
-    getHandler(uint64_t route,
-               std::shared_ptr<const parrot::RpcSession>) override;
+    parrot::JobManager*
+    getJobManager(uint64_t route,
+                  std::shared_ptr<const parrot::RpcSession>) override;
 
-    parrot::JobHandler*
-    getOnCloseHandler(std::shared_ptr<const parrot::RpcSession>) override;
+    parrot::JobManager*
+    getOnCloseJobManager(std::shared_ptr<const parrot::RpcSession>) override;
 };
 }
 

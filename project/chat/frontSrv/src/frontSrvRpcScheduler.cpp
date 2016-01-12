@@ -15,8 +15,8 @@ void FrontSrvRpcScheduler::createInstance()
     _scheduler.reset(new FrontSrvRpcScheduler());
 }
 
-parrot::JobHandler*
-FrontSrvRpcScheduler::getHandler(uint64_t,
+parrot::JobManager*
+FrontSrvRpcScheduler::getJobManager(uint64_t,
                                  std::shared_ptr<const parrot::RpcSession>)
 {
     auto& logicThreadPool =
@@ -28,7 +28,7 @@ FrontSrvRpcScheduler::getHandler(uint64_t,
     return hdr;
 }
 
-parrot::JobHandler* FrontSrvRpcScheduler::getOnCloseHandler(
+parrot::JobManager* FrontSrvRpcScheduler::getOnCloseJobManager(
     std::shared_ptr<const parrot::RpcSession>)
 {
     return nullptr;

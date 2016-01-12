@@ -1,12 +1,11 @@
-#include "jobHandler.h"
+#include "jobManager.h"
 #include "job.h"
 #include "jobProcesser.h"
 #include "eventNotifier.h"
 
 namespace parrot
 {
-
-JobHandler::JobHandler()
+JobManager::JobManager()
     : _jobListLock(),
       _jobList(),
       _baseJobProcesser(nullptr),
@@ -14,17 +13,17 @@ JobHandler::JobHandler()
 {
 }
 
-void JobHandler::setJobProcesser(JobProcesser* jp)
+void JobManager::setJobProcesser(JobProcesser* jp)
 {
     _baseJobProcesser = jp;
 }
 
-void JobHandler::setEventNotifier(EventNotifier* n)
+void JobManager::setEventNotifier(EventNotifier* n)
 {
     _baseNotifier = n;
 }
 
-void JobHandler::addJob(std::unique_ptr<Job>&& job)
+void JobManager::addJob(std::unique_ptr<Job>&& job)
 {
     _jobListLock.lock();
     _jobList.push_back(std::move(job));
@@ -33,7 +32,7 @@ void JobHandler::addJob(std::unique_ptr<Job>&& job)
     _baseNotifier->stopWaiting();
 }
 
-void JobHandler::addJob(std::list<std::unique_ptr<Job>>& jobList)
+void JobManager::addJob(std::list<std::unique_ptr<Job>>& jobList)
 {
     _jobListLock.lock();
     _jobList.splice(_jobList.end(), jobList);
@@ -42,7 +41,7 @@ void JobHandler::addJob(std::list<std::unique_ptr<Job>>& jobList)
     _baseNotifier->stopWaiting();
 }
 
-void JobHandler::handleJobs()
+void JobManager::handleJobs()
 {
     _jobListLock.lock();
     _baseJobProcesser->addJob(std::move(_jobList));

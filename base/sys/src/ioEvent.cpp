@@ -114,9 +114,9 @@ bool IoEvent::isError() const
     return _isError;
 }
 
-void IoEvent::setEof(bool isEof)
+void IoEvent::setEof(bool eof)
 {
-    _isEof = isEof;
+    _isEof = eof;
 }
 
 bool IoEvent::isEof() const

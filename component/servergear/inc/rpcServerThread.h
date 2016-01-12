@@ -14,7 +14,7 @@
 
 #include "mtRandom.h"
 #include "threadBase.h"
-#include "jobHandler.h"
+#include "jobManager.h"
 #include "threadJob.h"
 #include "timeoutHandler.h"
 #include "timeoutManager.h"
@@ -35,7 +35,7 @@ class RpcServerJobProcesser;
 
 class RpcServerThread : public ThreadBase,
                         public TimeoutHandler<WsServerConn<RpcSession>>,
-                        public JobHandler,
+                        public JobManager,
                         public ConnHandler<RpcServerConn>
 {
     friend class RpcServerJobProcesser;
@@ -54,7 +54,7 @@ class RpcServerThread : public ThreadBase,
     void registerConn(const std::string& sid, RpcServerConn* conn);
     void removeConn(RpcServerConn* conn);
 
-    void addReqPacket(JobHandler* hdr, RpcSrvReqJobParam&& jobParam);
+    void addReqPacket(JobManager* mgr, RpcSrvReqJobParam&& jobParam);
 
   protected:
 

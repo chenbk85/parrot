@@ -7,7 +7,7 @@
 
 namespace parrot
 {
-class JobHandler;
+class JobManager;
 template <typename Sess> class FrontThread;
 
 template <typename Sess> class FrontThreadJobProcesser : public JobProcesser
@@ -16,7 +16,7 @@ template <typename Sess> class FrontThreadJobProcesser : public JobProcesser
     explicit FrontThreadJobProcesser(FrontThread<Sess>*);
 
   public:
-    void createPacketJobs(JobHandler*, PacketJobParam<Sess> &&jobParam);
+    void createPacketJobs(JobManager*, PacketJobParam<Sess> &&jobParam);
 
   public:
     void processJobs() override;
@@ -57,9 +57,9 @@ FrontThreadJobProcesser<Sess>::FrontThreadJobProcesser(
 
 template <typename Sess>
 void FrontThreadJobProcesser<Sess>::createPacketJobs(
-    JobHandler* hdr, PacketJobParam<Sess>&& jobParam)
+    JobManager* mgr, PacketJobParam<Sess>&& jobParam)
 {
-    _pktJobFactory.add(hdr, std::move(jobParam));
+    _pktJobFactory.add(mgr, std::move(jobParam));
 }
 
 template <typename Sess> void FrontThreadJobProcesser<Sess>::processJobs()
@@ -102,8 +102,8 @@ template <typename Sess> void FrontThreadJobProcesser<Sess>::processJobs()
 
 template <typename Sess> void FrontThreadJobProcesser<Sess>::loadJobs()
 {
-    _pktJobFactory.loadJobs(_hdrJobListMap);
-    _updateSessAckJobFactory.loadJobs(_hdrJobListMap);
+    _pktJobFactory.loadJobs(_jobMgrListMap);
+    _updateSessAckJobFactory.loadJobs(_jobMgrListMap);
 }
 
 template <typename Sess>

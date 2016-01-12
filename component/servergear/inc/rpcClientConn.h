@@ -128,7 +128,7 @@ void RpcClientConn<Sess>::onTimeout(RpcRequest<Sess>* req)
 
     _reqMap.erase(req->getReqId());
     _rpcClientThread->addRsp(
-        req->getRspHandler(),
+        req->getRspJobManager(),
         RpcCliRspJobParam<Sess>(eCodes::ERR_Timeout,
                                 std::move(req->getSession()),
                                 std::unique_ptr<WsPacket>(new WsPacket())));
@@ -159,7 +159,7 @@ void RpcClientConn<Sess>::onResponse(std::unique_ptr<WsPacket>&& pkt)
     LOG_INFO("RpcClientConn::onResponse: Received response for rpc request: "
              << it->second->toString() << ".");
 
-    _rpcClientThread->addRsp(it->second->getRspHandler(),
+    _rpcClientThread->addRsp(it->second->getRspJobManager(),
                              RpcCliRspJobParam<Sess>(eCodes::ST_Ok,
                                                      it->second->getSession(),
                                                      std::move(pkt)));

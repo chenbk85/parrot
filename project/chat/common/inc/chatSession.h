@@ -5,7 +5,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "jobHandler.h"
+#include "jobManager.h"
 
 namespace chat
 {
@@ -24,8 +24,8 @@ class ChatSession
                                uint32_t cid);
     const std::string& getUniqueSessionId() const;
 
-    void setFrontJobHdr(parrot::JobHandler *hdr);
-    parrot::JobHandler * getFrontJobHdr() const;
+    void setFrontJobMgr(parrot::JobManager *hdr);
+    parrot::JobManager * getFrontJobMgr() const;
 
     void setIpAddrPort(const std::string& ip, uint16_t port);
     const std::string &getIpAddr() const;
@@ -35,16 +35,16 @@ class ChatSession
 
     std::string toString() const;
 
-    void setRouteHdr(uint64_t route, parrot::JobHandler*);
-    parrot::JobHandler* getRouteHdr(uint64_t route) const;
+    void setRouteJobMgr(uint64_t route, parrot::JobManager*);
+    parrot::JobManager* getRouteJobMgr(uint64_t route) const;
 
   private:
-    std::unordered_map<uint64_t, parrot::JobHandler*> _hdrMap;
+    std::unordered_map<uint64_t, parrot::JobManager*> _mgrMap;
     std::string _uniqueSessionId;
     std::string _uid;
     std::string _ipAddr;
     std::string _jsonStr;
-    parrot::JobHandler *_frontJobHdr;
+    parrot::JobManager *_frontJobMgr;
     uint16_t _port;
 };
 }

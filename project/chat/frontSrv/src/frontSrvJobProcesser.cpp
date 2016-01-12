@@ -93,7 +93,7 @@ void FrontSrvJobProcesser::processRpcResponse(
         }
 
         auto& session = std::get<1>(p);
-        _pktJobFactory.add(session->getFrontJobHdr(),
+        _pktJobFactory.add(session->getFrontJobMgr(),
                            parrot::PacketJobParam<ChatSession>(
                                std::move(session), std::move(std::get<2>(p))));
     }
@@ -149,7 +149,7 @@ void FrontSrvJobProcesser::processJobs()
 
 void FrontSrvJobProcesser::loadJobs()
 {
-    _pktJobFactory.loadJobs(_hdrJobListMap);
-    _rpcReqContainer.loadJobsWithoutCreate(_hdrJobListMap);
+    _pktJobFactory.loadJobs(_jobMgrListMap);
+    _rpcReqContainer.loadJobsWithoutCreate(_jobMgrListMap);
 }
 }

@@ -6,13 +6,13 @@
 #include <cstdint>
 
 #include "poolThread.h"
-#include "jobHandler.h"
+#include "jobManager.h"
 #include "jobProcesser.h"
 #include "eventNotifier.h"
 
 namespace parrot
 {
-class LogicPoolThread : public PoolThread, public JobHandler
+class LogicPoolThread : public PoolThread, public JobManager
 {
   public:
     LogicPoolThread(uint32_t eventCount = 1);

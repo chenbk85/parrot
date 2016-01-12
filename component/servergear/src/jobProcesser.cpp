@@ -1,4 +1,5 @@
 #include "jobProcesser.h"
+#include "jobManager.h"
 
 namespace parrot
 {
@@ -11,7 +12,7 @@ void JobProcesser::dispatchJobs()
 {
     loadJobs();
     
-    for (auto& kv : _hdrJobListMap)
+    for (auto& kv : _jobMgrListMap)
     {
         if (!kv.second.empty())
         {

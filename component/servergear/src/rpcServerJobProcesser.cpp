@@ -13,10 +13,10 @@ RpcServerJobProcesser::RpcServerJobProcesser(RpcServerThread* thread)
     _rpcRspJobHdr = std::bind(&RpcServerJobProcesser::processRpcRsp, this, _1);
 }
 
-void RpcServerJobProcesser::createRpcReqJob(JobHandler* hdr,
+void RpcServerJobProcesser::createRpcReqJob(JobManager* mgr,
                                             RpcSrvReqJobParam&& jobParam)
 {
-    _rpcSrvReqJobFactory.add(hdr, std::move(jobParam));
+    _rpcSrvReqJobFactory.add(mgr, std::move(jobParam));
 }
 
 void RpcServerJobProcesser::processRpcRsp(
@@ -75,6 +75,6 @@ void RpcServerJobProcesser::processJobs()
 
 void RpcServerJobProcesser::loadJobs()
 {
-    _rpcSrvReqJobFactory.loadJobs(_hdrJobListMap);
+    _rpcSrvReqJobFactory.loadJobs(_jobMgrListMap);
 }
 }

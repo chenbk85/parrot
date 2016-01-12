@@ -11,7 +11,7 @@ namespace parrot
 {
 LogicPoolThread::LogicPoolThread(uint32_t eventCount)
     : PoolThread(),
-      JobHandler(),
+      JobManager(),
 #if defined(__linux__)
       _notifier(new Epoll(eventCount))
 #elif defined(__APPLE__)
@@ -29,8 +29,8 @@ void LogicPoolThread::setJobProcesser(std::unique_ptr<JobProcesser>&& p)
 
 void LogicPoolThread::beforeStart()
 {
-    JobHandler::setJobProcesser(_jobProcesser.get());
-    JobHandler::setEventNotifier(_notifier.get());
+    JobManager::setJobProcesser(_jobProcesser.get());
+    JobManager::setEventNotifier(_notifier.get());
     _notifier->create();
 }
 

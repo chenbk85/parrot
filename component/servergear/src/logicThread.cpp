@@ -11,7 +11,7 @@ namespace parrot
 {
 LogicThread::LogicThread(uint32_t eventCount)
     : ThreadBase(),
-      JobHandler(),
+      JobManager(),
       _jobProcesser(),
 #if defined(__linux__)
       _notifier(new Epoll(eventCount))
@@ -30,8 +30,8 @@ void LogicThread::setJobProcesser(std::unique_ptr<parrot::JobProcesser>&& p)
 
 void LogicThread::beforeStart()
 {
-    JobHandler::setJobProcesser(_jobProcesser.get());    
-    JobHandler::setEventNotifier(_notifier.get());    
+    JobManager::setJobProcesser(_jobProcesser.get());    
+    JobManager::setEventNotifier(_notifier.get());    
     _notifier->create();
 }
 
