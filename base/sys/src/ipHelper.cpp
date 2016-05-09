@@ -1,19 +1,18 @@
+#include <cstring>
 #include <stdexcept>
 #include <system_error>
-#include <cstring>
 
-#include <sys/types.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 
-#include "sysHelper.h"
 #include "ipHelper.h"
+#include "sysHelper.h"
 
 namespace parrot
 {
-IPHelper::IPHelper()
-    : _version(-1), _ip(), _addr6(IN6ADDR_ANY_INIT), _addr4()
+IPHelper::IPHelper() : _version(-1), _ip(), _addr6(IN6ADDR_ANY_INIT), _addr4()
 {
     _addr4.s_addr = uniHtonl(INADDR_ANY);
 }
@@ -30,12 +29,12 @@ void IPHelper::setIP(const std::string& ip)
 {
     if (ip.length() == 0)
     {
-        _addr6 = IN6ADDR_ANY_INIT;
+        _addr6        = IN6ADDR_ANY_INIT;
         _addr4.s_addr = uniHtonl(INADDR_ANY);
-        _version = 6;
+        _version      = 6;
         return;
     }
-    
+
     if (ip.find(".") != std::string::npos)
     {
         int ret = inet_pton(AF_INET, ip.c_str(), &_addr4);
@@ -72,7 +71,7 @@ void IPHelper::setIP(const struct in6_addr& addr)
                                 "IPHelper::setIP ");
     }
 
-    _ip = buff;
+    _ip      = buff;
     _version = 6;
 }
 
@@ -84,7 +83,7 @@ void IPHelper::setIP(const struct in_addr& addr)
         throw std::system_error(errno, std::system_category(),
                                 "IPHelper::setIP ");
     }
-    _ip = buff;
+    _ip      = buff;
     _version = 4;
 }
 
@@ -113,22 +112,22 @@ std::string IPHelper::getIPStr() const noexcept
     return _ip;
 }
 
-void IPHelper::getIPAddress(const std::string& domainName,
+void IPHelper::getIPAddress(const std::string&      domainName,
                             std::list<std::string>& ipv4List,
                             std::list<std::string>& ipv6List)
 {
-    struct addrinfo hints;
+    struct addrinfo  hints;
     struct addrinfo *result, *rp;
-    char buff[INET6_ADDRSTRLEN];
+    char             buff[INET6_ADDRSTRLEN];
 
     std::memset(&hints, 0, sizeof(struct addrinfo));
-    hints.ai_family = AF_UNSPEC;     /* Allow IPv4 or IPv6 */
-    hints.ai_socktype = SOCK_STREAM; /* Tcp socket */
-    hints.ai_flags = 0;
-    hints.ai_protocol = 0; /* Any protocol */
+    hints.ai_family    = AF_UNSPEC;   /* Allow IPv4 or IPv6 */
+    hints.ai_socktype  = SOCK_STREAM; /* Tcp socket */
+    hints.ai_flags     = 0;
+    hints.ai_protocol  = 0; /* Any protocol */
     hints.ai_canonname = nullptr;
-    hints.ai_addr = nullptr;
-    hints.ai_next = nullptr;
+    hints.ai_addr      = nullptr;
+    hints.ai_next      = nullptr;
 
     int s = getaddrinfo(domainName.c_str(), nullptr, &hints, &result);
     if (s != 0)
