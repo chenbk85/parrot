@@ -4,6 +4,17 @@
 
 namespace parrot
 {
+
+bool urlEncoding(const std::string &/*url*/, std::string &/*encodedUrl*/)
+{
+    return true;
+}
+
+bool urlDecoding(const std::string &/*url*/, std::string &/*decodedUrl*/)
+{
+    return true;
+}
+
 uint16_t UrlParser::getDefaultPortByScheme(const std::string& scheme)
 {
     if (scheme == "http" || scheme == "ws")
