@@ -17,65 +17,60 @@ class SslHelper
     SslHelper& operator=(const SslHelper& s) = delete;
 
   public:
-    // init
-    //
-    // Register ssl callbacks, init ssl library, ets.
+    /**
+     * Register ssl callbacks, init ssl library, ets.
+     */
     static void init();
 
-    // freeThreadErrQueue
-    //
-    // Remove error queue of thread. When stop a thread, this
-    // funciton should be called.
-    //
-    // Param:
-    // * id     The id of the target thread.
+    /**
+     * Remove error queue of thread. When stop a thread, this
+     * funciton should be called.
+     *
+     * @Param  id      The id of the target thread.
+     */
     static void freeThreadErrQueue(const std::thread::id& id);
 
-    // genSslCtx
-    //
-    // Create a ssl context.
-    //
-    // Param:
-    // * keyPath     The absolute file path of key file.
-    // * certPath    The absolute file path of cert file.
-    // * verifyPeer  Verify peer if true.
-    // * depth       The verify depth.
-    //
-    // Return:
-    //  A SSL_CTX pointer.
-    static SSL_CTX* genSslCtx(const std::string& keyPath,
-                              const std::string& certPath,
+    /**
+     * Create a ssl context.
+     *
+     * @param   keyPath     The absolute file path of key file.
+     * @param   certPath    The absolute file path of cert file.
+     * @param   caPath      The absolute path of folder of ca-cert file.
+     * @param   caFile      The absolute path of ca-cert file.
+     * @param   verifyPeer  Verify peer if true.
+     * @param   depth       The verify depth.
+     *
+     * @return A SSL_CTX pointer.
+     */
+    static SSL_CTX* genSslCtx(const std::string& keyPath = "",
+                              const std::string& certPath = "",
+                              const std::string& caPath = "",
+                              const std::string& caFile = "",
                               bool verifyPeer = false,
                               int depth = 1);
 
-    // genSsl
-    //
-    // Create a ssl object by ssl context.
-    //
-    // Param:
-    // * ctx     SSL_CTX.
-    //
-    // Return:
-    //  A SSL_CTX pointer.
+    /**
+     * Create a ssl object by SSL_CTX.
+     *
+     * @param ctx     An object of SSL_CTX.
+     * @return A ssl object.
+     */
     static SSL* genSsl(SSL_CTX* ctx);
 
-    // checkCertHostname
-    //
-    // For server, if you want to verify client cert, call this
-    // function after accept. For client to verify server, call
-    // this function after connect.
-    //
-    // Param:
-    // * ssl         The ssl of the connection.
-    // * host        The name of host.
-    //
-    // Return:
-    //   True if successful.
+    /**
+     * Verify remote.
+     *
+     * @param ssl   SSL object.
+     * @param host  The remote host (domain name or ip address).
+     * 
+     * @return  True if successful. Otherwise false.
+     */
     static bool checkCertHostname(SSL* ssl, const std::string& host);
 
-    // deinit
-    //
-    // Free ssl memeory.
+
+    /**
+     * Free memory.
+     */
     static void deinit();
 };
 }

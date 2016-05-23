@@ -12,7 +12,8 @@ bool iStringCmp(const std::string& s1, const std::string& s2)
         return false;
     }
 
-    for (auto it1 = s1.begin(), it2 = s2.begin(); it1 != s1.end(); ++it1, ++it2)
+    for (auto it1 = s1.begin(), it2 = s2.begin();
+         it1 != s1.end() || it2 != s2.end(); ++it1, ++it2)
     {
         if (std::tolower(*it1) != std::tolower(*it2))
         {
@@ -21,6 +22,26 @@ bool iStringCmp(const std::string& s1, const std::string& s2)
     }
 
     return true;
+}
+
+bool iStringCmpN(const std::string& s1, const std::string& s2, size_t len)
+{
+    for (auto it1 = s1.begin(), it2 = s2.begin();
+         (it1 != s1.end() || it2 != s2.end()) && len > 0;
+         ++it1, ++it2, --len)
+    {
+        if (std::tolower(*it1) != std::tolower(*it2))
+        {
+            return false;
+        }
+    }
+
+    if (len == 0)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 void strToLower(std::string& str)
