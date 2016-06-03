@@ -1,7 +1,7 @@
 /// Important note:
 /// The following functions are from the curl project:
 ///
-/// 
+///
 ///
 
 #include <openssl/crypto.h>
@@ -16,10 +16,10 @@
 #include <string>
 #include <vector>
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #include "macroFuncs.h"
 #include "sslHelper.h"
@@ -89,16 +89,17 @@ static void dynDestroyFunctionCallback(struct CRYPTO_dynlock_value* l,
 /// Check host name.
 //////////////
 
-static bool certHostCheck(const std::string &patternStr, const std::string &hostStr)
+static bool certHostCheck(const std::string& patternStr,
+                          const std::string& hostStr)
 {
     if (patternStr.empty() || hostStr.empty())
     {
         return false;
     }
 
-    std::string pattern (patternStr);
+    std::string pattern(patternStr);
     std::string host(hostStr);
-    
+
     /* normalize pattern and hostname by stripping off trailing dots */
     if (pattern[pattern.length() - 1] == '.')
     {
@@ -118,31 +119,18 @@ static bool certHostCheck(const std::string &patternStr, const std::string &host
         return parrot::iStringCmp(pattern, host);
     }
 
-    unsigned char buf[sizeof(struct in6_addr)];    
-    /*
-       Detect IP address as hostname and fail the match if so.
-       Common name must be domain name. See:
-       https://tools.ietf.org/html/rfc2818#section-3.1
-    */    
-    if (inet_pton(AF_INET, host.c_str(), buf) == 1)
-    {
-        return false;
-    }
-    else if (inet_pton(AF_INET6, host.c_str(), buf) == 1)
-    {
-        return false;
-    }
-
     /*
        We require at least 2 dots in pattern to avoid too wide wildcard
        match. Also see:
        https://en.wikipedia.org/wiki/Internationalized_domain_name#ASCII_spoofing_concerns
     */
-    bool wildcardEnabled  = true;
-    auto patternDotPos = pattern.find('.');
+    bool wildcardEnabled = true;
+    auto patternDotPos   = pattern.find('.');
     if (patternDotPos == std::string::npos ||
-        pattern.find('.', patternDotPos + 1) == std::string::npos || /// At least two dots.
-        wildcardPos > patternDotPos || /// Wildcard must be in front of first '.'.
+        pattern.find('.', patternDotPos + 1) ==
+            std::string::npos || /// At least two dots.
+        wildcardPos >
+            patternDotPos || /// Wildcard must be in front of first '.'.
         parrot::iStringCmpN(pattern, "xn--", 4))
     {
         wildcardEnabled = false;
@@ -183,7 +171,7 @@ static bool certHostCheck(const std::string &patternStr, const std::string &host
         return false;
     }
 
-    /* 
+    /*
       The pattern can be 'foo*bar.test.com', a host can be fooHellobar.test.com,
       we need to check the substring before '*'. And substring after '*' and
       before first '.'.
@@ -208,40 +196,39 @@ static bool certHostCheck(const std::string &patternStr, const std::string &host
         if (std::toupper(*pit) != std::toupper(*hit))
         {
             return false;
-        }        
+        }
     }
 
     return true;
 }
 
-static bool verifyHost(const std::string &host, const X509* cert)
+static bool verifyHost(const std::string& host, const X509* cert)
 {
     if (host.empty() || cert == nullptr)
     {
         return false;
     }
-    
-    bool   matched = false;
-    STACK_OF(GENERAL_NAME) * altnames =
-        (stack_st_GENERAL_NAME*)X509_get_ext_d2i(
-            (X509*)cert, NID_subject_alt_name, nullptr, nullptr);
-    int target = GEN_DNS; /// See x509v3.h in openssl project.
-    struct in_addr addr4;
+
+    bool matched                     = false;
+    STACK_OF(GENERAL_NAME)* altnames = (stack_st_GENERAL_NAME*)X509_get_ext_d2i(
+        (X509*)cert, NID_subject_alt_name, nullptr, nullptr);
+    int             target = GEN_DNS; /// See x509v3.h in openssl project.
+    struct in_addr  addr4;
     struct in6_addr addr6;
-    uint8_t ipver = 4;
-    size_t addrlen = 0;
-    bool result = true;
+    uint8_t         ipver   = 4;
+    size_t          addrlen = 0;
+    bool            result  = true;
 
     if (inet_pton(AF_INET, host.c_str(), &addr4) == 1)
     {
         addrlen = sizeof(addr4);
-        target = GEN_IPADD; /// See x509v3.h in openssl project.
+        target  = GEN_IPADD; /// See x509v3.h in openssl project.
     }
     else if (inet_pton(AF_INET6, host.c_str(), &addr6) == 1)
     {
         addrlen = sizeof(addr6);
-        target = GEN_IPADD;
-        ipver = 6;
+        target  = GEN_IPADD;
+        ipver   = 6;
     }
 
     if (altnames)
@@ -284,11 +271,13 @@ static bool verifyHost(const std::string &host, const X509* cert)
                            our server IP address is */
                         if (altlen == addrlen)
                         {
-                            if (ipver == 4 && memcmp(altptr, &addr4, altlen) == 0)
+                            if (ipver == 4 &&
+                                memcmp(altptr, &addr4, altlen) == 0)
                             {
                                 matched = true;
                             }
-                            else if (ipver == 6 && memcmp(altptr, &addr6, altlen) == 0)
+                            else if (ipver == 6 &&
+                                     memcmp(altptr, &addr6, altlen) == 0)
                             {
                                 matched = true;
                             }
@@ -313,8 +302,18 @@ static bool verifyHost(const std::string &host, const X509* cert)
     }
     else
     {
-        /* we have to look to the last occurrence of a commonName in the
-           distinguished one to get the most significant one. */
+
+        /* If here, we have to look to the last occurrence of a commonName
+           in the distinguished one to get the most significant one. */
+
+        /* Common name must be domain name. See:
+           https://tools.ietf.org/html/rfc2818#section-3.1
+        */
+        if (target == GEN_IPADD)
+        {
+            return false;
+        }
+
         int j, i = -1;
 
         /* The following is done because of a bug in 0.9.6b */
@@ -340,7 +339,7 @@ static bool verifyHost(const std::string &host, const X509* cert)
             ASN1_STRING* tmp =
                 X509_NAME_ENTRY_get_data(X509_NAME_get_entry(name, i));
             unsigned char* peer_CN = nullptr;
-            
+
             if (tmp)
             {
                 j = ASN1_STRING_to_UTF8(&peer_CN, tmp);
@@ -352,8 +351,8 @@ static bool verifyHost(const std::string &host, const X509* cert)
                 }
                 else
                 {
-                    peerCNStr = std::string((const char *)peer_CN, cnLen);
-                    OPENSSL_free(peer_CN);                                        
+                    peerCNStr = std::string((const char*)peer_CN, cnLen);
+                    OPENSSL_free(peer_CN);
                 }
             }
         }
@@ -371,114 +370,7 @@ static bool verifyHost(const std::string &host, const X509* cert)
         }
     }
 
-    return result;    
-}
-
-
-// Tries to find a match for hostname in the certificate's Common Name field.
-//
-// Tries to find a match for hostname in the certificate's
-// Subject Alternative Name extension.
-static bool matchesCommonName(const std::string& host, const X509* cert)
-{
-    int              commonNameLoc   = -1;
-    X509_NAME_ENTRY* commonNameEntry = nullptr;
-    ASN1_STRING*     commonNameAsn1  = nullptr;
-    char*            commonNameStr   = nullptr;
-
-    // Find the position of the CN field in the Subject field of the certificate
-    commonNameLoc = X509_NAME_get_index_by_NID(
-        X509_get_subject_name((X509*)cert), NID_commonName, -1);
-    if (commonNameLoc < 0)
-    {
-        return false;
-    }
-
-    // Extract the CN field
-    commonNameEntry =
-        X509_NAME_get_entry(X509_get_subject_name((X509*)cert), commonNameLoc);
-    if (commonNameEntry == nullptr)
-    {
-        return false;
-    }
-
-    // Convert the CN field to a C string
-    commonNameAsn1 = X509_NAME_ENTRY_get_data(commonNameEntry);
-    if (commonNameAsn1 == nullptr)
-    {
-        return false;
-    }
-    commonNameStr = (char*)ASN1_STRING_data(commonNameAsn1);
-
-    // Make sure there isn't an embedded NUL character in the CN
-    if (ASN1_STRING_length(commonNameAsn1) != (int)std::strlen(commonNameStr))
-    {
-        return false;
-    }
-
-    // Compare expected hostname with the CN
-    if (parrot::iStringCmp(host.c_str(), commonNameStr))
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-// matchesSubjectAlternativeName
-//
-// Tries to find a match for hostname in the certificate's
-// Subject Alternative Name extension.
-static bool matchesSubjectAlternativeName(const std::string& host,
-                                          X509*        cert)
-{
-    int sanNamesNb                   = -1;
-    STACK_OF(GENERAL_NAME)* sanNames = nullptr;
-
-    // Try to extract the names within the SAN extension from the certificate
-    sanNames = (stack_st_GENERAL_NAME*)X509_get_ext_d2i(
-        (X509*)cert, NID_subject_alt_name, nullptr, nullptr);
-    if (sanNames == nullptr)
-    {
-        return false;
-    }
-    sanNamesNb = sk_GENERAL_NAME_num(sanNames);
-
-    bool res = false;
-
-    // Check each name within the extension
-    for (int i = 0; i < sanNamesNb; ++i)
-    {
-        const GENERAL_NAME* currentName = sk_GENERAL_NAME_value(sanNames, i);
-
-        if (currentName->type == GEN_DNS)
-        {
-            // Current name is a DNS name, let's check it
-            char* dnsName = (char*)ASN1_STRING_data(currentName->d.dNSName);
-
-            // Make sure there isn't an embedded NUL character in the DNS name
-            if (ASN1_STRING_length(currentName->d.dNSName) !=
-                (int)std::strlen(dnsName))
-            {
-                res = false;
-                break;
-            }
-            else
-            {
-                // Compare expected hostname with the DNS name
-                if (parrot::iStringCmp(host.c_str(), dnsName))
-                {
-                    res = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    sk_GENERAL_NAME_pop_free(sanNames, GENERAL_NAME_free);
-    return res;
+    return result;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -513,8 +405,6 @@ void SslHelper::init()
     // Init library.
     SSL_library_init();
     SSL_load_error_strings();
-
-    verifyHost("", nullptr);
 }
 
 void SslHelper::freeThreadErrQueue(const std::thread::id& id)
@@ -627,8 +517,7 @@ bool SslHelper::checkCertHostname(SSL* ssl, const std::string& host)
         return false;
     }
 
-    if (!matchesCommonName(host, cert) ||
-        !matchesSubjectAlternativeName(host, cert))
+    if (!verifyHost(host, cert))
     {
         return false;
     }
