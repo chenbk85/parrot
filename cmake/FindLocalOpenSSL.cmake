@@ -3,7 +3,7 @@ SET(OPENSSL_DIR ${PROJECT_SOURCE_DIR}/third-party/${CMAKE_HOST_SYSTEM_NAME}.${CM
 IF(EXISTS ${OPENSSL_DIR}/include)
   SET(OPENSSL_INCLUDE_DIR ${OPENSSL_DIR}/include)
 ELSE(EXISTS ${OPENSSL_DIR}/include)
-  MESSAGE(FATAL_ERROR "Failed to find rapidjson direcotry.")
+  MESSAGE(FATAL_ERROR "Failed to find openssl direcotry.")
 ENDIF(EXISTS ${OPENSSL_DIR}/include)
 
 FIND_LIBRARY(CRYPTO_LIBRARY NAMES libcrypto.a PATHS ${OPENSSL_DIR}/lib)

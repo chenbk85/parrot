@@ -18,17 +18,11 @@ class SslHelper
 
   public:
     /**
-     * Register ssl callbacks, init ssl library, ets.
+     * Init ssl libray. I start to use the new version openssl. It is simpler
+     * then the older. No init, deinit and setup lock callback is required 
+     * anymore.
      */
     static void init();
-
-    /**
-     * Remove error queue of thread. When stop a thread, this
-     * funciton should be called.
-     *
-     * @Param  id      The id of the target thread.
-     */
-    static void freeThreadErrQueue(const std::thread::id& id);
 
     /**
      * Create a ssl context.
