@@ -405,6 +405,9 @@ SSL_CTX* SslHelper::genSslCtx(const std::string& keyPath,
         SSL_CTX_set_verify(sslCtx, SSL_VERIFY_NONE, nullptr);
     }
 
+
+    PARROT_ASSERT(SSL_CTX_set_min_proto_version(sslCtx, TLS1_VERSION) == 1);
+
     return sslCtx;
 }
 
