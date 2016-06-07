@@ -14,20 +14,23 @@ SimpleEventNotifierImpl::~SimpleEventNotifierImpl()
 
 uint32_t SimpleEventNotifierImpl::waitIoEvents(int32_t ms)
 {
-    // Acquire _lock.
+    /* Acquire _lock. */
     std::unique_lock<std::mutex> lk(_lock);
     if (_signalCount > 0)
     {
+        /* We have many events to handle. Do not block, just return. */
         _signalCount = 0;
         lk.unlock();
         return 0;
     }
 
+    /* We don't have any event to handle. Wait here. */
+
     _waiting = true;
 
     if (ms > 0)
     {
-        // Release _lock. Block this thread.
+        /* Release _lock. Block this thread. */
         _condVar.wait_for(lk, std::chrono::milliseconds(ms), [this]()
                           {
                               return !_waiting;
@@ -41,13 +44,13 @@ uint32_t SimpleEventNotifierImpl::waitIoEvents(int32_t ms)
                       });
     }
 
-    // Here, Reacquire _lock again.
+    /* Here, Reacquire _lock again. */
     _waiting = false;
 
-    // Reset signal count.
+    /* Next we will handle all the events, reset signal count. */
     _signalCount = 0;
 
-    // Release the lock;
+    /* Release the lock; */
     lk.unlock();
 
     return 0;
