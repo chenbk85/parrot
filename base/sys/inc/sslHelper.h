@@ -52,6 +52,13 @@ class SslHelper
     static SSL* genSsl(SSL_CTX* ctx);
 
     /**
+     * Enable ssl session at the server side.
+     *
+     * @param ctx     An object of SSL_CTX.
+     */
+    static void enableSslSessionCache(SSL_CTX* ctx);
+
+    /**
      * Verify remote.
      *
      * @param ssl   SSL object.

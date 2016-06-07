@@ -35,31 +35,20 @@ void IPHelper::setIP(const std::string& ip)
         return;
     }
 
-    if (ip.find(".") != std::string::npos)
+    if (inet_pton(AF_INET, ip.c_str(), &_addr4) == 1)
     {
-        int ret = inet_pton(AF_INET, ip.c_str(), &_addr4);
-        if (ret != 1)
-        {
-            throw std::runtime_error(std::string("Bad IP") + ip);
-        }
-
         _version = 4;
+        _ip      = ip;
     }
-    else if (ip.find(":") != std::string::npos)
+    else if (inet_pton(AF_INET6, ip.c_str(), &_addr6) == 1)
     {
-        int ret = inet_pton(AF_INET6, ip.c_str(), &_addr6);
-        if (ret != 1)
-        {
-            throw std::runtime_error(std::string("Bad IP") + ip);
-        }
         _version = 6;
+        _ip      = ip;
     }
     else
     {
         throw std::runtime_error(std::string("Bad IP") + ip);
     }
-
-    _ip = ip;
 }
 
 void IPHelper::setIP(const struct in6_addr& addr)

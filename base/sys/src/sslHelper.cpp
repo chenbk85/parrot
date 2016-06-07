@@ -22,9 +22,9 @@
 #include <sys/types.h>
 
 #include "macroFuncs.h"
+#include "mtRandom.h"
 #include "sslHelper.h"
 #include "stringHelper.h"
-
 
 ////////////////////////////////////////////////////////////////////////////
 /// Check host name.
@@ -320,7 +320,6 @@ namespace parrot
 SslHelper::SslHelper()  = default;
 SslHelper::~SslHelper() = default;
 
-
 void SslHelper::init()
 {
 }
@@ -332,12 +331,14 @@ SSL_CTX* SslHelper::genSslCtx(const std::string& keyPath,
                               bool               verifyPeer,
                               int                depth)
 {
+    /* This method supprots from SSLv3 to newest TLS. SSLv3 will be disabled
+     * below. */
     const SSL_METHOD* m      = TLS_method();
     SSL_CTX*          sslCtx = SSL_CTX_new(m);
 
     if (!sslCtx)
     {
-        // If here, did you forget to call SslHelper::init()?
+        /* If here, did you forget to call SslHelper::init()? */
         PARROT_ASSERT(0);
     }
 
@@ -354,17 +355,17 @@ SSL_CTX* SslHelper::genSslCtx(const std::string& keyPath,
         caPathPtr = caPath.c_str();
     }
 
-    // Add ca-cert to SSL_CTX.
+    /* Add ca-cert to SSL_CTX. */
     if (caFilePtr || caPathPtr)
     {
-        // Add ca-cert file.
+        /* Add ca-cert file. */
         if (SSL_CTX_load_verify_locations(sslCtx, caFilePtr, caPathPtr) != 1)
         {
             PARROT_ASSERT(0);
         }
     }
 
-    // Add cert to SSL_CTX.
+    /* Add cert to SSL_CTX. */
     if (caPath.length() > 0 &&
         SSL_CTX_use_certificate_file(sslCtx, certPath.c_str(),
                                      SSL_FILETYPE_PEM) <= 0)
@@ -386,9 +387,9 @@ SSL_CTX* SslHelper::genSslCtx(const std::string& keyPath,
 
     if (verifyPeer)
     {
-        // We need to verify peer, but the client doesn't tell us where
-        // to find the ca-certs, we use default.
-        if (caPath.length() > 0)
+        /* We need to verify peer, but the client doesn't tell us where
+         * to find the ca-certs, we use default. */
+        if (caPath.empty())
         {
             if (SSL_CTX_set_default_verify_paths(sslCtx) != 1)
             {
@@ -405,10 +406,25 @@ SSL_CTX* SslHelper::genSslCtx(const std::string& keyPath,
         SSL_CTX_set_verify(sslCtx, SSL_VERIFY_NONE, nullptr);
     }
 
-
+    /* TLSv1.0 is the minimal requirement. SSLv3.0 will not be supported. */
     PARROT_ASSERT(SSL_CTX_set_min_proto_version(sslCtx, TLS1_VERSION) == 1);
 
     return sslCtx;
+}
+
+void SslHelper::enableSslSessionCache(SSL_CTX* ctx)
+{
+    unsigned char        sidCtx[16]{};
+    const unsigned char* ln = reinterpret_cast<const unsigned char*>(
+        "0123456789abcdefghijklmnopqrstuvwxyz");
+    MtRandom r;
+
+    for (auto i = 0u; i < sizeof(sidCtx) - 1; ++i)
+    {
+        sidCtx[i] = ln[r.random(36)]; // 10 numbers + 26 letters.
+    }
+
+    SSL_CTX_set_session_id_context(ctx, sidCtx, sizeof(sidCtx));
 }
 
 SSL* SslHelper::genSsl(SSL_CTX* ctx)

@@ -221,7 +221,7 @@ IoEvent* EpollImpl::getIoEvent(uint32_t idx) const noexcept
     {
         ev->setNotifiedAction(eIoAction::ReadWrite);
     }
-    else if (filter & EPOLLIN || filter & EPOLLPRI)
+    else if ((filter & EPOLLIN) || (filter & EPOLLPRI))
     {
         ev->setNotifiedAction(eIoAction::Read);
     }

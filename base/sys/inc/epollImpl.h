@@ -23,59 +23,72 @@ class EpollImpl final
     EpollImpl& operator=(const EpollImpl& kq) = delete;
 
   public:
-    // Create the epoll.
+    /**
+     * Create the epoll.
+     */
     void create();
 
-    // Wait io events for N milliseconds. If interrupt, it will continue
-    // waiting.
-    //
-    // Params:
-    // * ms: milliseconds.
-    //
-    // Return
-    // The number of events.
+    /**
+     * Wait io events for N milliseconds. If interrupt, it will continue
+     * waiting.
+     *
+     * @param    ms   Milliseconds.
+     * @return        The number of events.
+     */
     uint32_t waitIoEvents(int32_t ms);
 
-    // Add io event to epoll.
-    //
-    // Params:
-    // * ev: The io event.
+    /**
+     * Add io event to epoll.
+     *
+     * @param    ev   The io event.
+     */
     void addEvent(IoEvent* ev);
 
-    // Update event's action.
-    //
-    // Params:
-    // * ev: The io event.    
+    /**
+     * Update event's action.
+     *
+     * @param    ev   The io event.
+     */    
     void updateEventAction(IoEvent* ev);
 
-    // Delete io event from epoll.
-    //
-    // Params:
-    // * ev: The io event.
+    /**
+     * Delete io event from epoll.
+     *
+     * @param    ev   The io event.
+     */        
     void delEvent(IoEvent* ev);
 
-    // Retrieve the need-to-handle event notified by epoll.
-    //
-    // Params:
-    // * idx: The event index.
-    //
-    // Return:
-    //  The IoEvent pointer.
+    /**
+     * Retrieve the need-to-handle event notified by epoll.
+     *
+     * @param    idx  The event index.
+     * @return        The IoEvent pointer.
+     */
     IoEvent* getIoEvent(uint32_t idx) const noexcept;
 
-    // Make epoll_wait return by writing to a fd.
+    /**
+     * Make epoll_wait return by writing to a fd.
+     */
     void stopWaiting();
 
-    // Close epoll.
+    /**
+     * Make epoll_wait return by writing to a fd.
+     */    
     void close();
 
   private:
+    /**
+     * Help function to get filter combination from act.
+     *
+     * @param    act     The io action.
+     * @return           Filter combination.
+     */
     int getFilter(eIoAction act);
 
   private:
-    int32_t _epollFd;
-    uint32_t _epollSize;
-    std::unique_ptr<EventTrigger> _trigger;
+    int32_t                               _epollFd;
+    uint32_t                              _epollSize;
+    std::unique_ptr<EventTrigger>         _trigger;
     std::unique_ptr<struct epoll_event[]> _events;
 };
 }
