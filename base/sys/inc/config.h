@@ -1,11 +1,11 @@
 #ifndef __BASE_SYS_INC_CONFIG_H__
 #define __BASE_SYS_INC_CONFIG_H__
 
+#include "urlParser.h"
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
-#include <cstdint>
-#include "urlParser.h"
 
 namespace parrot
 {
@@ -27,16 +27,16 @@ struct ServerInfo
 
     /// This IP/port is used to handle client's requests.
     std::string _frontIp;
-    uint16_t _frontPort = 0;
+    uint16_t    _frontPort = 0;
 
     /// This IP/port is used to handle rpc requests.
     std::string _rpcIp;
-    uint16_t _rpcPort = 0;
+    uint16_t    _rpcPort = 0;
 
-    /// WsURL. 
-    std::string _frontWsUrl;
+    /// WsURL.
+    std::string              _frontWsUrl;
     std::unique_ptr<UrlInfo> _frontWsUrlInfo;
-    std::string _rpcWsUrl;
+    std::string              _rpcWsUrl;
     std::unique_ptr<UrlInfo> _rpcWsUrlInfo;
 };
 
@@ -51,18 +51,18 @@ struct Config
     /// The lock file path.
     std::string _lockFilePath = "";
 
-    uint32_t _frontClientConnTimeout = 60;
-    uint32_t _rpcClientConnTimeout = 60;
+    uint32_t _frontClientConnTimeout     = 60;
+    uint32_t _rpcClientConnTimeout       = 60;
     uint32_t _rpcClientHeartbeatInterval = 45;
-    uint32_t _rpcReqTimeout = 5;
-    
+    uint32_t _rpcReqTimeout              = 5;
+
     /// This server's info.
     ServerInfo _thisServer;
     /// All neighbor servers' map.
     std::map<std::string, ServerInfo> _neighborSrvMap;
 
     /// The front thread pool size.
-    uint8_t _frontThreadPoolSize      = 2;
+    uint8_t  _frontThreadPoolSize     = 2;
     uint32_t _frontThreadMaxConnCount = 100000;
 
     /// Log configurations.

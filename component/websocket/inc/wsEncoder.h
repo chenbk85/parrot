@@ -1,13 +1,13 @@
 #ifndef __COMPONENT_WEBSOCKET_INC_WSENCODER_H__
 #define __COMPONENT_WEBSOCKET_INC_WSENCODER_H__
 
-#include <vector>
 #include <array>
-#include <list>
 #include <cstdint>
+#include <list>
+#include <vector>
 
-#include "wsDefinition.h"
 #include "codes.h"
+#include "wsDefinition.h"
 
 namespace parrot
 {
@@ -29,9 +29,15 @@ class WsEncoder
     enum class eWriteState
     {
         None,
+        Header,
+        SysJsonMeta,
         SysJson,
+        JsonMeta,
         Json,
-        Binary
+        BinaryMeta,
+        Binary,
+        Code,  // for close packet.
+        Reason // for close packet.
     };
 
   public:
@@ -47,12 +53,23 @@ class WsEncoder
     eCodes loadBuff();
 
   private:
-    void encode();
-    void encodeControlPacket();
-    void encodeClosePacket();
-    void encodeDataPacket();
-    void encodeRawPacket();
-    void encodePlainPacket();
+    eCodes encode();
+    eCodes encodePingPong();
+    eCodes encodeClosePacket();
+    eCodes encodeDataPacket();
+    eCodes encodeRawPacket();
+    eCodes encodePlainPacket();
+
+    /**
+     * The function computes the _headerLen and the _payloadLen by the
+     * total payloadLen. If payloadLen is less than the max payload len
+     * specified in WsConfig, _payloadLen will be equal to the payloadLen.
+     * Or, the packet will be fragmented, the _payloadLen will be equal to
+     * the max payload len defined in WsConfig.
+     *
+     * @param  payloadLen         The total length of payload.
+     */
+    void computeComponentLen(uint64_t payloadLen);
 
     // Compute header length, payload lenght etc. If need to mask packet,
     // call this function.
@@ -68,13 +85,12 @@ class WsEncoder
 
     void writeHeader(bool firstPkt, bool fin);
     eCodes writeBuff(const unsigned char* src, uint64_t len);
-    eCodes writePacketItem(ePayloadItem item,
+    eCodes writePacketItem(ePayloadItem         item,
                            const unsigned char* buff,
-                           uint64_t buffSize);
+                           uint64_t             buffSize);
 
     uint64_t getDataLen(uint64_t len);
-    void maskPacket(std::vector<unsigned char>::iterator begin,
-                    std::vector<unsigned char>::iterator end);
+    void maskPacket(const unsigned char* begin, const unsigned char* end);
 
     // Meta info is for the peer to decode what data is it. The format is
     //            | type field (alwasy 1 byte) | data length field |
@@ -119,25 +135,32 @@ class WsEncoder
     // The packet is fragmented?
     bool _fragmented;
 
-    std::vector<unsigned char>& _sendVec;
-    uint32_t& _needSendLen;
+    std::vector<unsigned char>&           _sendVec;
+    uint32_t&                             _needSendLen;
     std::list<std::unique_ptr<WsPacket>>& _pktList;
 
     // The current encoding packet.
-    std::unique_ptr<WsPacket> _currPkt;
+    std::unique_ptr<WsPacket>            _currPkt;
     std::vector<unsigned char>::iterator _lastIt;
-    const WsConfig& _config;
+    const WsConfig&                      _config;
 
     // The packet needs to be masked?
-    bool _needMask;
+    bool      _needMask;
     MtRandom& _random;
 
     // Save sys json string.
     std::string _sysJsonStr;
     // Save json string.
-    std::string _jsonStr;
-    uint32_t _maskingKey;
+    std::string                _jsonStr;
+    uint32_t                   _maskingKey;
+    uint8_t                    _maskKeyIdx;
     std::vector<unsigned char> _metaData;
+
+    std::vector<unsigned char> _headerVec;
+    unsigned char*             _currPtr;
+    const unsigned char* const _sendVecEndPtr;
+    const unsigned char*       _srcPtr;
+    const unsigned char*       _srcEndPtr;
 };
 }
 
