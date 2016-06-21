@@ -309,7 +309,6 @@ eCodes WsEncoder::encodeClosePacket()
         {
             // Encode
             auto startPtr = _currPtr;
-            auto srcStart = _srcPtr;
             for (; _srcPtr != _srcEndPtr && _currPtr != _sendVecEndPtr;
                  ++_srcPtr, ++_currPtr)
             {
@@ -318,18 +317,7 @@ eCodes WsEncoder::encodeClosePacket()
 
             if (_needMask)
             {
-                if (srcStart == reinterpret_cast<const unsigned char*>(
-                                    &(_currPkt->getCloseReason()[0])))
-                {
-                    // If we srcStart is the address of first byte
-                    // of reason, we need to go back 2 bytes to include
-                    // code to mask.
-                    maskPacket(startPtr - 2, _currPtr);
-                }
-                else
-                {
-                    maskPacket(startPtr, _currPtr);
-                }
+                maskPacket(startPtr, _currPtr);
             }
 
             if (_srcPtr != _srcEndPtr)
@@ -469,81 +457,93 @@ void WsEncoder::writeHeader(bool firstPkt, bool fin)
     }
 }
 
-void WsEncoder::encodeRawPacket()
+eCodes WsEncoder::encodeRawPacket()
 {
-    auto& raw          = _currPkt->getPayload();
-    bool  finFlag      = false;
-    bool  firstPktFlag = true;
-
-    PARROT_ASSERT(!raw.empty());
-
-    if (_state == eEncoderState::Idle)
+    switch (_writeState)
     {
-        _state    = eEncoderState::Encoding;
-        _totalLen = raw.size();
+        case eWriteState::None:
+        {
+            auto& raw = _currPkt->getPayload();
+            PARROT_ASSERT(!raw.empty());
+            computeComponentLen(raw.size());
 
-        if (_needMask)
-        {
-            computeLengthNeedMask(_totalLen);
+            _writeState = eWriteState::Header;
+            _srcPtr     = &(*raw.begin());
+            _srcEndPtr  = &(*raw.end());
         }
-        else
-        {
-            computeLengthNoMask(_totalLen);
-        }
+        // No break;
 
-        if (_totalLen > _payloadLen)
+        case eWriteState::Header:
         {
-            _fragmented = true;
-            finFlag     = false;
-        }
-        else
-        {
-            _fragmented = false;
-            finFlag     = true;
-        }
-        _encodedLen = 0;
-    }
-    else
-    {
-        firstPktFlag = false;
-        auto leftLen = _totalLen - _encodedLen;
-        if (leftLen <= _payloadLen)
-        {
-            finFlag = true;
+            if ((_sendVecEndPtr - _currPtr) < _headerLen)
+            {
+                return eCodes::ST_BufferFull;
+            }
 
-            // Recompute header.
+            bool fin = true;
+            if (_fragmented)
+            {
+                if (static_cast<uint64_t>(_srcEndPtr - _srcPtr) <= _payloadLen)
+                {
+                    _payloadLen = _srcEndPtr - _srcPtr;
+                }
+                else
+                {
+                    fin = false;
+                }
+            }
+
+            writeHeader(_srcPtr == &(_currPkt->getPayload()[0]), fin);
+            _writeState = eWriteState::Raw;
+            _maskKeyIdx = 0;
+            _encodedLen = 0;
+        }
+        // No break;
+
+        case eWriteState::Raw:
+        {
+            auto startPtr = _currPtr; // Save the pos for masking.
+            for (; _encodedLen < _payloadLen && _currPtr != _sendVecEndPtr;
+                 ++_encodedLen, ++_currPtr)
+            {
+                *_currPtr = _srcPtr[_encodedLen];
+            }
+
             if (_needMask)
             {
-                computeLengthNeedMask(leftLen);
+                maskPacket(startPtr, _currPtr);
+            }
+
+            if (_encodedLen == _payloadLen)
+            {
+                // Encoded one packet.
+                _srcPtr += _encodedLen;
+                if (_srcPtr == _srcEndPtr)
+                {
+                    // WsPacket has been encoded.
+                    return eCodes::ST_Complete;
+                }
+
+                // The WsPacket has been fragmented, we need to encode the
+                // next part of the WsPacket.
+                _writeState = eWriteState::Header;
+                return encodeRawPacket();
             }
             else
             {
-                computeLengthNoMask(leftLen);
+                // Not enough space to encode a packet.
+                return eCodes::ST_BufferFull;
             }
+        }
+        break;
+
+        default:
+        {
+            PARROT_ASSERT(false);
         }
     }
 
-    auto wLen = 0u;
-    if (!finFlag)
-    {
-        wLen = _payloadLen;
-    }
-    else
-    {
-        wLen = _totalLen - _encodedLen;
-    }
-
-    writeHeader(firstPktFlag, finFlag);
-    std::copy_n(raw.begin() + _encodedLen, wLen, _lastIt);
-    _encodedLen += wLen;
-    _lastIt += wLen;
-    _needSendLen = _lastIt - _sendVec.begin();
-
-    if (_encodedLen == _totalLen)
-    {
-        _state = eEncoderState::Idle;
-    }
-    return;
+    return eCodes::ST_Ok;
 }
 
 eCodes WsEncoder::writeBuff(const unsigned char* src, uint64_t len)
@@ -760,7 +760,7 @@ void WsEncoder::encodePlainPacket()
     _state       = eEncoderState::Idle;
 }
 
-void WsEncoder::maskPacket(const unsigned char* begin, const unsigned char* end)
+void WsEncoder::maskPacket(unsigned char* begin, unsigned char* end)
 {
     unsigned char* mp = reinterpret_cast<unsigned char*>(&_maskingKey);
 

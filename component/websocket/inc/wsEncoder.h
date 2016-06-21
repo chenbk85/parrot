@@ -36,6 +36,7 @@ class WsEncoder
         Json,
         BinaryMeta,
         Binary,
+        Raw,
         Code,  // for close packet.
         Reason // for close packet.
     };
@@ -90,7 +91,7 @@ class WsEncoder
                            uint64_t             buffSize);
 
     uint64_t getDataLen(uint64_t len);
-    void maskPacket(const unsigned char* begin, const unsigned char* end);
+    void maskPacket(unsigned char* begin, unsigned char* end);
 
     // Meta info is for the peer to decode what data is it. The format is
     //            | type field (alwasy 1 byte) | data length field |
