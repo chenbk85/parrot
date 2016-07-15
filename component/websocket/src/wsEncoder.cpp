@@ -794,6 +794,11 @@ eCodes WsEncoder::encodePlainPacket()
             }
 
             writeHeader(_firstPacket, fin);
+
+            // Reset mask function related variables.
+            _maskKeyIdx   = 0;
+            _maskBeginPtr = _currPtr;
+
             if (_firstPacket)
             {
                 _firstPacket = false;
@@ -805,11 +810,8 @@ eCodes WsEncoder::encodePlainPacket()
             else
             {
                 _writeState = _prevWriteState;
+                return encodePlainPacket();
             }
-
-            // Reset mask function related variables.
-            _maskKeyIdx   = 0;
-            _maskBeginPtr = _currPtr;
         }
         // No break;
 
