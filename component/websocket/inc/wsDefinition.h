@@ -5,7 +5,7 @@
 
 namespace parrot
 {
-enum class eOpCode
+enum class eOpCode : uint8_t
 {
     Continue = 0x0,
     Text     = 0x1,

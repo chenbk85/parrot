@@ -1,173 +1,331 @@
-#include <string>
-#include <iostream>
 #include <algorithm>
-#include <sstream>
+#include <cstring>
 #include <iomanip>
+#include <iostream>
+#include <sstream>
+#include <string>
 
-#include "macroFuncs.h"
 #include "json.h"
 #include "logger.h"
-#include "wsPacket.h"
-#include "wsEncoder.h"
-#include "wsDefinition.h"
-#include "wsConfig.h"
-#include "sysHelper.h"
+#include "macroFuncs.h"
 #include "mtRandom.h"
+#include "sysHelper.h"
+#include "wsConfig.h"
+#include "wsDefinition.h"
+#include "wsEncoder.h"
+#include "wsPacket.h"
 #include "wsTranslayer.h"
 
 namespace parrot
 {
 WsEncoder::WsEncoder(WsTranslayer& trans)
-    : _state(eEncoderState::Idle),
-      _writeState(eWriteState::None),
+    : _writeState(eWriteState::None),
+      _prevWriteState(eWriteState::None),
       _headerLen(0),
       _payloadLen(0),
-      _encodingMeta(false),
-      _itemEncodedLen(0),
+      _payloadEncodedLen(0),
       _encodedLen(0),
+      _totalLen(0),
       _fragmented(false),
+      _firstPacket(true),
       _sendVec(trans._sendVec),
       _needSendLen(trans._needSendLen),
       _pktList(trans._pktList),
       _currPkt(),
-      _lastIt(),
       _config(trans._config),
       _needMask(trans._needSendMasked),
       _random(*(trans._random)),
       _sysJsonStr(),
       _jsonStr(),
       _maskingKey(0),
-      _metaData(9)
+      _maskKeyIdx(0),
+      _metaData(9), // Just need 9 bytes space.
+      _headerVec(14),
+      _currPtr(nullptr),
+      _maskBeginPtr(nullptr),
+      _sendVecEndPtr(&(*_sendVec.begin()) + _sendVec.capacity()),
+      _srcPtr(nullptr),
+      _srcEndPtr(nullptr)
 {
-    _metaData.resize(0);
+    // Clear default value.
+    _metaData.clear();
 }
 
 eCodes WsEncoder::loadBuff()
 {
-    // If the packet is control packet (include close packet), according
-    // to the RFC6455, it should not be fragmented. So call loadBuff one
-    // time will definitely encode the packet to buffer. If the packet is
-    // data, then it can be fragmented. If the packet needs to be fragmented,
-    // the uplayer should call loadBuff multi times to encode the packet
-    // to buffer completely.
+    eCodes res;
 
-    if (_state == eEncoderState::Idle)
+    while (!_pktList.empty())
     {
-        if (_pktList.empty())
+        if (!_currPkt)
         {
-            return eCodes::ST_Complete;
+            _currPkt = std::move(*_pktList.begin());
+            _pktList.pop_front();
         }
 
-        _currPkt = std::move(*_pktList.begin());
-        _pktList.pop_front();
+        res = encode();
+
+        // Reset mask begin pointer. The packet was encoded, or the buffer
+        // is full, we need to send the packet next time.
+        _maskBeginPtr = nullptr;
+
+        if (res == eCodes::ST_BufferFull)
+        {
+            _needSendLen = _currPtr - &(*_sendVec.begin());
+            _currPtr     = &(*_sendVec.begin());
+            return eCodes::ST_Ok;
+        }
+        else if (res == eCodes::ST_Complete)
+        {
+            _writeState = eWriteState::None;
+            _srcPtr     = nullptr;
+            _srcEndPtr  = nullptr;
+
+            _sysJsonStr.clear();
+            _jsonStr.clear();
+            _currPkt.reset();
+        }
+        else
+        {
+            PARROT_ASSERT(false);
+        }
     }
 
-    encode();
-    return eCodes::ST_Ok;
+    // If here, no packet left in pkt list.
+    return eCodes::ST_Complete;
 }
 
-void WsEncoder::encode()
+eCodes WsEncoder::encode()
 {
     PARROT_ASSERT(_currPkt.get());
 
-    auto opCode = _currPkt->getOpCode();
+    eCodes res    = eCodes::ST_Ok;
+    auto   opCode = _currPkt->getOpCode();
+
     if (opCode == eOpCode::Binary)
     {
-        encodeDataPacket();
+        // Encode binary data.
+        res = encodeDataPacket();
     }
     else if (opCode == eOpCode::Close)
     {
-        encodeClosePacket();
+        // Encode close packet.
+        res = encodeClosePacket();
+    }
+    else if (opCode == eOpCode::Ping || opCode == eOpCode::Pong)
+    {
+        // Encode heartbeat packet.
+        res = encodePingPong();
     }
     else
     {
-        encodeControlPacket();
+        PARROT_ASSERT(false);
     }
+
+    return res;
 }
 
-void WsEncoder::encodeControlPacket()
+eCodes WsEncoder::encodePingPong()
 {
-    auto opCode = _currPkt->getOpCode();
-    auto it     = _sendVec.begin();
-    *it++ = static_cast<char>(0x80 | (uint8_t)opCode);
-    if (_needMask)
+    // According to the RFC6455, the heartbeat may have 'application data'.
+    // But pong must have the extact same data of ping. But the RFC doesn't
+    // point out what the data will be. So we use binary if the payload exists.
+    // And ping pong packets must not be fragmented.
+
+    switch (_writeState)
     {
-        *it++ = static_cast<char>(0x80);
-        for (int i = 0; i != 4; ++i)
+        case eWriteState::None:
         {
-            *it++ = static_cast<char>(_random.random(256));
+            auto payloadLen = _currPkt->getBinary().size();
+            // No fragment. Up layer should check the length.
+            PARROT_ASSERT(payloadLen <= WsConfig::_maxPayloadLen);
+
+            // Compute _headerLen and _payloadLen.
+            computeComponentLen(payloadLen);
+
+            _writeState = eWriteState::Header;
+            if ((_sendVecEndPtr - _currPtr) < _headerLen)
+            {
+                // Buffer is full. Return here and let translayer send
+                // the data.
+
+                return eCodes::ST_BufferFull;
+            }
+
+            // Fall through, next, encode header.
         }
-    }
-    else
-    {
-        *it++ = static_cast<char>(0x00);
+        // No break;
+
+        case eWriteState::Header:
+        {
+            writeHeader(true, true);
+
+            _writeState = eWriteState::Binary;
+            auto& bin   = _currPkt->getBinary();
+            if (bin.empty())
+            {
+                return eCodes::ST_Complete;
+            }
+
+            _srcPtr     = &(*bin.begin());
+            _srcEndPtr  = &(*bin.end());
+            _maskKeyIdx = 0;
+            // Fall through here.
+        }
+        // No break;
+
+        case eWriteState::Binary:
+        {
+            // Encode
+            _maskBeginPtr = _currPtr;
+            for (; _srcPtr != _srcEndPtr && _currPtr != &(*_sendVec.end());
+                 ++_srcPtr, ++_currPtr)
+            {
+                *_currPtr = *_srcPtr;
+            }
+
+            if (_needMask)
+            {
+                maskPacket(_maskBeginPtr, _currPtr);
+            }
+
+            if (_srcPtr != _srcEndPtr)
+            {
+                return eCodes::ST_BufferFull;
+            }
+        }
+        break;
+
+        default:
+        {
+            PARROT_ASSERT(false);
+        }
+        break;
     }
 
-    _needSendLen = 2;
+    return eCodes::ST_Complete;
 }
 
-void WsEncoder::encodeClosePacket()
+eCodes WsEncoder::encodeClosePacket()
 {
-    const std::string& reason = _currPkt->getCloseReason();
-    uint32_t payloadLen       = 2 + reason.size();
-    bool copyReason = true;
-    if (payloadLen > _config._sendBuffLen - 4)
+    switch (_writeState)
     {
-        LOG_WARN("WsEncoder::encodeClosePacket: Close pkt cannot be "
-                 "fragemnted. Reason '"
-                 << reason << "' is dropped.");
-        payloadLen = 2;
-        copyReason = false;
+        case eWriteState::None:
+        {
+            auto& reason = _currPkt->getCloseReason();
+            _payloadLen  = 2 + reason.size();
+
+            if (_payloadLen > WsConfig::_maxPayloadLen)
+            {
+                LOG_WARN("WsEncoder::encodeClosePacket: Close pkt cannot be "
+                         "fragemnted. Reason '"
+                         << reason << "' is dropped.");
+
+                // We can check whether _payloadLen == 2 to decide send
+                // close reason later or not.
+                _payloadLen = 2;
+            }
+            else if (_payloadLen > 2)
+            {
+                _srcPtr =
+                    reinterpret_cast<const unsigned char*>(&(*reason.begin()));
+                _srcEndPtr =
+                    reinterpret_cast<const unsigned char*>(&(*reason.end()));
+            }
+
+            _writeState = eWriteState::Header;
+            if ((_sendVecEndPtr - _currPtr) < _headerLen)
+            {
+                // Buffer is full. Return here and let translayer send
+                // the data.
+
+                return eCodes::ST_BufferFull;
+            }
+
+            // Fall through.
+        }
+        // No break.
+
+        case eWriteState::Header:
+        {
+            writeHeader(true, true);
+
+            _writeState = eWriteState::Code;
+            if ((_sendVecEndPtr - _currPtr) < 2)
+            {
+                return eCodes::ST_BufferFull;
+            }
+            _maskKeyIdx = 0;
+            // Fall through here.
+        }
+        // No break;
+
+        case eWriteState::Code:
+        {
+            _maskBeginPtr = _currPtr;
+            *(reinterpret_cast<uint16_t*>(_currPtr)) =
+                uniHtons(static_cast<uint16_t>(_currPkt->getCloseCode()));
+            _currPtr += 2;
+
+            if (_payloadLen == 2)
+            {
+                // Do not need to copy reason.
+                if (_needMask)
+                {
+                    maskPacket(_maskBeginPtr, _currPtr);
+                }
+                return eCodes::ST_Complete;
+            }
+
+            if (_currPtr == _sendVecEndPtr)
+            {
+                // No space left.
+                if (_needMask)
+                {
+                    maskPacket(_maskBeginPtr, _currPtr);
+                }
+                return eCodes::ST_BufferFull;
+            }
+
+            _writeState = eWriteState::Reason;
+        }
+        // No break;
+
+        case eWriteState::Reason:
+        {
+            // Encode
+            if (!_maskBeginPtr)
+            {
+                _maskBeginPtr = _currPtr;
+            }
+            for (; _srcPtr != _srcEndPtr && _currPtr != _sendVecEndPtr;
+                 ++_srcPtr, ++_currPtr)
+            {
+                *_currPtr = *_srcPtr;
+            }
+
+            if (_needMask)
+            {
+                maskPacket(_maskBeginPtr, _currPtr);
+            }
+
+            if (_srcPtr != _srcEndPtr)
+            {
+                return eCodes::ST_BufferFull;
+            }
+        }
+        // No break;
+
+        default:
+        {
+        }
+        break;
     }
 
-    auto it             = _sendVec.begin();
-    uint8_t maskingFlag = _needMask ? 0x80 : 0x00;
-    *it++               = static_cast<char>(0x80 | (uint8_t)eOpCode::Close);
-
-    if (payloadLen < 126)
-    {
-        *it++ = static_cast<char>(maskingFlag | payloadLen);
-    }
-    else if (payloadLen >= 126 && payloadLen <= 0xFFFF)
-    {
-        *it++ = static_cast<char>(maskingFlag | 126);
-        *(reinterpret_cast<uint16_t*>(&(*it))) = uniHtons(payloadLen);
-        it += 2;
-    }
-    else
-    {
-        *it++ = static_cast<char>(maskingFlag | 127);
-        *(reinterpret_cast<uint64_t*>(&(*it))) = uniHtonll(payloadLen);
-        it += 8;
-    }
-
-    if (_needMask)
-    {
-        _maskingKey = _random.random32();
-        // Do not treat _masking key as integer.
-        std::copy_n(reinterpret_cast<char*>(&_maskingKey), 4, it);
-        it += 4;
-    }
-
-    auto rit = it;
-    *(reinterpret_cast<uint16_t*>(&(*it))) =
-        uniHtons(static_cast<uint16_t>(_currPkt->getCloseCode()));
-    it += 2;
-
-    if (copyReason)
-    {
-        std::copy_n(reason.begin(), reason.size(), it);
-        it += reason.size();
-    }
-
-    if (_needMask)
-    {
-        maskPacket(rit, it);
-    }
-    _needSendLen = it - _sendVec.begin();
+    return eCodes::ST_Complete;
 }
 
-void WsEncoder::encodeDataPacket()
+eCodes WsEncoder::encodeDataPacket()
 {
     if (_currPkt->isRaw())
     {
@@ -177,24 +335,34 @@ void WsEncoder::encodeDataPacket()
     {
         encodePlainPacket();
     }
+    return eCodes::ST_Ok;
 }
 
-void WsEncoder::computeLengthNeedMask(uint64_t pktLen)
+void WsEncoder::computeComponentLen(uint64_t payloadLen)
 {
-    if (pktLen <= 125)
+    static_assert(WsConfig::_maxPayloadLen <= 256,
+                  "Max payload len is too small.");
+
+    if (WsConfig::_maxPayloadLen >= payloadLen)
     {
-        _headerLen = 6;
-    }
-    else if (pktLen > 125 && pktLen <= 0xFFFF)
-    {
-        _headerLen = 8;
+        // Payload is less than the max payload len, no fragment.
+        _payloadLen = payloadLen;
+        _fragmented = false;
     }
     else
     {
-        // 65550 (14 + 65536) is the minimal length if header is 10 bytes.
-        // If packet length is greater than 2^16 - 1, but send buffer length
-        // is less than 65550, we need to fragment.
-        if (_sendVec.capacity() < 65550)
+        _payloadLen = WsConfig::_maxPayloadLen;
+        _fragmented = true;
+    }
+
+    if (_needMask)
+    {
+        // Mask needs 4 bytes.
+        if (_payloadLen <= 125)
+        {
+            _headerLen = 6;
+        }
+        else if (_payloadLen > 125 && _payloadLen <= 0xFFFF)
         {
             _headerLen = 8;
         }
@@ -203,41 +371,13 @@ void WsEncoder::computeLengthNeedMask(uint64_t pktLen)
             _headerLen = 14;
         }
     }
-
-    if (pktLen <= _sendVec.capacity() - _headerLen)
-    {
-        _payloadLen = pktLen;
-    }
     else
     {
-        _payloadLen = _sendVec.capacity() - _headerLen;
-    }
-
-    if (_headerLen == 8)
-    {
-        if (_payloadLen > 65535)
+        if (payloadLen <= 125)
         {
-            _payloadLen = 65535;
+            _headerLen = 2;
         }
-    }
-}
-
-void WsEncoder::computeLengthNoMask(uint64_t pktLen)
-{
-    if (pktLen <= 125)
-    {
-        _headerLen = 2;
-    }
-    else if (pktLen > 125 && pktLen <= 0xFFFF)
-    {
-        _headerLen = 4;
-    }
-    else
-    {
-        // 65546 (10 + 65536) is the minimal length if header is 10 bytes.
-        // If packet length is greater than 2^16 - 1, but send buffer length
-        // is less than 65546, we need to fragment.
-        if (_sendVec.capacity() < 65546)
+        else if (payloadLen > 125 && payloadLen <= 0xFFFF)
         {
             _headerLen = 4;
         }
@@ -246,53 +386,30 @@ void WsEncoder::computeLengthNoMask(uint64_t pktLen)
             _headerLen = 10;
         }
     }
-
-    if (pktLen <= _sendVec.capacity() - _headerLen)
-    {
-        // Here, we have enough space to encode this packet. So _payloadlen
-        // is equal to the packetLen.
-        _payloadLen = pktLen;
-    }
-    else
-    {
-        // We don't have enough space to encode the whole packet.
-        _payloadLen = _sendVec.capacity() - _headerLen;
-    }
-
-    if (_headerLen == 4)
-    {
-        // if _headerLen is 4 bytes, the length of the payload should less
-        // than or equal to 0xFFFF.
-        if (_payloadLen > 0xFFFF)
-        {
-            _payloadLen = 0xFFFF;
-        }
-    }
 }
 
 void WsEncoder::writeHeader(bool firstPkt, bool fin)
 {
-    _lastIt = _sendVec.begin();
     if (fin)
     {
         if (firstPkt)
         {
-            *_lastIt++ = 0x80 | static_cast<uint8_t>(eOpCode::Binary);
+            *_currPtr++ = 0x80 | static_cast<uint8_t>(eOpCode::Binary);
         }
         else
         {
-            *_lastIt++ = 0x80 | static_cast<uint8_t>(eOpCode::Continue);
+            *_currPtr++ = 0x80 | static_cast<uint8_t>(eOpCode::Continue);
         }
     }
     else
     {
         if (firstPkt)
         {
-            *_lastIt++ = static_cast<uint8_t>(eOpCode::Binary);
+            *_currPtr++ = static_cast<uint8_t>(eOpCode::Binary);
         }
         else
         {
-            *_lastIt++ = static_cast<uint8_t>(eOpCode::Continue);
+            *_currPtr++ = static_cast<uint8_t>(eOpCode::Continue);
         }
     }
 
@@ -305,170 +422,129 @@ void WsEncoder::writeHeader(bool firstPkt, bool fin)
 
     if (_payloadLen <= 125)
     {
-        *_lastIt++ = maskBit | _payloadLen;
+        *_currPtr++ = maskBit | _payloadLen;
     }
     else if (_payloadLen <= 0xFFFF)
     {
-        *_lastIt++ = maskBit | 126;
-        auto intBE = uniHtons(static_cast<uint16_t>(_payloadLen));
-        std::copy_n(reinterpret_cast<char*>(&intBE), 2, _lastIt);
-        _lastIt += 2;
+        *_currPtr++ = maskBit | 126;
+        auto intBE  = uniHtons(static_cast<uint16_t>(_payloadLen));
+        std::copy_n(reinterpret_cast<char*>(&intBE), 2, _currPtr);
+        _currPtr += 2;
     }
     else
     {
-        *_lastIt++ = maskBit | 127;
-        auto intBE = uniHtonll(_payloadLen);
-        std::copy_n(reinterpret_cast<char*>(&intBE), 8, _lastIt);
-        _lastIt += 8;
+        *_currPtr++ = maskBit | 127;
+        auto intBE  = uniHtonll(_payloadLen);
+        std::copy_n(reinterpret_cast<char*>(&intBE), 8, _currPtr);
+        _currPtr += 8;
     }
 
     if (_needMask)
     {
-        std::copy_n(reinterpret_cast<char*>(&_maskingKey), 4, _lastIt);
-        _lastIt += 4;
+        std::copy_n(reinterpret_cast<char*>(&_maskingKey), 4, _currPtr);
+        _currPtr += 4;
     }
 }
 
-void WsEncoder::encodeRawPacket()
+eCodes WsEncoder::encodeRawPacket()
 {
-    auto& raw         = _currPkt->getPayload();
-    bool finFlag      = false;
-    bool firstPktFlag = true;
-
-    PARROT_ASSERT(!raw.empty());
-
-    if (_state == eEncoderState::Idle)
+    switch (_writeState)
     {
-        _state    = eEncoderState::Encoding;
-        _totalLen = raw.size();
+        case eWriteState::None:
+        {
+            auto& raw = _currPkt->getPayload();
+            PARROT_ASSERT(!raw.empty());
+            computeComponentLen(raw.size());
 
-        if (_needMask)
-        {
-            computeLengthNeedMask(_totalLen);
+            _writeState  = eWriteState::Header;
+            _srcPtr      = &(*raw.begin());
+            _srcEndPtr   = &(*raw.end());
+            _firstPacket = true;
         }
-        else
-        {
-            computeLengthNoMask(_totalLen);
-        }
+        // No break;
 
-        if (_totalLen > _payloadLen)
+        case eWriteState::Header:
         {
-            _fragmented = true;
-            finFlag     = false;
-        }
-        else
-        {
-            _fragmented = false;
-            finFlag     = true;
-        }
-        _encodedLen = 0;
-    }
-    else
-    {
-        firstPktFlag = false;
-        auto leftLen = _totalLen - _encodedLen;
-        if (leftLen <= _payloadLen)
-        {
-            finFlag = true;
+            if ((_sendVecEndPtr - _currPtr) < _headerLen)
+            {
+                // Left space is not enough.
+                return eCodes::ST_BufferFull;
+            }
 
-            // Recompute header.
+            bool fin = true;
+            if (_fragmented)
+            {
+                if (static_cast<uint64_t>(_srcEndPtr - _srcPtr) <= _payloadLen)
+                {
+                    // The last packet. fin should be true.
+
+                    _payloadLen = _srcEndPtr - _srcPtr;
+                }
+                else
+                {
+                    fin = false;
+                }
+            }
+
+            writeHeader(_firstPacket, fin);
+            if (_firstPacket)
+            {
+                _firstPacket = false;
+            }
+
+            _writeState        = eWriteState::Raw;
+            _maskKeyIdx        = 0;
+            _payloadEncodedLen = 0;
+        }
+        // No break;
+
+        case eWriteState::Raw:
+        {
+            _maskBeginPtr = _currPtr;
+            for (;
+                 _payloadEncodedLen < _payloadLen && _currPtr != _sendVecEndPtr;
+                 ++_payloadEncodedLen, ++_currPtr)
+            {
+                *_currPtr = _srcPtr[_payloadEncodedLen];
+            }
+
             if (_needMask)
             {
-                computeLengthNeedMask(leftLen);
+                maskPacket(_maskBeginPtr, _currPtr);
+            }
+
+            if (_payloadEncodedLen == _payloadLen)
+            {
+                // Encoded one packet.
+                _srcPtr += _payloadEncodedLen;
+                if (_srcPtr == _srcEndPtr)
+                {
+                    // WsPacket has been encoded.
+                    return eCodes::ST_Complete;
+                }
+
+                // The WsPacket has been fragmented, we need to encode
+                // another packet, write header next.
+                _writeState = eWriteState::Header;
+                return encodeRawPacket();
             }
             else
             {
-                computeLengthNoMask(leftLen);
+                // Not enough space to encode a packet.
+                return eCodes::ST_BufferFull;
             }
         }
-    }
+        break;
 
-    auto wLen = 0u;
-    if (!finFlag)
-    {
-        wLen = _payloadLen;
-    }
-    else
-    {
-        wLen = _totalLen - _encodedLen;
-    }
-
-    writeHeader(firstPktFlag, finFlag);
-    std::copy_n(raw.begin() + _encodedLen, wLen, _lastIt);
-    _encodedLen += wLen;
-    _lastIt += wLen;
-    _needSendLen = _lastIt - _sendVec.begin();
-
-    if (_encodedLen == _totalLen)
-    {
-        _state = eEncoderState::Idle;
-    }
-    return;
-}
-
-eCodes WsEncoder::writeBuff(const unsigned char* src, uint64_t len)
-{
-    uint64_t leftLen     = _headerLen + _payloadLen - (_lastIt - _sendVec.begin());
-    uint64_t needCopyLen = len - _itemEncodedLen;
-    uint64_t copyLen     = leftLen >= needCopyLen ? needCopyLen : leftLen;
-
-    std::copy_n(src + _itemEncodedLen, copyLen, _lastIt);
-
-    _itemEncodedLen += copyLen;
-    _lastIt += copyLen;
-    _encodedLen += copyLen;
-
-    if (_itemEncodedLen == len)
-    {
-        return eCodes::ST_Complete;
-    }
-
-    if (_needMask)
-    {
-        maskPacket(_sendVec.begin() + _headerLen,
-                   _sendVec.begin() + _headerLen + _payloadLen);
-    }
-
-    _needSendLen = _lastIt - _sendVec.begin();
-    return eCodes::ST_RetryLater;
-}
-
-eCodes WsEncoder::writePacketItem(ePayloadItem item,
-                                  const unsigned char* buff,
-                                  uint64_t buffSize)
-{
-    if (_encodingMeta)
-    {
-        if (_metaData.empty())
+        default:
         {
-            getMetaData(item, buffSize);
-            _itemEncodedLen = 0;
-        }
-
-        if (writeBuff(&_metaData[0], _metaData.size()) != eCodes::ST_Complete)
-        {
-            // Buffer is full. Need to send the buffer then
-            // try again.
-            return eCodes::ST_RetryLater;
-        }
-        else
-        {
-            _encodingMeta   = false;
-            _itemEncodedLen = 0;
+            PARROT_ASSERT(false);
         }
     }
 
-    if (writeBuff(buff, buffSize) != eCodes::ST_Complete)
-    {
-        // Buffer is full. Need to send the buffer then try again.
-        return eCodes::ST_RetryLater;
-    }
-    else
-    {
-        _encodingMeta = true;
-    }
-
-    return eCodes::ST_Complete;
+    // Should never be here.
+    PARROT_ASSERT(false);
+    return eCodes::ST_Ok;
 }
 
 void WsEncoder::computeLength()
@@ -502,109 +578,299 @@ void WsEncoder::computeLength()
     // Binary.
     _totalLen += getDataLen(_currPkt->getBinary().size());
 
-    if (_needMask)
-    {
-        computeLengthNeedMask(_totalLen);
-    }
-    else
-    {
-        computeLengthNoMask(_totalLen);
-    }
-
-    _fragmented = _totalLen > _payloadLen ? true : false;
+    computeComponentLen(_totalLen);
 }
 
-void WsEncoder::encodePlainPacket()
+eCodes WsEncoder::encodeMeta()
 {
-    bool finFlag = true;
-    if (_state == eEncoderState::Idle)
+    if (!_maskBeginPtr)
     {
-        _state          = eEncoderState::Encoding;
-        _writeState     = eWriteState::SysJson;
-        _encodedLen     = 0;
-        _itemEncodedLen = 0;
-        _encodingMeta = true;
-        _metaData.clear();
+        _maskBeginPtr = _currPtr;
+    }
 
-        computeLength();
+    uint8_t copyLen = (_sendVecEndPtr - _currPtr > _srcEndPtr - _currPtr)
+                          ? (_srcEndPtr - _currPtr)
+                          : (_sendVecEndPtr - _currPtr);
 
-        finFlag = (_totalLen > _payloadLen) ? false : true;
+    std::memcpy(_currPtr, _srcPtr, copyLen);
+    _payloadEncodedLen += copyLen;
+    _encodedLen += copyLen;
+    _currPtr += copyLen;
+    _srcPtr += copyLen;
+
+    PARROT_ASSERT(_payloadEncodedLen < _payloadLen);
+
+    if (_currPtr == _sendVecEndPtr)
+    {
+        // Not enough space to encode a packet.
+        if (_needMask)
+        {
+            maskPacket(_maskBeginPtr, _currPtr);
+        }
+        return eCodes::ST_BufferFull;
+    }
+
+    // Meta has been encoded.
+    switch (_writeState)
+    {
+        case eWriteState::SysJsonMeta:
+        {
+            _writeState = eWriteState::SysJson;
+            _srcPtr = reinterpret_cast<unsigned char*>(&(*_sysJsonStr.begin()));
+            _srcEndPtr =
+                reinterpret_cast<unsigned char*>(&(*_sysJsonStr.end()));
+        }
+        break;
+
+        case eWriteState::JsonMeta:
+        {
+            _writeState = eWriteState::Json;
+            _srcPtr    = reinterpret_cast<unsigned char*>(&(*_jsonStr.begin()));
+            _srcEndPtr = reinterpret_cast<unsigned char*>(&(*_jsonStr.end()));
+        }
+        break;
+
+        case eWriteState::BinaryMeta:
+        {
+            auto& bin   = _currPkt->getBinary();
+            _writeState = eWriteState::Binary;
+            _srcPtr = reinterpret_cast<const unsigned char*>(&(*bin.begin()));
+            _srcEndPtr = reinterpret_cast<const unsigned char*>(&(*bin.end()));
+        }
+        break;
+
+        default:
+        {
+            PARROT_ASSERT(false);
+        }
+    }
+    return eCodes::ST_Ok;
+}
+
+eCodes WsEncoder::encodeData()
+{
+    if (!_maskBeginPtr)
+    {
+        _maskBeginPtr = _currPtr;
+    }
+
+    uint64_t copyLen = static_cast<uint64_t>(_sendVecEndPtr - _currPtr) >
+                               (_payloadLen - _payloadEncodedLen)
+                           ? (_payloadLen - _payloadEncodedLen)
+                           : (_sendVecEndPtr - _currPtr);
+
+    copyLen = copyLen > static_cast<uint64_t>(_srcEndPtr - _srcPtr)
+                  ? (_srcEndPtr - _srcPtr)
+                  : copyLen;
+
+    std::memcpy(_currPtr, _srcPtr, copyLen);
+
+    _payloadEncodedLen += copyLen;
+    _currPtr += copyLen;
+    _srcPtr += copyLen;
+    _encodedLen += copyLen;
+
+    if (_encodedLen == _totalLen)
+    {
+        // Completed, we have encoded all data.
+        if (_needMask)
+        {
+            maskPacket(_maskBeginPtr, _currPtr);
+        }
+        return eCodes::ST_Complete;
+    }
+
+    if (_currPtr == _sendVecEndPtr)
+    {
+        // Still has data to encode, but buffer is full.
+        if (_needMask)
+        {
+            maskPacket(_maskBeginPtr, _currPtr);
+        }
+        return eCodes::ST_BufferFull;
     }
     else
     {
-        auto leftLen = _totalLen - _encodedLen;
-        finFlag = (leftLen > _payloadLen) ? false : true;
-        if (finFlag)
+        if (_payloadEncodedLen == _payloadLen)
         {
-            // Last packet, we need to recompute the header.
-            if (_needMask)
+            // Packet is fragmented.
+            _prevWriteState = _writeState;
+            _writeState     = eWriteState::Header;
+            return encodePlainPacket();
+        }
+        else
+        {
+            switch (_writeState)
             {
-                computeLengthNeedMask(leftLen);
-            }
-            else
-            {
-                computeLengthNoMask(leftLen);
+                case eWriteState::SysJson:
+                {
+                    PARROT_ASSERT(_currPtr == _srcEndPtr);
+                    // SysJson is encoded.
+                    if (!_jsonStr.empty())
+                    {
+                        getMetaData(ePayloadItem::Json, _sysJsonStr.size());
+                        _writeState = eWriteState::JsonMeta;
+                    }
+                    else if (!_currPkt->getBinary().empty())
+                    {
+                        getMetaData(ePayloadItem::Binary,
+                                    _currPkt->getBinary().size());
+                        _writeState = eWriteState::BinaryMeta;
+                    }
+                    else
+                    {
+                        PARROT_ASSERT(false);
+                    }
+
+                    _srcPtr    = &(*_metaData.begin());
+                    _srcEndPtr = &(*_metaData.end());
+                }
+                break;
+
+                case eWriteState::Json:
+                {
+                    PARROT_ASSERT(_currPtr == _srcEndPtr);
+                    auto& bin = _currPkt->getBinary();
+                    PARROT_ASSERT(!bin.empty());
+
+                    getMetaData(ePayloadItem::Binary, bin.size());
+                    _writeState = eWriteState::BinaryMeta;
+                    _srcPtr     = &(*_metaData.begin());
+                    _srcEndPtr  = &(*_metaData.end());
+                }
+                break;
+
+                case eWriteState::Binary:
+                {
+                }
+                break;
+
+                default:
+                {
+                    PARROT_ASSERT(false);
+                }
             }
         }
     }
 
-    // Write header.
-    writeHeader(_encodedLen == 0, finFlag);
+    return eCodes::ST_Ok;
+}
+
+eCodes WsEncoder::encodePlainPacket()
+{
+    eCodes code = eCodes::ST_Ok;
 
     switch (_writeState)
     {
-        case eWriteState::SysJson:
+        case eWriteState::None:
         {
-            if (!_sysJsonStr.empty())
-            {
-                if (writePacketItem(
-                        ePayloadItem::SysJson,
-                        reinterpret_cast<unsigned char*>(&_sysJsonStr[0]),
-                        _sysJsonStr.size()) != eCodes::ST_Complete)
-                {
-                    return;
-                }
+            computeLength();
+            _writeState  = eWriteState::Header;
+            _firstPacket = true;
+            _encodedLen  = 0;
+        }
+        // No break;
 
-                _writeState = eWriteState::Json;
-                _encodingMeta = true;
-                _metaData.clear();
+        case eWriteState::Header:
+        {
+            if ((_sendVecEndPtr - _currPtr) < _headerLen)
+            {
+                // Left space is not enough.
+                return eCodes::ST_BufferFull;
+            }
+
+            bool fin = true;
+            if (_fragmented)
+            {
+                if (_totalLen - _encodedLen <= _payloadLen)
+                {
+                    // The last packet. fin should be true.
+                    _payloadLen = _totalLen - _encodedLen;
+                }
+                else
+                {
+                    fin = false;
+                }
+            }
+
+            writeHeader(_firstPacket, fin);
+
+            // Reset mask function related variables.
+            _maskKeyIdx   = 0;
+            _maskBeginPtr = _currPtr;
+
+            if (_firstPacket)
+            {
+                _firstPacket = false;
+                getMetaData(ePayloadItem::SysJson, _sysJsonStr.size());
+                _writeState = eWriteState::SysJsonMeta;
+                _srcPtr     = &(*_metaData.begin());
+                _srcEndPtr  = &(*_metaData.end());
+            }
+            else
+            {
+                _writeState = _prevWriteState;
+                return encodePlainPacket();
             }
         }
         // No break;
+
+        case eWriteState::SysJsonMeta:
+        {
+            code = encodeMeta();
+            if (code == eCodes::ST_BufferFull)
+            {
+                return code;
+            }
+        }
+        // no break;
+
+        case eWriteState::SysJson:
+        {
+            code = encodeData();
+            if (code == eCodes::ST_BufferFull || code == eCodes::ST_Complete)
+            {
+                return code;
+            }
+        }
+        // no break;
+
+        case eWriteState::JsonMeta:
+        {
+            code = encodeMeta();
+            if (code == eCodes::ST_BufferFull)
+            {
+                return code;
+            }
+        }
+        // no break;
 
         case eWriteState::Json:
         {
-            if (!_jsonStr.empty())
+            code = encodeData();
+            if (code == eCodes::ST_BufferFull || code == eCodes::ST_Complete)
             {
-                if (writePacketItem(
-                        ePayloadItem::Json,
-                        reinterpret_cast<unsigned char*>(&_jsonStr[0]),
-                        _jsonStr.size()) != eCodes::ST_Complete)
-                {
-                    return;
-                }
-
-                _writeState = eWriteState::Binary;
-                _encodingMeta = true;
-                _metaData.clear();                                
+                return code;
             }
         }
-        // No break;
+        // no break;
+
+        case eWriteState::BinaryMeta:
+        {
+            code = encodeMeta();
+            if (code == eCodes::ST_BufferFull)
+            {
+                return code;
+            }
+        }
+        // no break;
 
         case eWriteState::Binary:
         {
-            auto& bin = _currPkt->getBinary();
-            if (!bin.empty())
+            code = encodeData();
+            if (code == eCodes::ST_BufferFull || code == eCodes::ST_Complete)
             {
-                if (writePacketItem(ePayloadItem::Binary, &bin[0],
-                                    bin.size()) != eCodes::ST_Complete)
-                {
-                    return;
-                }
-
-                // _writeState = eWriteState::None;
-                // _encodingMeta = true;
-                // _metaData.clear();
+                return code;
             }
         }
         break;
@@ -613,22 +879,18 @@ void WsEncoder::encodePlainPacket()
         {
             PARROT_ASSERT(false);
         }
-        break;
     }
 
-    _needSendLen = _lastIt - _sendVec.begin();
-    _state       = eEncoderState::Idle;
+    return code;
 }
 
-void WsEncoder::maskPacket(std::vector<unsigned char>::iterator begin,
-                           std::vector<unsigned char>::iterator end)
+void WsEncoder::maskPacket(unsigned char* begin, unsigned char* end)
 {
-    uint8_t i   = 0;
-    uint8_t* mp = reinterpret_cast<uint8_t*>(&_maskingKey);
+    unsigned char* mp = reinterpret_cast<unsigned char*>(&_maskingKey);
 
     for (auto it = begin; it != end; ++it)
     {
-        *it ^= mp[i++ % 4];
+        *it ^= mp[_maskKeyIdx++ % 4];
     }
 }
 
@@ -675,7 +937,7 @@ uint64_t WsEncoder::getDataLen(uint64_t len)
         // 1 byte type, 1 byte length, and the length of json.
         return (1 + 1 + len);
     }
-    else if (len >= 254 && len < 65536)
+    else if (len >= 254 && len <= 0xFFFF)
     {
         // 1 byte type, 1 byte length hint, 2 bytes length, and the length
         // of data.
