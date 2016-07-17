@@ -1,5 +1,5 @@
-#include "jsonImpl.h"
 #include "json.h"
+#include "jsonImpl.h"
 
 #include <iostream>
 using namespace std;
@@ -35,7 +35,7 @@ bool Json::parse(const char* buff, uint64_t len)
     return _impl->parse(buff, len);
 }
 
-bool Json::parse(const std::string &str)
+bool Json::parse(const std::string& str)
 {
     if (str.empty())
     {
@@ -236,42 +236,42 @@ bool Json::isUint32(const char* key)
 
 bool Json::isUint64(const char* key)
 {
-    return _impl->isUint64(key);    
+    return _impl->isUint64(key);
 }
 
 bool Json::isInt32(const char* key)
 {
-    return _impl->isInt32(key);    
+    return _impl->isInt32(key);
 }
 
 bool Json::isInt64(const char* key)
 {
-    return _impl->isInt64(key);    
+    return _impl->isInt64(key);
 }
 
 bool Json::isDouble(const char* key)
 {
-    return _impl->isDouble(key);    
+    return _impl->isDouble(key);
 }
 
 bool Json::isNumber(const char* key)
 {
-    return _impl->isNumber(key);    
+    return _impl->isNumber(key);
 }
 
 bool Json::isString(const char* key)
 {
-    return _impl->isString(key);    
+    return _impl->isString(key);
 }
 
 bool Json::isObject(const char* key)
 {
-    return _impl->isObject(key);    
+    return _impl->isObject(key);
 }
 
 bool Json::isArray(const char* key)
 {
-    return _impl->isArray(key);    
+    return _impl->isArray(key);
 }
 
 bool Json::containsKey(const char* key)

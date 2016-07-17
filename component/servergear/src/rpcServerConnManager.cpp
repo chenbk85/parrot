@@ -6,8 +6,8 @@
 
 namespace parrot
 {
-RpcServerConnManager::RpcServerConnManager(RpcServerThread* thread)
-    : _thread(thread), _localConnList(), _random(), _registeredConnMap()
+RpcServerConnManager::RpcServerConnManager(RpcServerThread* /*thread*/)
+    : /* _thread(thread), */ _localConnList(), _random(), _registeredConnMap()
 {
 }
 

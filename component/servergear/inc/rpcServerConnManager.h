@@ -39,7 +39,7 @@ class RpcServerConnManager
     void onTimeout(WsServerConn<RpcSession>*) override;
 
   private:
-    RpcServerThread* _thread;
+//    RpcServerThread* _thread;
     std::list<std::unique_ptr<RpcServerConn>> _localConnList;
     MtRandom _random;
 

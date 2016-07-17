@@ -1,20 +1,20 @@
 #include <iostream>
 #include <string>
 
-#include "json.h"
-#include "mtRandom.h"
-#include "logger.h"
-#include "wsPacket.h"
 #include "ioEvent.h"
-#include "wsConfig.h"
+#include "json.h"
+#include "logger.h"
 #include "macroFuncs.h"
+#include "mtRandom.h"
+#include "wsConfig.h"
+#include "wsPacket.h"
 #include "wsTranslayer.h"
 
 namespace parrot
 {
-WsTranslayer::WsTranslayer(IoEvent& io,
-                           bool recvMasked,
-                           bool sendMasked,
+WsTranslayer::WsTranslayer(IoEvent&        io,
+                           bool            recvMasked,
+                           bool            sendMasked,
                            const WsConfig& cfg)
     : _io(io),
       _needRecvMasked(recvMasked),
@@ -63,7 +63,7 @@ void WsTranslayer::registerOnErrorCb(std::function<void(eCodes)>&& cb)
 eCodes WsTranslayer::recvData()
 {
     uint32_t rcvdLen = 0;
-    eCodes code      = eCodes::ST_Ok;
+    eCodes   code    = eCodes::ST_Ok;
 
     try
     {
@@ -84,14 +84,14 @@ eCodes WsTranslayer::recvData()
 eCodes WsTranslayer::sendData()
 {
     uint32_t sentLen = 0;
-    eCodes code      = eCodes::ST_Ok;
+    eCodes   code    = eCodes::ST_Ok;
 
     do
     {
         if (_needSendLen == 0 || _needSendLen == _sentLen)
         {
             _needSendLen = 0;
-            code = _wsEncoder->loadBuff();
+            code         = _wsEncoder->loadBuff();
             if (code == eCodes::ST_Complete)
             {
                 return code;
@@ -133,7 +133,7 @@ eCodes WsTranslayer::sendData()
 
 void WsTranslayer::sendPacket(std::list<std::unique_ptr<WsPacket>>& pktList)
 {
-    LOG_DEBUG("WsTransLayer::sendPacket: List version");    
+    LOG_DEBUG("WsTransLayer::sendPacket: List version");
     for (auto& p : pktList)
     {
         _pktList.emplace_back(std::move(p));
@@ -142,7 +142,7 @@ void WsTranslayer::sendPacket(std::list<std::unique_ptr<WsPacket>>& pktList)
 
 void WsTranslayer::sendPacket(std::unique_ptr<WsPacket>& pkt)
 {
-    LOG_DEBUG("WsTransLayer::sendPacket: Single pkt version");     
+    LOG_DEBUG("WsTransLayer::sendPacket: Single pkt version");
     _pktList.emplace_back(std::move(pkt));
 }
 
